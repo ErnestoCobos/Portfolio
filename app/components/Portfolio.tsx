@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
+import dynamic from "next/dynamic";
 import {
   APPROACH,
   EXPERIENCE,
@@ -28,6 +29,13 @@ import {
   useReducedMotion,
   useTicker,
 } from "./portfolio-visuals";
+
+// Dev-only live terminal. In production the const folds to null so the module
+// is never imported and gets tree-shaken from the bundle.
+const LiveTerminal =
+  process.env.NODE_ENV === "development"
+    ? dynamic(() => import("./LiveTerminal"), { ssr: false })
+    : null;
 
 function useIsMobile(breakpoint = 768) {
   const [mobile, setMobile] = useState(false);
@@ -855,11 +863,13 @@ function SectionHeader({
 
 function Section({
   id,
+  fsPath,
   children,
   mobile,
   dark,
 }: {
   id?: string;
+  fsPath?: string;
   children: ReactNode;
   mobile: boolean;
   dark?: boolean;
@@ -867,6 +877,8 @@ function Section({
   return (
     <section
       id={id}
+      data-fs-path={fsPath}
+      data-fs-type={fsPath ? "dir" : undefined}
       style={{
         padding: mobile ? "48px 16px" : "80px 48px",
         background: dark ? "#08080C" : "transparent",
@@ -882,7 +894,7 @@ function Section({
 /* ─── About ─────────────────────────────────────────────── */
 function About({ mobile }: { mobile: boolean }) {
   return (
-    <Section id="about" mobile={mobile}>
+    <Section id="about" fsPath="/about" mobile={mobile}>
       <SectionHeader n={1} t="about" action="cat ./about.md" />
       <div
         style={{
@@ -917,25 +929,27 @@ function About({ mobile }: { mobile: boolean }) {
               lineHeight: 1.7,
             }}
           >
-            <div>
-              name: <span style={{ color: "var(--fg)" }}>ernesto cobos</span>
+            <div data-fs-path="/about/name.txt" data-fs-type="file">
+              name: <span data-fs-text style={{ color: "var(--fg)" }}>ernesto cobos</span>
             </div>
-            <div>
-              role: <span style={{ color: "var(--fg)" }}>cloud architect</span>
+            <div data-fs-path="/about/role.txt" data-fs-type="file">
+              role: <span data-fs-text style={{ color: "var(--fg)" }}>cloud architect</span>
             </div>
-            <div>
-              loc:  <span style={{ color: "var(--fg)" }}>mx · utc-6</span>
+            <div data-fs-path="/about/location.txt" data-fs-type="file">
+              loc:  <span data-fs-text style={{ color: "var(--fg)" }}>mx · utc-6</span>
             </div>
-            <div>
-              since: <span style={{ color: "var(--fg)" }}>2017</span>
+            <div data-fs-path="/about/since.txt" data-fs-type="file">
+              since: <span data-fs-text style={{ color: "var(--fg)" }}>2017</span>
             </div>
-            <div>
-              status: <span style={{ color: "var(--cyan)" }}>● online</span>
+            <div data-fs-path="/about/status.txt" data-fs-type="file">
+              status: <span data-fs-text style={{ color: "var(--cyan)" }}>● online</span>
             </div>
           </div>
         </div>
         <div>
           <h2
+            data-fs-path="/about/headline.md"
+            data-fs-type="file"
             style={{
               fontSize: mobile ? 26 : 40,
               fontWeight: 500,
@@ -944,9 +958,13 @@ function About({ mobile }: { mobile: boolean }) {
               letterSpacing: "-0.025em",
             }}
           >
-            La plataforma es el producto. Lo demás es código en busca de un host.
+            <span data-fs-text>
+              La plataforma es el producto. Lo demás es código en busca de un host.
+            </span>
           </h2>
           <p
+            data-fs-path="/about/bio.md"
+            data-fs-type="file"
             style={{
               color: "var(--muted)",
               fontSize: mobile ? 15 : 17,
@@ -954,9 +972,11 @@ function About({ mobile }: { mobile: boolean }) {
               marginBottom: 16,
             }}
           >
-            Casi una década moviendo sistemas críticos a entornos cloud-native.
-            Trato la infra como producto interno: SLOs, golden paths, DX
-            medible.
+            <span data-fs-text>
+              Casi una década moviendo sistemas críticos a entornos cloud-native.
+              Trato la infra como producto interno: SLOs, golden paths, DX
+              medible.
+            </span>
           </p>
           <p
             style={{
@@ -999,7 +1019,7 @@ function About({ mobile }: { mobile: boolean }) {
 /* ─── Stack ─────────────────────────────────────────────── */
 function Stack({ mobile }: { mobile: boolean }) {
   return (
-    <Section id="stack" mobile={mobile} dark>
+    <Section id="stack" fsPath="/stack" mobile={mobile} dark>
       <SectionHeader n={2} t="stack" action="ls -la ./tools | wc -l → 38" />
       <div
         style={{
@@ -1137,7 +1157,7 @@ function Infra({ mobile }: { mobile: boolean }) {
     { t: "+58s", m: "Falco: shell-in-container (resolved)", c: "var(--violet)" },
   ];
   return (
-    <Section id="infra" mobile={mobile}>
+    <Section id="infra" fsPath="/infra" mobile={mobile}>
       <SectionHeader n={3} t="infrastructure" action="watch -n1 ./status" />
       <div
         style={{
@@ -1232,7 +1252,7 @@ function Infra({ mobile }: { mobile: boolean }) {
 /* ─── Work ──────────────────────────────────────────────── */
 function Work({ mobile }: { mobile: boolean }) {
   return (
-    <Section id="work" mobile={mobile} dark>
+    <Section id="work" fsPath="/work" mobile={mobile} dark>
       <SectionHeader
         n={4}
         t="showcase · proyectos"
@@ -1277,7 +1297,9 @@ function Work({ mobile }: { mobile: boolean }) {
               : "rgba(0,212,255,.6)";
           return (
             <div
-              key={p.name}
+              key={p.slug}
+              data-fs-path={`/work/${p.slug}.md`}
+              data-fs-type="file"
               style={{
                 border: "1px solid var(--hairline-strong)",
                 borderRadius: 10,
@@ -1398,7 +1420,7 @@ function Work({ mobile }: { mobile: boolean }) {
 /* ─── Experience ─────────────────────────────────────────── */
 function Experience({ mobile }: { mobile: boolean }) {
   return (
-    <Section id="exp" mobile={mobile}>
+    <Section id="exp" fsPath="/experience" mobile={mobile}>
       <SectionHeader n={5} t="experience" action="git log --oneline" />
       <div
         className="mono"
@@ -1433,7 +1455,7 @@ function Experience({ mobile }: { mobile: boolean }) {
 /* ─── Trends ─────────────────────────────────────────────── */
 function Trends({ mobile }: { mobile: boolean }) {
   return (
-    <Section id="trends" mobile={mobile} dark>
+    <Section id="trends" fsPath="/trends" mobile={mobile} dark>
       <SectionHeader n={6} t="2026 · feature flags" action="ls ./flags" />
       <div
         style={{
@@ -1496,7 +1518,7 @@ function Trends({ mobile }: { mobile: boolean }) {
 /* ─── Blog ───────────────────────────────────────────────── */
 function Blog({ mobile }: { mobile: boolean }) {
   return (
-    <Section id="blog" mobile={mobile}>
+    <Section id="blog" fsPath="/blog" mobile={mobile}>
       <SectionHeader n={7} t="notes" action={`tail -n ${POSTS.length} ./blog`} />
       <div
         className="mono"
@@ -1533,7 +1555,7 @@ function Blog({ mobile }: { mobile: boolean }) {
 /* ─── Approach ───────────────────────────────────────────── */
 function Approach({ mobile }: { mobile: boolean }) {
   return (
-    <Section id="approach" mobile={mobile} dark>
+    <Section id="approach" fsPath="/approach" mobile={mobile} dark>
       <SectionHeader n={8} t="mi enfoque" action="man cobos" />
       <div style={{ marginBottom: mobile ? 40 : 56, maxWidth: 720 }}>
         <h2
@@ -1814,6 +1836,8 @@ function Contact({ mobile }: { mobile: boolean }) {
   return (
     <section
       id="contact"
+      data-fs-path="/contact"
+      data-fs-type="dir"
       style={{
         padding: mobile ? "48px 16px" : "80px 48px",
         background: "transparent",
@@ -1969,6 +1993,7 @@ export default function Portfolio() {
       <Blog mobile={mobile} />
       <Approach mobile={mobile} />
       <Contact mobile={mobile} />
+      {LiveTerminal && <LiveTerminal />}
     </div>
   );
 }

@@ -18,6 +18,7 @@ export const STACK = [
 ];
 
 export type Project = {
+  slug: string;
   name: string;
   url: string;
   tag: string;
@@ -28,6 +29,7 @@ export type Project = {
 
 export const PROJECTS: Project[] = [
   {
+    slug: "enkiflow",
     name: "EnkiFlow",
     url: "enkiflow.com",
     tag: "SaaS · en producción",
@@ -41,6 +43,7 @@ export const PROJECTS: Project[] = [
     accent: "cyan",
   },
   {
+    slug: "legacy-migration",
     name: "Migración legacy → cloud-native",
     url: "case study",
     tag: "Sector regulado",
@@ -54,6 +57,7 @@ export const PROJECTS: Project[] = [
     accent: "violet",
   },
   {
+    slug: "idp",
     name: "Plataforma interna (IDP)",
     url: "interno",
     tag: "DevEx",
