@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# cobos.io · portfolio
 
-## Getting Started
+Personal portfolio of **Ernesto Cobos** — Cloud Architect · Platform Engineer · DevSecOps.
 
-First, run the development server:
+> Operator-console aesthetic: terminal-flavored, data-rich, the portfolio as a control plane.
+
+## Stack
+
+- [Next.js 16](https://nextjs.org) (App Router, React Compiler, Turbopack)
+- React 19
+- Tailwind v4 (tokens) + plain CSS variables for the design system
+- TypeScript
+
+## Local development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Build
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+pnpm build   # production build (statically prerendered)
+pnpm start   # serve the build
+pnpm lint    # eslint
+```
 
-## Learn More
+## Project structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+app/
+├── layout.tsx           ─ root layout, fonts (Inter, Inter Tight, JetBrains Mono)
+├── globals.css          ─ design tokens (cyan/violet on dark) + utility classes
+├── page.tsx             ─ portfolio entry
+└── components/
+    ├── Portfolio.tsx        ─ all sections (nav, hero, about, stack, infra, work, exp,
+    │                          trends, blog, approach, contact)
+    ├── portfolio-data.ts    ─ profile data, projects, experience, posts
+    └── portfolio-visuals.tsx ─ animated canvas/svg primitives + hooks
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Design system tokens
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Token | Value |
+|---|---|
+| `--bg` | `#0A0A0F` |
+| `--surface` | `#11111B` |
+| `--cyan` | `#00D4FF` |
+| `--violet` | `#7C3AED` |
+| `--fg` | `#F8FAFC` |
+| `--muted` | `#94A3B8` |
 
-## Deploy on Vercel
+Type pairing: **Inter Tight** display · **Inter** body · **JetBrains Mono** for terminal-flavored UI.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Contact
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- email · [hola@cobos.io](mailto:hola@cobos.io)
+- web · [cobos.io](https://cobos.io)
+- github · [github.com/ErnestoCobos](https://github.com/ErnestoCobos)
