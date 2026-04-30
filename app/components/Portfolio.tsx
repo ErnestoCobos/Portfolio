@@ -683,17 +683,32 @@ function Hero({ mobile }: { mobile: boolean }) {
             <h1
               style={{
                 fontFamily: "var(--font-jetbrains-mono)",
-                fontSize: mobile ? 34 : 52,
-                lineHeight: 1,
+                fontSize: mobile ? 36 : 44,
+                lineHeight: mobile ? 0.98 : 1,
                 letterSpacing: "-0.04em",
                 fontWeight: 500,
                 marginBottom: 14,
               }}
             >
-              cobos<span style={{ color: accent }}>::</span>cloud_architect
-              <br />
-              <span style={{ color: violet }}>+</span>{" "}
-              <span style={{ color: "var(--muted)" }}>devsecops</span>
+              {mobile ? (
+                <>
+                  cobos<span style={{ color: accent }}>::</span>
+                  <br />
+                  <span style={{ color: "var(--muted)" }}>cloud_</span>
+                  <wbr />
+                  architect
+                  <br />
+                  <span style={{ color: violet }}>+</span>{" "}
+                  <span style={{ color: "var(--muted)" }}>devsecops</span>
+                </>
+              ) : (
+                <>
+                  cobos<span style={{ color: accent }}>::</span>cloud_architect
+                  <br />
+                  <span style={{ color: violet }}>+</span>{" "}
+                  <span style={{ color: "var(--muted)" }}>devsecops</span>
+                </>
+              )}
             </h1>
             <p
               style={{
@@ -2006,8 +2021,9 @@ export default function Portfolio() {
   return (
     <div className="cobos-art">
       <span id="top" aria-hidden style={{ position: "absolute" }} />
+      {mobile && <Nav mobile={mobile} />}
       <Hero mobile={mobile} />
-      <Nav mobile={mobile} />
+      {!mobile && <Nav mobile={mobile} />}
       <About mobile={mobile} />
       <Stack mobile={mobile} />
       <Infra mobile={mobile} />
