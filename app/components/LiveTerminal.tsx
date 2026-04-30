@@ -576,11 +576,15 @@ export default function LiveTerminal({
     [cmds, cwd, addLines]
   );
 
-  // backtick toggles · Esc closes
+  // Backquote (`) toggles · Esc closes.
+  // Use e.code (physical key) instead of e.key so it works on layouts where
+  // backtick is a dead key (Spanish, Portuguese, French, etc.). e.code is
+  // locale-independent.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement | null)?.tagName ?? "";
-      if (e.key === "`" && !["INPUT", "TEXTAREA"].includes(tag)) {
+      const isBackquote = e.code === "Backquote" || e.key === "`";
+      if (isBackquote && !["INPUT", "TEXTAREA"].includes(tag) && !e.metaKey && !e.ctrlKey && !e.altKey) {
         e.preventDefault();
         setOpen((o) => !o);
       } else if (e.key === "Escape" && open) {
@@ -665,7 +669,7 @@ export default function LiveTerminal({
 
   const closedPillStyle: CSSProperties = {
     position: "fixed",
-    bottom: 16,
+    bottom: 100,
     right: 16,
     zIndex: 50,
     display: "flex",
@@ -708,43 +712,39 @@ export default function LiveTerminal({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          aria-label="Open terminal"
+          aria-label="Open terminal console"
           className="tap"
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 8,
+            gap: 6,
             color: accent,
             background: "transparent",
             border: "none",
-            padding: 0,
+            padding: "2px 4px",
             cursor: "pointer",
             fontFamily: "inherit",
             fontSize: 11,
           }}
         >
-          <span
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: 999,
-              background: accent,
-              boxShadow: `0 0 6px ${accent}`,
-            }}
-          />
-          press{" "}
+          <span style={{ color: "var(--muted)" }}>open console</span>
+          <span style={{ color: "var(--muted)" }}>·</span>
           <kbd
+            aria-label="backquote key"
             style={{
               background: "rgba(255,255,255,.08)",
-              border: "1px solid rgba(255,255,255,.14)",
-              borderRadius: 3,
-              padding: "1px 5px",
+              border: "1px solid rgba(255,255,255,.18)",
+              borderRadius: 4,
+              padding: "1px 7px",
               color: "#F8FAFC",
+              fontSize: 12,
+              minWidth: 18,
+              textAlign: "center",
+              lineHeight: 1.2,
             }}
           >
             `
-          </kbd>{" "}
-          · open console
+          </kbd>
         </button>
       </div>
     );
