@@ -462,22 +462,17 @@ function Hero({ mobile }: { mobile: boolean }) {
     { k: "cmd" as const, v: `${prompt} whoami` },
     {
       k: "out" as const,
-      v: "ernesto.cobos · cloud_architect+platform_engineer+devsecops",
+      v: "ernesto.cobos · cloud_architect+devsecops",
     },
     { k: "cmd" as const, v: `${prompt} uptime` },
     {
       k: "out" as const,
-      v: "9 years, 4 months · current sprint:  enkiflow.com (saas · prod)",
-    },
-    { k: "cmd" as const, v: `${prompt} ls ./expertise` },
-    {
-      k: "out" as const,
-      v: "aws/  gcp/  azure/  k8s/  argo/  vault/  opa/  terraform/  istio/",
+      v: "9y 4m · sprint: enkiflow.com (saas · prod)",
     },
     { k: "cmd" as const, v: `${prompt} echo $POSITION` },
     {
       k: "out" as const,
-      v: "one of the cloud architects you actually want answering at 3am.",
+      v: "one of the cloud architects you want answering at 3am.",
     },
     { k: "cmd" as const, v: `${prompt} ` },
   ];
@@ -496,13 +491,13 @@ function Hero({ mobile }: { mobile: boolean }) {
   }
   const showCursor = Math.floor(t * 2) % 2 === 0;
   const topoW = mobile ? Math.min(vw, 600) : Math.min(vw - 96, 1440);
-  const topoH = mobile ? 880 : 1100;
+  const topoH = mobile ? 720 : 760;
 
   return (
     <section
       style={{
-        padding: mobile ? "24px 16px" : "40px 48px",
-        minHeight: mobile ? 880 : 1100,
+        padding: mobile ? "20px 16px 40px" : "32px 48px 40px",
+        minHeight: mobile ? "auto" : 720,
         position: "relative",
         overflow: "hidden",
       }}
@@ -627,9 +622,9 @@ function Hero({ mobile }: { mobile: boolean }) {
 
         <div
           style={{
-            padding: mobile ? "20px 18px 14px" : "28px 36px 18px",
+            padding: mobile ? "12px 18px 8px" : "14px 36px 10px",
             borderBottom: "1px solid var(--hairline)",
-            minHeight: mobile ? 200 : 240,
+            minHeight: mobile ? 120 : 130,
           }}
         >
           {typed.map((l, i) => {
@@ -639,8 +634,8 @@ function Hero({ mobile }: { mobile: boolean }) {
                 key={i}
                 className="mono"
                 style={{
-                  fontSize: mobile ? 12 : 14,
-                  lineHeight: 1.75,
+                  fontSize: mobile ? 12 : 13,
+                  lineHeight: 1.55,
                   color: l.k === "cmd" ? accent : "var(--fg)",
                   whiteSpace: "pre-wrap",
                 }}
@@ -668,10 +663,10 @@ function Hero({ mobile }: { mobile: boolean }) {
           style={{
             display: "grid",
             gridTemplateColumns: mobile ? "1fr" : "1.1fr 1fr",
-            gap: mobile ? 32 : 48,
-            padding: mobile ? "32px 18px 28px" : "56px 40px 48px",
+            gap: mobile ? 20 : 32,
+            padding: mobile ? "20px 18px 16px" : "20px 36px 18px",
             alignItems: "center",
-            minHeight: mobile ? 0 : 540,
+            minHeight: mobile ? 0 : 240,
           }}
         >
           <div>
@@ -688,18 +683,14 @@ function Hero({ mobile }: { mobile: boolean }) {
             <h1
               style={{
                 fontFamily: "var(--font-jetbrains-mono)",
-                fontSize: mobile ? 40 : 88,
-                lineHeight: 0.95,
+                fontSize: mobile ? 34 : 52,
+                lineHeight: 1,
                 letterSpacing: "-0.04em",
                 fontWeight: 500,
-                marginBottom: 24,
+                marginBottom: 14,
               }}
             >
-              cobos<span style={{ color: accent }}>::</span>
-              <br />
-              <span style={{ color: "var(--muted)" }}>cloud_</span>
-              <wbr />
-              architect
+              cobos<span style={{ color: accent }}>::</span>cloud_architect
               <br />
               <span style={{ color: violet }}>+</span>{" "}
               <span style={{ color: "var(--muted)" }}>devsecops</span>
@@ -707,10 +698,10 @@ function Hero({ mobile }: { mobile: boolean }) {
             <p
               style={{
                 color: "var(--muted)",
-                fontSize: mobile ? 15 : 18,
-                maxWidth: 560,
-                marginBottom: 28,
-                lineHeight: 1.6,
+                fontSize: mobile ? 15 : 16,
+                maxWidth: 540,
+                marginBottom: 22,
+                lineHeight: 1.55,
               }}
             >
               Migraciones legacy → cloud-native, Kubernetes en sectores
@@ -730,13 +721,13 @@ function Hero({ mobile }: { mobile: boolean }) {
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              minHeight: mobile ? 280 : 480,
+              minHeight: mobile ? 200 : 240,
             }}
           >
             <div
               style={{
                 position: "absolute",
-                inset: mobile ? -20 : -40,
+                inset: mobile ? -20 : -32,
                 background: `radial-gradient(circle, ${accent}26, transparent 60%)`,
                 filter: "blur(20px)",
               }}
@@ -751,15 +742,15 @@ function Hero({ mobile }: { mobile: boolean }) {
               }}
             >
               {mounted && (
-                <IsoCloud size={mobile ? 240 : 420} animate={!reduced} />
+                <IsoCloud size={mobile ? 180 : 240} animate={!reduced} />
               )}
             </div>
             {mounted &&
               !mobile &&
               ["EKS", "GKE", "AKS", "Argo CD", "Vault", "OPA"].map((l, i) => {
                 const a = t * 0.32 + i * ((Math.PI * 2) / 6);
-                const dx = (Math.cos(a) * 210).toFixed(2);
-                const dy = (Math.sin(a) * 125).toFixed(2);
+                const dx = (Math.cos(a) * 130).toFixed(2);
+                const dy = (Math.sin(a) * 80).toFixed(2);
                 const c = i % 2 === 0 ? accent : violet;
                 return (
                   <div
@@ -815,6 +806,39 @@ function Hero({ mobile }: { mobile: boolean }) {
           </span>
         </div>
       </div>
+
+      <a
+        href="#about"
+        aria-label="Scroll to about section"
+        className="mono tap"
+        style={{
+          position: "relative",
+          zIndex: 2,
+          marginTop: mobile ? 12 : 14,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+          color: "var(--muted)",
+          fontSize: 10,
+          letterSpacing: ".18em",
+          textTransform: "uppercase",
+        }}
+      >
+        <span>scroll · /about</span>
+        <span
+          aria-hidden
+          style={{
+            display: "inline-block",
+            color: accent,
+            fontSize: 14,
+            lineHeight: 1,
+            animation: reduced ? "none" : "hero-bounce 1.6s ease-in-out infinite",
+          }}
+        >
+          ↓
+        </span>
+      </a>
     </section>
   );
 }
@@ -1982,8 +2006,8 @@ export default function Portfolio() {
   return (
     <div className="cobos-art">
       <span id="top" aria-hidden style={{ position: "absolute" }} />
-      <Nav mobile={mobile} />
       <Hero mobile={mobile} />
+      <Nav mobile={mobile} />
       <About mobile={mobile} />
       <Stack mobile={mobile} />
       <Infra mobile={mobile} />
