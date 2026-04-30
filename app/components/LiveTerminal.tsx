@@ -667,11 +667,20 @@ export default function LiveTerminal({
     }, 80);
   };
 
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    const sync = () => setIsMobile(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
   const closedPillStyle: CSSProperties = {
     position: "fixed",
-    bottom: 100,
+    bottom: 52,
     right: 16,
-    zIndex: 50,
+    zIndex: 55,
     display: "flex",
     alignItems: "center",
     gap: 8,
@@ -709,43 +718,45 @@ export default function LiveTerminal({
         >
           [?] help
         </button>
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          aria-label="Open terminal console"
-          className="tap"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            color: accent,
-            background: "transparent",
-            border: "none",
-            padding: "2px 4px",
-            cursor: "pointer",
-            fontFamily: "inherit",
-            fontSize: 11,
-          }}
-        >
-          <span style={{ color: "var(--muted)" }}>open console</span>
-          <span style={{ color: "var(--muted)" }}>·</span>
-          <kbd
-            aria-label="backquote key"
+        {!isMobile && (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-label="Open terminal console"
+            className="tap"
             style={{
-              background: "rgba(255,255,255,.08)",
-              border: "1px solid rgba(255,255,255,.18)",
-              borderRadius: 4,
-              padding: "1px 7px",
-              color: "#F8FAFC",
-              fontSize: 12,
-              minWidth: 18,
-              textAlign: "center",
-              lineHeight: 1.2,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              color: accent,
+              background: "transparent",
+              border: "none",
+              padding: "2px 4px",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              fontSize: 11,
             }}
           >
-            `
-          </kbd>
-        </button>
+            <span style={{ color: "var(--muted)" }}>open console</span>
+            <span style={{ color: "var(--muted)" }}>·</span>
+            <kbd
+              aria-label="backquote key"
+              style={{
+                background: "rgba(255,255,255,.08)",
+                border: "1px solid rgba(255,255,255,.18)",
+                borderRadius: 4,
+                padding: "1px 7px",
+                color: "#F8FAFC",
+                fontSize: 12,
+                minWidth: 18,
+                textAlign: "center",
+                lineHeight: 1.2,
+              }}
+            >
+              `
+            </kbd>
+          </button>
+        )}
       </div>
     );
   }

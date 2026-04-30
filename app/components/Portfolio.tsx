@@ -76,7 +76,7 @@ function useActiveSection(): string | null {
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
         if (visible.length > 0) setActive(visible[0].target.id);
       },
-      { rootMargin: "-72px 0px -55% 0px", threshold: [0, 0.25, 0.5, 0.75] }
+      { rootMargin: "0px 0px -55% 0px", threshold: [0, 0.25, 0.5, 0.75] }
     );
     elements.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
@@ -276,33 +276,44 @@ function MobileMenu({
   );
 }
 
+/**
+ * tmux-style status dock: fixed at the bottom of the viewport, ~36px tall,
+ * always visible. Left segment shows the active section as a path indicator
+ * (cobos:: > /work), center holds the navigation chips, right shows status
+ * (online · ./contact). Mobile collapses to logo + path + ≡ trigger.
+ */
 function Nav({ mobile }: { mobile: boolean }) {
   const active = useActiveSection();
   const [menuOpen, setMenuOpen] = useState(false);
+  const activeLabel =
+    NAV.find((n) => n.id === active)?.label.toLowerCase() ?? "/";
+
   return (
-    <div
-      style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 60,
-        padding: mobile ? "10px 16px" : "12px 48px",
-        background:
-          "linear-gradient(180deg, rgba(6,6,10,.92) 0%, rgba(6,6,10,.78) 75%, rgba(6,6,10,0) 100%)",
-        backdropFilter: "blur(14px) saturate(140%)",
-        WebkitBackdropFilter: "blur(14px) saturate(140%)",
-        borderBottom: "1px solid var(--hairline)",
-      }}
-    >
+    <>
       <div
+        role="navigation"
+        aria-label="Sections"
         style={{
-          maxWidth: 1280,
-          margin: "0 auto",
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 60,
+          height: 36,
+          padding: mobile ? "0 10px" : "0 14px",
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
-          gap: 16,
+          gap: mobile ? 8 : 14,
+          background: "rgba(6,6,10,.85)",
+          backdropFilter: "blur(14px) saturate(160%)",
+          WebkitBackdropFilter: "blur(14px) saturate(160%)",
+          borderTop: "1px solid var(--hairline-strong)",
+          boxShadow: "0 -8px 24px rgba(0,0,0,.45)",
+          fontFamily: "var(--font-jetbrains-mono)",
+          fontSize: 11,
         }}
       >
+        {/* LEFT: logo + active-path */}
         <a
           href="#top"
           aria-label="Volver al inicio"
@@ -310,42 +321,55 @@ function Nav({ mobile }: { mobile: boolean }) {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 10,
+            gap: 8,
             borderRadius: 4,
-            padding: 4,
+            padding: "4px 8px 4px 4px",
+            background: "rgba(0,212,255,.06)",
+            border: "1px solid rgba(0,212,255,.22)",
+            color: "var(--fg)",
+            flexShrink: 0,
           }}
         >
-          <CobosLogo />
+          <span style={{ width: 16, height: 16, display: "block" }}>
+            <CobosLogo />
+          </span>
           <span
-            className="mono"
             style={{
-              fontSize: mobile ? 13 : 14,
+              fontSize: 11,
               fontWeight: 500,
-              color: "var(--fg)",
               letterSpacing: "-0.01em",
               whiteSpace: "nowrap",
             }}
           >
             cobos<span style={{ color: "var(--cyan)" }}>::</span>
-            {mobile ? (
-              <span style={{ color: "var(--muted)" }}>architect</span>
-            ) : (
-              "cloud_architect"
-            )}
           </span>
         </a>
+
+        {/* path indicator (active section) */}
+        <span
+          className="mono"
+          style={{
+            color: "var(--muted)",
+            whiteSpace: "nowrap",
+            flexShrink: 0,
+          }}
+        >
+          <span style={{ color: "var(--cyan)" }}>›</span>{" "}
+          <span style={{ color: "var(--fg)" }}>/{activeLabel}</span>
+        </span>
+
+        {/* CENTER: chips (desktop only) */}
         {!mobile && (
           <nav
             style={{
               display: "flex",
-              gap: 2,
-              padding: 4,
-              borderRadius: 8,
-              background: "rgba(17,17,24,.5)",
-              border: "1px solid var(--hairline)",
+              gap: 1,
+              marginLeft: "auto",
+              marginRight: "auto",
+              alignItems: "center",
             }}
           >
-            {NAV.slice(0, 7).map((n) => {
+            {NAV.map((n) => {
               const isActive = active === n.id;
               return (
                 <a
@@ -354,13 +378,12 @@ function Nav({ mobile }: { mobile: boolean }) {
                   data-active={isActive ? "true" : undefined}
                   className="mono nav-chip"
                   style={{
-                    padding: "6px 12px",
-                    fontSize: 12,
+                    padding: "5px 10px",
+                    fontSize: 11,
                     color: isActive ? "var(--cyan)" : "var(--muted)",
-                    background: isActive ? "rgba(0,212,255,.08)" : "transparent",
-                    borderRadius: 6,
+                    background: isActive ? "rgba(0,212,255,.10)" : "transparent",
+                    borderRadius: 4,
                     cursor: "pointer",
-                    transition: "color .2s, background .2s",
                   }}
                 >
                   /{n.label.toLowerCase()}
@@ -369,81 +392,85 @@ function Nav({ mobile }: { mobile: boolean }) {
             })}
           </nav>
         )}
-        <div style={{ display: "flex", alignItems: "center", gap: mobile ? 8 : 12 }}>
-          {!mobile && (
-            <span
-              className="mono"
-              style={{
-                fontSize: 11,
-                color: "var(--muted)",
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-              }}
-            >
-              <span
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 999,
-                  background: "var(--cyan)",
-                  boxShadow: "0 0 6px var(--cyan)",
-                }}
-              />
-              online
-            </span>
-          )}
-          <a
-            href="#contact"
-            className="mono tap"
+
+        {/* mobile spacer */}
+        {mobile && <span style={{ flex: 1 }} />}
+
+        {/* RIGHT: online + ./contact + (mobile) menu */}
+        {!mobile && (
+          <span
             style={{
-              padding: mobile ? "10px 12px" : "8px 14px",
-              fontSize: mobile ? 13 : 12,
-              border: "1px solid var(--cyan)",
-              color: "var(--cyan)",
-              borderRadius: 6,
-              background: "rgba(0,212,255,.06)",
-              cursor: "pointer",
-              minHeight: mobile ? 40 : "auto",
+              color: "var(--muted)",
               display: "flex",
               alignItems: "center",
+              gap: 6,
+              flexShrink: 0,
             }}
           >
-            ./contact
-          </a>
-          {mobile && (
-            <button
-              type="button"
-              onClick={() => setMenuOpen(true)}
-              aria-label="Abrir menú"
-              aria-expanded={menuOpen}
-              className="mono tap"
+            <span
               style={{
-                padding: "10px 12px",
-                fontSize: 13,
-                border: "1px solid var(--hairline-strong)",
-                color: "var(--fg)",
-                borderRadius: 6,
-                background: "rgba(255,255,255,.03)",
-                minHeight: 40,
-                minWidth: 40,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
+                width: 6,
+                height: 6,
+                borderRadius: 999,
+                background: "var(--cyan)",
+                boxShadow: "0 0 8px var(--cyan)",
               }}
-            >
-              <span aria-hidden style={{ fontSize: 16, lineHeight: 1 }}>
-                ≡
-              </span>
-            </button>
-          )}
-        </div>
+            />
+            online
+          </span>
+        )}
+
+        <a
+          href="#contact"
+          className="mono tap"
+          style={{
+            padding: mobile ? "5px 10px" : "5px 12px",
+            border: "1px solid var(--cyan)",
+            color: "var(--cyan)",
+            borderRadius: 4,
+            background: "rgba(0,212,255,.08)",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            flexShrink: 0,
+            fontSize: 11,
+          }}
+        >
+          ./contact
+        </a>
+
+        {mobile && (
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            aria-label="Abrir menú"
+            aria-expanded={menuOpen}
+            className="mono tap"
+            style={{
+              width: 32,
+              height: 26,
+              padding: 0,
+              border: "1px solid var(--hairline-strong)",
+              color: "var(--fg)",
+              borderRadius: 4,
+              background: "rgba(255,255,255,.03)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
+          >
+            <span aria-hidden style={{ fontSize: 14, lineHeight: 1 }}>
+              ≡
+            </span>
+          </button>
+        )}
       </div>
       {mobile && menuOpen && (
         <MobileMenu active={active} onClose={() => setMenuOpen(false)} />
       )}
-    </div>
+    </>
   );
 }
 
@@ -462,17 +489,22 @@ function Hero({ mobile }: { mobile: boolean }) {
     { k: "cmd" as const, v: `${prompt} whoami` },
     {
       k: "out" as const,
-      v: "ernesto.cobos · cloud_architect+devsecops",
+      v: "ernesto.cobos · cloud_architect+platform_engineer+devsecops",
     },
     { k: "cmd" as const, v: `${prompt} uptime` },
     {
       k: "out" as const,
-      v: "9y 4m · sprint: enkiflow.com (saas · prod)",
+      v: "9 years, 4 months · current sprint:  enkiflow.com (saas · prod)",
+    },
+    { k: "cmd" as const, v: `${prompt} ls ./expertise` },
+    {
+      k: "out" as const,
+      v: "aws/  gcp/  azure/  k8s/  argo/  vault/  opa/  terraform/  istio/",
     },
     { k: "cmd" as const, v: `${prompt} echo $POSITION` },
     {
       k: "out" as const,
-      v: "one of the cloud architects you want answering at 3am.",
+      v: "one of the cloud architects you actually want answering at 3am.",
     },
     { k: "cmd" as const, v: `${prompt} ` },
   ];
@@ -491,15 +523,18 @@ function Hero({ mobile }: { mobile: boolean }) {
   }
   const showCursor = Math.floor(t * 2) % 2 === 0;
   const topoW = mobile ? Math.min(vw, 600) : Math.min(vw - 96, 1440);
-  const topoH = mobile ? 720 : 760;
+  const topoH = mobile ? 720 : 1000;
 
   return (
     <section
       style={{
-        padding: mobile ? "20px 16px 40px" : "32px 48px 40px",
-        minHeight: mobile ? "auto" : 720,
+        padding: mobile ? "20px 16px 32px" : "24px 48px 20px",
+        height: mobile ? "auto" : "calc(100vh - 36px)",
+        minHeight: mobile ? "auto" : 640,
         position: "relative",
         overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       <div
@@ -546,6 +581,8 @@ function Hero({ mobile }: { mobile: boolean }) {
           zIndex: 2,
           maxWidth: 1280,
           margin: "0 auto",
+          width: "100%",
+          flex: 1,
           border: "1px solid var(--hairline-strong)",
           borderRadius: 14,
           overflow: "hidden",
@@ -553,6 +590,8 @@ function Hero({ mobile }: { mobile: boolean }) {
           backdropFilter: "blur(24px) saturate(140%)",
           WebkitBackdropFilter: "blur(24px) saturate(140%)",
           boxShadow: `0 30px 80px rgba(0,0,0,.5), 0 0 80px ${accent}1A`,
+          display: "flex",
+          flexDirection: "column",
         }}
       >
         <div
@@ -622,9 +661,9 @@ function Hero({ mobile }: { mobile: boolean }) {
 
         <div
           style={{
-            padding: mobile ? "12px 18px 8px" : "14px 36px 10px",
+            padding: mobile ? "16px 18px 10px" : "20px 36px 14px",
             borderBottom: "1px solid var(--hairline)",
-            minHeight: mobile ? 120 : 130,
+            minHeight: mobile ? 160 : 200,
           }}
         >
           {typed.map((l, i) => {
@@ -634,8 +673,8 @@ function Hero({ mobile }: { mobile: boolean }) {
                 key={i}
                 className="mono"
                 style={{
-                  fontSize: mobile ? 12 : 13,
-                  lineHeight: 1.55,
+                  fontSize: mobile ? 12 : 14,
+                  lineHeight: 1.7,
                   color: l.k === "cmd" ? accent : "var(--fg)",
                   whiteSpace: "pre-wrap",
                 }}
@@ -663,10 +702,11 @@ function Hero({ mobile }: { mobile: boolean }) {
           style={{
             display: "grid",
             gridTemplateColumns: mobile ? "1fr" : "1.1fr 1fr",
-            gap: mobile ? 20 : 32,
-            padding: mobile ? "20px 18px 16px" : "20px 36px 18px",
+            gap: mobile ? 28 : 44,
+            padding: mobile ? "28px 18px 24px" : "40px 40px 32px",
             alignItems: "center",
-            minHeight: mobile ? 0 : 240,
+            flex: 1,
+            minHeight: mobile ? 0 : 380,
           }}
         >
           <div>
@@ -683,11 +723,11 @@ function Hero({ mobile }: { mobile: boolean }) {
             <h1
               style={{
                 fontFamily: "var(--font-jetbrains-mono)",
-                fontSize: mobile ? 36 : 44,
-                lineHeight: mobile ? 0.98 : 1,
+                fontSize: mobile ? 38 : 64,
+                lineHeight: mobile ? 0.98 : 0.98,
                 letterSpacing: "-0.04em",
                 fontWeight: 500,
-                marginBottom: 14,
+                marginBottom: 20,
               }}
             >
               {mobile ? (
@@ -736,7 +776,7 @@ function Hero({ mobile }: { mobile: boolean }) {
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              minHeight: mobile ? 200 : 240,
+              minHeight: mobile ? 220 : 320,
             }}
           >
             <div
@@ -757,15 +797,15 @@ function Hero({ mobile }: { mobile: boolean }) {
               }}
             >
               {mounted && (
-                <IsoCloud size={mobile ? 180 : 240} animate={!reduced} />
+                <IsoCloud size={mobile ? 200 : 320} animate={!reduced} />
               )}
             </div>
             {mounted &&
               !mobile &&
               ["EKS", "GKE", "AKS", "Argo CD", "Vault", "OPA"].map((l, i) => {
                 const a = t * 0.32 + i * ((Math.PI * 2) / 6);
-                const dx = (Math.cos(a) * 130).toFixed(2);
-                const dy = (Math.sin(a) * 80).toFixed(2);
+                const dx = (Math.cos(a) * 165).toFixed(2);
+                const dy = (Math.sin(a) * 100).toFixed(2);
                 const c = i % 2 === 0 ? accent : violet;
                 return (
                   <div
@@ -822,38 +862,6 @@ function Hero({ mobile }: { mobile: boolean }) {
         </div>
       </div>
 
-      <a
-        href="#about"
-        aria-label="Scroll to about section"
-        className="mono tap"
-        style={{
-          position: "relative",
-          zIndex: 2,
-          marginTop: mobile ? 12 : 14,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 8,
-          color: "var(--muted)",
-          fontSize: 10,
-          letterSpacing: ".18em",
-          textTransform: "uppercase",
-        }}
-      >
-        <span>scroll · /about</span>
-        <span
-          aria-hidden
-          style={{
-            display: "inline-block",
-            color: accent,
-            fontSize: 14,
-            lineHeight: 1,
-            animation: reduced ? "none" : "hero-bounce 1.6s ease-in-out infinite",
-          }}
-        >
-          ↓
-        </span>
-      </a>
     </section>
   );
 }
@@ -922,7 +930,7 @@ function Section({
         padding: mobile ? "48px 16px" : "80px 48px",
         background: dark ? "#08080C" : "transparent",
         borderTop: "1px solid var(--hairline)",
-        scrollMarginTop: 72,
+        scrollMarginTop: 16,
       }}
     >
       <div style={{ maxWidth: 1280, margin: "0 auto" }}>{children}</div>
@@ -1883,7 +1891,7 @@ function Contact({ mobile }: { mobile: boolean }) {
         borderTop: "1px solid var(--hairline)",
         position: "relative",
         overflow: "hidden",
-        scrollMarginTop: 72,
+        scrollMarginTop: 16,
       }}
     >
       <div
@@ -2019,11 +2027,10 @@ function Contact({ mobile }: { mobile: boolean }) {
 export default function Portfolio() {
   const mobile = useIsMobile();
   return (
-    <div className="cobos-art">
+    <div className="cobos-art" style={{ paddingBottom: 36 }}>
       <span id="top" aria-hidden style={{ position: "absolute" }} />
-      {mobile && <Nav mobile={mobile} />}
+      <Nav mobile={mobile} />
       <Hero mobile={mobile} />
-      {!mobile && <Nav mobile={mobile} />}
       <About mobile={mobile} />
       <Stack mobile={mobile} />
       <Infra mobile={mobile} />
