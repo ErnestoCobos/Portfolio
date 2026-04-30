@@ -446,7 +446,7 @@ function makeCommands(ctx: CmdContext): CmdMap {
       "we can edit the dom — watch the page change",
       'echo "¡hola desde la terminal!" > about/bio.md'
     );
-    await step("we can also remove nodes (with undo)", "rm work/idp.md");
+    await step("we can also remove nodes (with undo)", "rm work/portfolio.md");
     await step("and bring them back", "undo");
     await step("the theme is hot-swappable", "theme accent #ff6b9d");
     await step("back to default", "theme accent #00D4FF");
@@ -494,7 +494,7 @@ export default function LiveTerminal({
       c: "cyan",
       suggest: 'echo "¡hola!" > about/bio.md',
     },
-    { v: "  $ rm work/enkiflow.md", c: "cyan", suggest: "rm work/enkiflow.md" },
+    { v: "  $ rm work/portfolio.md", c: "cyan", suggest: "rm work/portfolio.md" },
     {
       v: "  $ theme accent #ff6b9d",
       c: "cyan",
@@ -763,6 +763,7 @@ export default function LiveTerminal({
 
   return (
     <div
+      onClick={() => inputRef.current?.focus()}
       style={{
         position: "fixed",
         left: 16,
@@ -790,7 +791,7 @@ export default function LiveTerminal({
           from { transform: translateY(-20px); opacity: 0 }
           to { transform: translateY(0); opacity: 1 }
         }
-        .lt-input { all: unset; flex: 1; color: #F8FAFC; font-family: var(--font-jetbrains-mono, ui-monospace); font-size: 13px; caret-color: ${accent}; }
+        .lt-input { appearance: none; -webkit-appearance: none; border: 0; outline: 0; background: transparent; padding: 0; margin: 0; flex: 1; min-width: 0; color: #F8FAFC; font-family: var(--font-jetbrains-mono, ui-monospace); font-size: 13px; line-height: 1.4; caret-color: ${accent}; }
         .lt-input::placeholder { color: rgba(255,255,255,.3); }
         .lt-line { font-family: var(--font-jetbrains-mono, ui-monospace); font-size: 13px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
         .lt-c-fg { color: #F8FAFC; }
@@ -984,10 +985,14 @@ export default function LiveTerminal({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKeyDown}
-          placeholder="try: tour · ls · cat about/bio.md · echo 'x' > about/bio.md · rm work/enkiflow.md"
+          placeholder="try: tour · ls · cat about/bio.md · echo 'x' > about/bio.md · rm work/portfolio.md"
           spellCheck={false}
+          autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"
+          type="text"
+          name="cobos-terminal-input"
+          aria-label="Terminal command input"
         />
       </div>
     </div>

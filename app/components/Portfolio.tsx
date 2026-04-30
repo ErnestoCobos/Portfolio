@@ -20,6 +20,7 @@ import {
   STACK,
   TRENDS,
 } from "./portfolio-data";
+import { ARCHITECTURES } from "./architectures";
 import {
   ArchDiagram,
   CloudTopology,
@@ -76,7 +77,7 @@ function useActiveSection(): string | null {
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
         if (visible.length > 0) setActive(visible[0].target.id);
       },
-      { rootMargin: "0px 0px -55% 0px", threshold: [0, 0.25, 0.5, 0.75] }
+      { rootMargin: "-36px 0px -55% 0px", threshold: [0, 0.25, 0.5, 0.75] }
     );
     elements.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
@@ -294,10 +295,8 @@ function Nav({ mobile }: { mobile: boolean }) {
         role="navigation"
         aria-label="Sections"
         style={{
-          position: "fixed",
-          bottom: 0,
-          left: 0,
-          right: 0,
+          position: "sticky",
+          top: 0,
           zIndex: 60,
           height: 36,
           padding: mobile ? "0 10px" : "0 14px",
@@ -308,7 +307,8 @@ function Nav({ mobile }: { mobile: boolean }) {
           backdropFilter: "blur(14px) saturate(160%)",
           WebkitBackdropFilter: "blur(14px) saturate(160%)",
           borderTop: "1px solid var(--hairline-strong)",
-          boxShadow: "0 -8px 24px rgba(0,0,0,.45)",
+          borderBottom: "1px solid var(--hairline-strong)",
+          boxShadow: "0 8px 24px rgba(0,0,0,.45)",
           fontFamily: "var(--font-jetbrains-mono)",
           fontSize: 11,
         }}
@@ -930,7 +930,7 @@ function Section({
         padding: mobile ? "48px 16px" : "80px 48px",
         background: dark ? "#08080C" : "transparent",
         borderTop: "1px solid var(--hairline)",
-        scrollMarginTop: 16,
+        scrollMarginTop: 52,
       }}
     >
       <div style={{ maxWidth: 1280, margin: "0 auto" }}>{children}</div>
@@ -951,22 +951,37 @@ function About({ mobile }: { mobile: boolean }) {
         }}
       >
         <div>
-          <div
+          <a
+            href={`https://${PROFILE.github}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`${PROFILE.name} on GitHub`}
             style={{
-              width: mobile ? 64 : 96,
-              height: mobile ? 64 : 96,
+              width: mobile ? 72 : 96,
+              height: mobile ? 72 : 96,
               borderRadius: 8,
               border: "1px solid var(--cyan)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontFamily: "var(--font-jetbrains-mono)",
-              fontSize: mobile ? 22 : 32,
-              color: "var(--cyan)",
+              display: "block",
+              overflow: "hidden",
+              boxShadow: "0 0 24px rgba(0,212,255,.18)",
+              transition: "box-shadow .2s, transform .2s",
             }}
           >
-            EC
-          </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={PROFILE.avatarUrl}
+              alt={PROFILE.name}
+              width={96}
+              height={96}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                display: "block",
+                filter: "saturate(.85) contrast(1.05)",
+              }}
+            />
+          </a>
           <div
             className="mono"
             style={{
@@ -1191,21 +1206,110 @@ function Gauge({
   );
 }
 
+const ARCH_EVENTS: Record<
+  string,
+  { t: string; m: string; c: string }[]
+> = {
+  "aws-saas": [
+    { t: "+12s", m: "CodePipeline · canary api-gateway@v2.41 → green", c: "var(--cyan)" },
+    { t: "+24s", m: "Cognito · MFA enrollment for tenant_842", c: "var(--violet)" },
+    { t: "+47s", m: "Aurora · scale 8→12 ACU (tenant_217 burst)", c: "var(--muted)" },
+    { t: "+58s", m: "WAF · 412 reqs blocked (rate-limit · /v2/auth)", c: "var(--violet)" },
+  ],
+  "gcp-bank": [
+    { t: "+09s", m: "Spanner · multi-region commit p99 = 67ms", c: "var(--cyan)" },
+    { t: "+22s", m: "VPC-SC · perimeter ingress denied (project mismatch)", c: "var(--violet)" },
+    { t: "+41s", m: "Cloud Armor · 2.4k DDoS reqs absorbed at edge", c: "var(--muted)" },
+    { t: "+55s", m: "DLP · PII redacted in 18 BigQuery rows (PCI scope)", c: "var(--violet)" },
+  ],
+  "azure-data": [
+    { t: "+11s", m: "Flux · helm release synapse-pool@2.7 → success", c: "var(--cyan)" },
+    { t: "+19s", m: "Defender · medium · public IP on AKS-pool-3", c: "var(--violet)" },
+    { t: "+38s", m: "Cosmos · multi-master conflict resolved (LWW)", c: "var(--muted)" },
+    { t: "+52s", m: "Front Door · failover westeurope→eastus2 (4s rtt)", c: "var(--violet)" },
+  ],
+  "onprem-hybrid": [
+    { t: "+15s", m: "Argo CD · sync ocp-dc1/api@v3.12.4 (sealed-secrets)", c: "var(--cyan)" },
+    { t: "+27s", m: "Patroni · failover replica → primary (37ms)", c: "var(--violet)" },
+    { t: "+44s", m: "MinIO → AWS S3 · 12.4GB cold replication", c: "var(--muted)" },
+    { t: "+59s", m: "Wazuh · suricata alert · investigated (false-positive)", c: "var(--violet)" },
+  ],
+};
+
 function Infra({ mobile }: { mobile: boolean }) {
   const reduced = useReducedMotion();
   const t = useTicker(!reduced);
+  const [archIdx, setArchIdx] = useState(0);
+  const arch = ARCHITECTURES[archIdx];
   const cpu = 38 + Math.sin(t * 0.7) * 8;
   const mem = 64 + Math.sin(t * 0.5 + 1) * 6;
-  const rps = 1240 + Math.floor(Math.sin(t * 1.1) * 180);
-  const events: { t: string; m: string; c: string }[] = [
-    { t: "+12s", m: "Argo CD synced api-gateway@v2.41", c: "var(--cyan)" },
-    { t: "+24s", m: "OPA admission denied: image not signed", c: "var(--violet)" },
-    { t: "+47s", m: "HPA scale 6 → 9 (api-gateway)", c: "var(--muted)" },
-    { t: "+58s", m: "Falco: shell-in-container (resolved)", c: "var(--violet)" },
-  ];
+  const rpsBase = arch.rps;
+  const rps = rpsBase + Math.floor(Math.sin(t * 1.1) * Math.max(60, rpsBase * 0.1));
+  const events = ARCH_EVENTS[arch.id] || [];
+
   return (
     <Section id="infra" fsPath="/infra" mobile={mobile}>
       <SectionHeader n={3} t="infrastructure" action="watch -n1 ./status" />
+
+      {/* Tab strip — terminal-style, click to switch architecture */}
+      <div
+        role="tablist"
+        aria-label="Reference architectures"
+        style={{
+          display: "flex",
+          gap: 0,
+          marginBottom: 16,
+          borderBottom: "1px solid var(--hairline)",
+          overflowX: "auto",
+          flexWrap: mobile ? "nowrap" : "wrap",
+        }}
+      >
+        {ARCHITECTURES.map((a, i) => {
+          const active = i === archIdx;
+          return (
+            <button
+              key={a.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setArchIdx(i)}
+              className="mono tap"
+              style={{
+                padding: mobile ? "10px 12px" : "10px 16px",
+                fontSize: 12,
+                color: active ? "var(--cyan)" : "var(--muted)",
+                background: active ? "rgba(0,212,255,.06)" : "transparent",
+                border: "none",
+                borderBottom: active
+                  ? "2px solid var(--cyan)"
+                  : "2px solid transparent",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                marginBottom: -1,
+              }}
+            >
+              <span style={{ color: "var(--muted)", marginRight: 6 }}>0{i + 1}</span>
+              <span>{a.vendor}</span>
+              <span style={{ color: "var(--muted)", marginLeft: 6 }}>·</span>
+              <span style={{ marginLeft: 6, color: active ? "var(--fg)" : "inherit" }}>
+                {a.name}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div
+        className="mono"
+        style={{
+          fontSize: 11,
+          color: "var(--muted)",
+          marginBottom: 16,
+        }}
+      >
+        <span style={{ color: "var(--cyan)" }}>›</span> {arch.caption}
+      </div>
+
       <div
         style={{
           display: "grid",
@@ -1229,9 +1333,9 @@ function Infra({ mobile }: { mobile: boolean }) {
               marginBottom: 16,
             }}
           >
-            topology · reference architecture
+            topology · {arch.vendor.toLowerCase()} reference
           </div>
-          <ArchDiagram compact={mobile} animate={!reduced} />
+          <ArchDiagram arch={arch} compact={mobile} animate={!reduced} />
         </div>
         <div style={{ display: "grid", gap: 12 }}>
           <div
@@ -1249,7 +1353,7 @@ function Infra({ mobile }: { mobile: boolean }) {
                 marginBottom: 16,
               }}
             >
-              cluster · eks-prod · eu-west-1
+              {arch.region}
             </div>
             <Gauge label="cpu" val={cpu} />
             <Gauge label="memory" val={mem} />
@@ -1891,7 +1995,7 @@ function Contact({ mobile }: { mobile: boolean }) {
         borderTop: "1px solid var(--hairline)",
         position: "relative",
         overflow: "hidden",
-        scrollMarginTop: 16,
+        scrollMarginTop: 52,
       }}
     >
       <div
@@ -2027,10 +2131,10 @@ function Contact({ mobile }: { mobile: boolean }) {
 export default function Portfolio() {
   const mobile = useIsMobile();
   return (
-    <div className="cobos-art" style={{ paddingBottom: 36 }}>
+    <div className="cobos-art">
       <span id="top" aria-hidden style={{ position: "absolute" }} />
-      <Nav mobile={mobile} />
       <Hero mobile={mobile} />
+      <Nav mobile={mobile} />
       <About mobile={mobile} />
       <Stack mobile={mobile} />
       <Infra mobile={mobile} />

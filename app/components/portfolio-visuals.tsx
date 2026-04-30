@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import type { Architecture } from "./architectures";
 
 export function useTicker(enabled: boolean = true) {
   const [t, setT] = useState(0);
@@ -210,14 +211,12 @@ const ARCH_COLOR = {
   obs: "#22C55E",
 } as const;
 
-type NodeKind = keyof typeof ARCH_COLOR;
-type ArchNode = { x: number; y: number; l: string; s: string; k: NodeKind };
-type EdgeKind = "flow" | "dim" | "sec" | "gitops";
-
 export function ArchDiagram({
+  arch,
   compact = false,
   animate = true,
 }: {
+  arch: Architecture;
   compact?: boolean;
   animate?: boolean;
 }) {
@@ -225,106 +224,44 @@ export function ArchDiagram({
   const W = compact ? 360 : 920;
   const H = compact ? 260 : 560;
   const pulse = 0.5 + 0.5 * Math.sin(t * 2.4);
-
-  const nodes: Record<string, ArchNode> = {
-    users: { x: 90, y: 80, l: "Users · web/api", s: "global", k: "edge" },
-    cdn: { x: 90, y: 180, l: "CloudFront", s: "CDN · WAF", k: "edge" },
-    dns: { x: 90, y: 280, l: "Route 53", s: "DNS · failover", k: "edge" },
-    alb: { x: 300, y: 80, l: "ALB / NLB", s: "TLS termination", k: "net" },
-    apigw: { x: 300, y: 180, l: "API Gateway", s: "rate · authz", k: "net" },
-    waf: { x: 300, y: 280, l: "WAF · Shield", s: "OWASP rules", k: "sec" },
-    eksA: { x: 530, y: 80, l: "EKS · prod-a", s: "eu-west-1a · m7g", k: "k8s" },
-    eksB: { x: 530, y: 180, l: "EKS · prod-b", s: "eu-west-1b · m7g", k: "k8s" },
-    mesh: { x: 530, y: 280, l: "Istio", s: "mTLS · traffic", k: "k8s" },
-    argo: { x: 530, y: 380, l: "Argo CD", s: "GitOps · sync", k: "gitops" },
-    pg: { x: 760, y: 80, l: "Aurora PG", s: "multi-AZ · pitr", k: "data" },
-    redis: { x: 760, y: 180, l: "ElastiCache", s: "redis · 3 shards", k: "data" },
-    s3: { x: 760, y: 280, l: "S3", s: "lake · KMS", k: "data" },
-    vec: { x: 760, y: 380, l: "Vector DB", s: "pgvector", k: "data" },
-    vault: { x: 90, y: 460, l: "Vault", s: "secrets · PKI", k: "sec" },
-    opa: { x: 300, y: 460, l: "OPA · Kyverno", s: "admission policy", k: "sec" },
-    obs: { x: 530, y: 460, l: "Grafana · Loki", s: "metrics · logs", k: "obs" },
-  };
-
-  const edges: [string, string, EdgeKind][] = [
-    ["users", "cdn", "flow"],
-    ["cdn", "alb", "flow"],
-    ["cdn", "apigw", "flow"],
-    ["dns", "alb", "dim"],
-    ["alb", "eksA", "flow"],
-    ["alb", "eksB", "flow"],
-    ["apigw", "eksA", "flow"],
-    ["apigw", "eksB", "flow"],
-    ["waf", "apigw", "dim"],
-    ["eksA", "mesh", "dim"],
-    ["eksB", "mesh", "dim"],
-    ["eksA", "pg", "flow"],
-    ["eksB", "pg", "flow"],
-    ["eksA", "redis", "flow"],
-    ["eksB", "redis", "flow"],
-    ["eksA", "s3", "flow"],
-    ["eksB", "vec", "flow"],
-    ["vault", "eksA", "sec"],
-    ["vault", "eksB", "sec"],
-    ["opa", "eksA", "sec"],
-    ["opa", "eksB", "sec"],
-    ["argo", "eksA", "gitops"],
-    ["argo", "eksB", "gitops"],
-    ["eksA", "obs", "dim"],
-    ["eksB", "obs", "dim"],
-  ];
-
-  const zones = [
-    { x: 30, y: 40, w: 130, h: 280, l: "EDGE", c: ARCH_COLOR.edge },
-    { x: 240, y: 40, w: 130, h: 280, l: "INGRESS", c: ARCH_COLOR.net },
-    {
-      x: 470,
-      y: 40,
-      w: 130,
-      h: 380,
-      l: "PLATFORM · EKS · eu-west-1",
-      c: ARCH_COLOR.k8s,
-    },
-    { x: 700, y: 40, w: 130, h: 380, l: "DATA", c: ARCH_COLOR.data },
-    {
-      x: 30,
-      y: 420,
-      w: 340,
-      h: 80,
-      l: "SECURITY · ZERO-TRUST",
-      c: ARCH_COLOR.sec,
-    },
-    { x: 470, y: 440, w: 130, h: 60, l: "OBSERVABILITY", c: ARCH_COLOR.obs },
-  ];
+  const nodes = arch.nodes;
+  const edges = arch.edges;
+  const zones = arch.zones;
 
   if (compact) {
-    const small = [
-      { x: 60, y: 50, l: "Edge", c: ARCH_COLOR.edge },
-      { x: 60, y: 130, l: "API", c: ARCH_COLOR.net },
-      { x: 180, y: 50, l: "EKS", c: ARCH_COLOR.k8s },
-      { x: 180, y: 130, l: "Mesh", c: ARCH_COLOR.k8s },
-      { x: 300, y: 50, l: "PG", c: ARCH_COLOR.data },
-      { x: 300, y: 130, l: "S3", c: ARCH_COLOR.data },
-      { x: 60, y: 210, l: "Vault", c: ARCH_COLOR.sec },
-      { x: 180, y: 210, l: "Argo", c: ARCH_COLOR.k8s },
-      { x: 300, y: 210, l: "Loki", c: ARCH_COLOR.obs },
-    ];
+    // Distill the architecture down to 9 chips on a 360×260 canvas.
+    const ids = Object.keys(nodes).slice(0, 9);
+    const cols = 3;
     return (
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }}>
-        {small.map((n, i) => (
-          <g key={i} transform={`translate(${n.x},${n.y})`}>
-            <rect x={-40} y={-16} width={80} height={32} rx={6} fill="#0E0E14" stroke={n.c} strokeOpacity=".7" />
-            <text x={0} y={4} textAnchor="middle" fill="#F8FAFC" fontSize="10" fontFamily="JetBrains Mono">
-              {n.l}
-            </text>
-          </g>
-        ))}
+      <svg
+        key={arch.id}
+        viewBox={`0 0 ${W} ${H}`}
+        style={{ width: "100%", height: "auto", display: "block" }}
+      >
+        {ids.map((id, i) => {
+          const n = nodes[id];
+          const c = ARCH_COLOR[n.kind] || "#94A3B8";
+          const cx = 60 + (i % cols) * 120;
+          const cy = 50 + Math.floor(i / cols) * 80;
+          return (
+            <g key={id} transform={`translate(${cx},${cy})`}>
+              <rect x={-44} y={-16} width={88} height={32} rx={6} fill="#0E0E14" stroke={c} strokeOpacity=".7" />
+              <text x={0} y={4} textAnchor="middle" fill="#F8FAFC" fontSize="10" fontFamily="JetBrains Mono">
+                {n.label.slice(0, 12)}
+              </text>
+            </g>
+          );
+        })}
       </svg>
     );
   }
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }}>
+    <svg
+      key={arch.id}
+      viewBox={`0 0 ${W} ${H}`}
+      style={{ width: "100%", height: "auto", display: "block" }}
+    >
       <defs>
         <pattern id="ad-grid" width="20" height="20" patternUnits="userSpaceOnUse">
           <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,.04)" strokeWidth="1" />
@@ -333,34 +270,37 @@ export function ArchDiagram({
       <rect x="0" y="0" width={W} height={H} fill="url(#ad-grid)" />
       <rect x="20" y="20" width={W - 40} height={H - 40} rx="14" fill="none" stroke="rgba(255,255,255,.08)" strokeDasharray="6 6" />
       <text x="36" y="14" fill="rgba(255,255,255,.4)" fontSize="10" fontFamily="JetBrains Mono" letterSpacing=".15em">
-        AWS · eu-west-1 · vpc-prod-01 · 10.40.0.0/16
+        {arch.region}
       </text>
-      {zones.map((z, i) => (
-        <g key={i}>
-          <rect
-            x={z.x}
-            y={z.y}
-            width={z.w}
-            height={z.h}
-            rx="10"
-            fill={z.c}
-            fillOpacity=".035"
-            stroke={z.c}
-            strokeOpacity=".22"
-          />
-          <text
-            x={z.x + 12}
-            y={z.y + 18}
-            fill={z.c}
-            fillOpacity=".75"
-            fontSize="9"
-            fontFamily="JetBrains Mono"
-            letterSpacing=".18em"
-          >
-            {z.l}
-          </text>
-        </g>
-      ))}
+      {zones.map((z, i) => {
+        const c = ARCH_COLOR[z.kind] || "#94A3B8";
+        return (
+          <g key={i}>
+            <rect
+              x={z.x}
+              y={z.y}
+              width={z.w}
+              height={z.h}
+              rx="10"
+              fill={c}
+              fillOpacity=".035"
+              stroke={c}
+              strokeOpacity=".22"
+            />
+            <text
+              x={z.x + 12}
+              y={z.y + 18}
+              fill={c}
+              fillOpacity=".75"
+              fontSize="9"
+              fontFamily="JetBrains Mono"
+              letterSpacing=".18em"
+            >
+              {z.label}
+            </text>
+          </g>
+        );
+      })}
       {edges.map(([fromK, toK, kind], i) => {
         const a = nodes[fromK];
         const b = nodes[toK];
@@ -375,7 +315,7 @@ export function ArchDiagram({
                 : "rgba(0,212,255,.45)";
         const dash = kind === "sec" ? "4 4" : kind === "gitops" ? "2 5" : kind === "dim" ? "3 5" : "0";
         return (
-          <g key={i}>
+          <g key={`${fromK}-${toK}-${i}`}>
             <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={stroke} strokeWidth={kind === "sec" || kind === "gitops" ? 1 : 1.2} strokeDasharray={dash} />
             {animate && kind === "flow" && (
               <circle r={2.6} fill="#00D4FF">
@@ -391,22 +331,22 @@ export function ArchDiagram({
         );
       })}
       {Object.entries(nodes).map(([k, n]) => {
-        const c = ARCH_COLOR[n.k] || "#94A3B8";
+        const c = ARCH_COLOR[n.kind] || "#94A3B8";
         return (
           <g key={k} transform={`translate(${n.x},${n.y})`}>
             <rect x={-72} y={-26} width={144} height={52} rx="10" fill={c} fillOpacity=".05" />
             <rect x={-70} y={-24} width={140} height={48} rx="9" fill="#0B0B12" stroke={c} strokeOpacity=".7" strokeWidth="1" />
             <circle cx={-58} cy={-12} r="2.5" fill={c} opacity={0.5 + 0.5 * Math.sin(t * 2 + n.x * 0.01)} />
             <text x={-50} y={-7} fill="#F8FAFC" fontSize="11" fontFamily="JetBrains Mono" fontWeight="500">
-              {n.l}
+              {n.label}
             </text>
-            {n.s && (
+            {n.sub && (
               <text x={-50} y={9} fill="rgba(255,255,255,.45)" fontSize="9" fontFamily="JetBrains Mono">
-                {n.s}
+                {n.sub}
               </text>
             )}
             <text x={62} y={-9} textAnchor="end" fill={c} fillOpacity=".55" fontSize="8" fontFamily="JetBrains Mono" letterSpacing=".1em">
-              {String(k).toUpperCase().slice(0, 4)}
+              {(n.short || k).toUpperCase().slice(0, 4)}
             </text>
           </g>
         );
@@ -417,10 +357,10 @@ export function ArchDiagram({
           LIVE · TRAFFIC
         </text>
         <text x="10" y="34" fill="#F8FAFC" fontSize="13" fontFamily="JetBrains Mono">
-          {1240 + Math.floor(Math.sin(t) * 180)} rps
+          {arch.rps + Math.floor(Math.sin(t) * Math.max(60, arch.rps * 0.1))} rps
         </text>
         <text x="10" y="48" fill="rgba(0,212,255,.85)" fontSize="9" fontFamily="JetBrains Mono">
-          p95 {(115 + pulse * 8).toFixed(0)}ms · err 0.04%
+          p95 {(arch.p95 + pulse * 8).toFixed(0)}ms · err {arch.errPct.toFixed(2)}%
         </text>
         <circle cx="186" cy="14" r="3" fill="#22C55E" opacity={0.6 + 0.4 * Math.sin(t * 3)} />
       </g>

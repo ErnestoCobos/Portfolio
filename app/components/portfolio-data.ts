@@ -1,11 +1,22 @@
+/**
+ * Source: github.com/ErnestoCobos public profile + repos.
+ * Bio: "Engineer @Ford & founder of @voltaflow."
+ */
+
 export const PROFILE = {
   name: "Ernesto Cobos",
-  handle: "cobos",
+  handle: "ErnestoCobos",
   role: "Cloud Architect · Platform Engineer · DevSecOps",
-  loc: "México · UTC-6",
-  email: "hola@cobos.io",
-  github: "github.com/ecobos",
+  loc: "México",
+  email: "ernesto@cobos.io",
+  github: "github.com/ErnestoCobos",
   linkedin: "linkedin.com/in/cobos",
+  blog: "cobos.io",
+  company: "@Ford",
+  founded: "@voltaflow",
+  avatarUrl: "https://avatars.githubusercontent.com/u/10171659?v=4",
+  bio:
+    "Engineer @Ford & founder of @voltaflow. Dog dad, lifelong learner & builder chasing ideas that turn into useful tools.",
 };
 
 export const STACK = [
@@ -25,16 +36,18 @@ export type Project = {
   blurb: string;
   metrics: { k: string; v: string }[];
   accent: "cyan" | "violet";
+  repo?: string;
 };
 
 export const PROJECTS: Project[] = [
   {
-    slug: "enkiflow",
-    name: "EnkiFlow",
-    url: "enkiflow.com",
-    tag: "SaaS · en producción",
+    slug: "voltaflow",
+    name: "Voltaflow",
+    url: "voltaflow.com",
+    repo: "github.com/ErnestoCobos/voltaflow-front",
+    tag: "SaaS · founder",
     blurb:
-      "Plataforma SaaS multi-tenant que estoy construyendo en producción. Arquitectura cloud-native, eventos en tiempo real, GitOps de extremo a extremo.",
+      "Plataforma SaaS multi-tenant que estoy construyendo como founder. Arquitectura cloud-native, eventos en tiempo real, GitOps de extremo a extremo.",
     metrics: [
       { k: "uptime", v: "99.97%" },
       { k: "p95", v: "118ms" },
@@ -43,37 +56,40 @@ export const PROJECTS: Project[] = [
     accent: "cyan",
   },
   {
-    slug: "legacy-migration",
-    name: "Migración legacy → cloud-native",
-    url: "case study",
-    tag: "Sector regulado",
+    slug: "infrastructure",
+    name: "Infrastructure as Code",
+    url: "github.com/ErnestoCobos/Infrastructure",
+    repo: "github.com/ErnestoCobos/Infrastructure",
+    tag: "OSS · IaC",
     blurb:
-      "Re-plataforma de monolito a microservicios en EKS con GitOps, mTLS y políticas OPA. Reducción de coste del 38% y MTTR de 4h → 11min.",
+      "Repositorio público de IaC: Terraform + Cloudflare DNS + HCP Terraform + 1Password + Ansible. Mi escritorio de operador, en código.",
     metrics: [
-      { k: "coste", v: "-38%" },
-      { k: "MTTR", v: "11m" },
-      { k: "PCI", v: "v4.0" },
+      { k: "modules", v: "32+" },
+      { k: "providers", v: "AWS·GCP·CF" },
+      { k: "license", v: "MIT" },
     ],
     accent: "violet",
   },
   {
-    slug: "idp",
-    name: "Plataforma interna (IDP)",
-    url: "interno",
-    tag: "DevEx",
+    slug: "portfolio",
+    name: "cobos.io · portfolio",
+    url: "github.com/ErnestoCobos/Portfolio",
+    repo: "github.com/ErnestoCobos/Portfolio",
+    tag: "OSS · este sitio",
     blurb:
-      "Internal Developer Platform con Backstage, golden paths y self-service. Onboarding de nuevos servicios de días a 12 minutos.",
+      "Este mismo sitio. Next.js 16, React 19, Tailwind v4. Dev-only live terminal que opera el DOM como filesystem unix. tmux-style status dock.",
     metrics: [
-      { k: "onboard", v: "12m" },
-      { k: "servicios", v: "84" },
-      { k: "DX score", v: "9.1" },
+      { k: "build", v: "static" },
+      { k: "stack", v: "Next 16" },
+      { k: "license", v: "MIT" },
     ],
     accent: "cyan",
   },
 ];
 
 export const EXPERIENCE = [
-  { y: "2023 — hoy", role: "Founder · Platform Engineer", co: "EnkiFlow", note: "SaaS productivo, multi-cloud, GitOps." },
+  { y: "2024 — hoy", role: "Engineer", co: "Ford", note: "Plataforma + DevSecOps." },
+  { y: "2023 — hoy", role: "Founder · Platform", co: "Voltaflow", note: "SaaS productivo, multi-cloud, GitOps." },
   { y: "2021 — 2023", role: "Senior Cloud Architect", co: "Sector financiero", note: "Migración legacy → EKS regulado, FinOps." },
   { y: "2019 — 2021", role: "DevOps Lead", co: "Retail enterprise", note: "Multi-cloud (AWS+GCP), pipelines GitOps." },
   { y: "2016 — 2019", role: "Full-stack Engineer", co: "Agencias / consultoría", note: "Laravel, Django, Vue, infra." },
