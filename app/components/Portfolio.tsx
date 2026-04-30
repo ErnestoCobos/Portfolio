@@ -801,8 +801,10 @@ function Hero({ mobile }: { mobile: boolean }) {
               )}
             </div>
             {mounted &&
-              !mobile &&
               ["EKS", "GKE", "AKS", "Argo CD", "Vault", "OPA"].map((l, i) => {
+                if (mobile) {
+                  return null;
+                }
                 const a = t * 0.32 + i * ((Math.PI * 2) / 6);
                 const dx = (Math.cos(a) * 165).toFixed(2);
                 const dy = (Math.sin(a) * 100).toFixed(2);
@@ -833,6 +835,44 @@ function Hero({ mobile }: { mobile: boolean }) {
                   </div>
                 );
               })}
+            {mobile && mounted && (
+              <div
+                style={{
+                  position: "absolute",
+                  left: 12,
+                  right: 12,
+                  bottom: 8,
+                  display: "flex",
+                  flexWrap: "wrap",
+                  justifyContent: "center",
+                  gap: 8,
+                  zIndex: 2,
+                }}
+              >
+                {["EKS", "GKE", "AKS", "Argo CD", "Vault", "OPA"].map((l, i) => {
+                  const c = i % 2 === 0 ? accent : violet;
+                  return (
+                    <div
+                      key={l}
+                      className="mono"
+                      style={{
+                        fontSize: 10,
+                        color: c,
+                        padding: "4px 8px",
+                        background: "rgba(6,6,10,.82)",
+                        border: `1px solid ${c}55`,
+                        borderRadius: 5,
+                        boxShadow: `0 0 12px ${c}22`,
+                        letterSpacing: ".05em",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {l}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
@@ -1429,14 +1469,14 @@ function Work({ mobile }: { mobile: boolean }) {
             maxWidth: 640,
           }}
         >
-          De un SaaS en producción a migraciones para sectores regulados. Tres
-          frentes activos.
+          Dos SaaS en produccion y dos repos publicos que sostienen la
+          operacion. Cuatro frentes activos.
         </p>
       </div>
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: mobile ? "1fr" : "repeat(3, 1fr)",
+          gridTemplateColumns: mobile ? "1fr" : "repeat(auto-fit, minmax(280px, 1fr))",
           gap: 16,
         }}
       >
@@ -1446,6 +1486,7 @@ function Work({ mobile }: { mobile: boolean }) {
             p.accent === "violet"
               ? "rgba(124,58,237,.6)"
               : "rgba(0,212,255,.6)";
+          const href = p.href ?? `https://${p.url}`;
           return (
             <div
               key={p.slug}
@@ -1487,7 +1528,14 @@ function Work({ mobile }: { mobile: boolean }) {
                   marginBottom: 10,
                 }}
               >
-                {p.name}
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: "inherit", textDecoration: "none" }}
+                >
+                  {p.name}
+                </a>
               </h3>
               <div
                 className="mono"
@@ -1496,11 +1544,24 @@ function Work({ mobile }: { mobile: boolean }) {
                   color: "var(--muted)",
                   marginBottom: 16,
                   display: "flex",
+                  alignItems: "flex-start",
                   gap: 10,
                 }}
               >
                 <span style={{ color: c }}>↗</span>
-                <span>{p.url}</span>
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    color: "inherit",
+                    textDecoration: "none",
+                    minWidth: 0,
+                    overflowWrap: "anywhere",
+                  }}
+                >
+                  {p.url}
+                </a>
               </div>
               <p
                 style={{

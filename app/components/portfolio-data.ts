@@ -32,6 +32,7 @@ export type Project = {
   slug: string;
   name: string;
   url: string;
+  href: string;
   tag: string;
   blurb: string;
   metrics: { k: string; v: string }[];
@@ -41,32 +42,48 @@ export type Project = {
 
 export const PROJECTS: Project[] = [
   {
-    slug: "voltaflow",
-    name: "Voltaflow",
-    url: "voltaflow.com",
-    repo: "github.com/ErnestoCobos/voltaflow-front",
-    tag: "SaaS · founder",
+    slug: "enkiflow",
+    name: "EnkiFlow",
+    url: "www.enkiflow.com",
+    href: "https://www.enkiflow.com",
+    tag: "SaaS · AI time tracking",
     blurb:
-      "Plataforma SaaS multi-tenant que estoy construyendo como founder. Arquitectura cloud-native, eventos en tiempo real, GitOps de extremo a extremo.",
+      "Time tracker con enfoque AI para builders: analiza paginas, captura contexto por voz o video y sincroniza trabajo entre web, desktop, Chrome Extension y VS Code.",
     metrics: [
-      { k: "uptime", v: "99.97%" },
-      { k: "p95", v: "118ms" },
-      { k: "deploys/sem", v: "42" },
+      { k: "free", v: "$0" },
+      { k: "pro", v: "$9/mo" },
+      { k: "team", v: "$19/u" },
     ],
     accent: "cyan",
   },
   {
-    slug: "infrastructure",
-    name: "Infrastructure as Code",
-    url: "github.com/ErnestoCobos/Infrastructure",
-    repo: "github.com/ErnestoCobos/Infrastructure",
-    tag: "OSS · IaC",
+    slug: "getdecant",
+    name: "GetDecant",
+    url: "www.getdecant.com",
+    href: "https://www.getdecant.com",
+    tag: "SaaS · scent retail",
     blurb:
-      "Repositorio público de IaC: Terraform + Cloudflare DNS + HCP Terraform + 1Password + Ansible. Mi escritorio de operador, en código.",
+      "SaaS premium para perfumeria con POS tactil, inventario por mililitro, pricing por presentacion y operacion multi-sucursal con roles, traslados y superadmin.",
     metrics: [
-      { k: "modules", v: "32+" },
-      { k: "providers", v: "AWS·GCP·CF" },
-      { k: "license", v: "MIT" },
+      { k: "boutique", v: "$149/mo" },
+      { k: "atelier", v: "$299/mo" },
+      { k: "network", v: "custom" },
+    ],
+    accent: "violet",
+  },
+  {
+    slug: "infrastructure",
+    name: "Infrastructure",
+    url: "github.com/ErnestoCobos/Infrastructure",
+    href: "https://github.com/ErnestoCobos/Infrastructure",
+    repo: "github.com/ErnestoCobos/Infrastructure",
+    tag: "OSS · Terraform platform",
+    blurb:
+      "Repositorio local-first de IaC con Terraform oficial, Cloudflare DNS, HCP Terraform, Vercel, Supabase y secretos via 1Password para cobos.io, getdecant, voltaflow y enkiflow.",
+    metrics: [
+      { k: "projects", v: "4" },
+      { k: "lang", v: "HCL 60%" },
+      { k: "state", v: "HCP" },
     ],
     accent: "violet",
   },
@@ -74,14 +91,15 @@ export const PROJECTS: Project[] = [
     slug: "portfolio",
     name: "cobos.io · portfolio",
     url: "github.com/ErnestoCobos/Portfolio",
+    href: "https://github.com/ErnestoCobos/Portfolio",
     repo: "github.com/ErnestoCobos/Portfolio",
-    tag: "OSS · este sitio",
+    tag: "OSS · operator console",
     blurb:
-      "Este mismo sitio. Next.js 16, React 19, Tailwind v4. Dev-only live terminal que opera el DOM como filesystem unix. tmux-style status dock.",
+      "Este mismo sitio: portfolio single-page con estetica operator-console, Next.js 16, React 19, Tailwind v4 y una terminal de desarrollo que muta el DOM en vivo.",
     metrics: [
-      { k: "build", v: "static" },
-      { k: "stack", v: "Next 16" },
-      { k: "license", v: "MIT" },
+      { k: "hosting", v: "static" },
+      { k: "framework", v: "Next 16" },
+      { k: "runtime", v: "React 19" },
     ],
     accent: "cyan",
   },
