@@ -274,6 +274,10 @@ export function ArchDiagram({
       </text>
       {zones.map((z, i) => {
         const c = ARCH_COLOR[z.kind] || "#94A3B8";
+        // fieldset/legend pattern: punch through the dashed border under the
+        // label so cards rendered later cannot eat the text. ~6.6px per glyph
+        // at fontSize 9 with .15em letter-spacing in JetBrains Mono.
+        const labelW = z.label.length * 6.6 + 14;
         return (
           <g key={i}>
             <rect
@@ -287,14 +291,22 @@ export function ArchDiagram({
               stroke={c}
               strokeOpacity=".22"
             />
+            <rect
+              x={z.x + 10}
+              y={z.y - 7}
+              width={labelW}
+              height={14}
+              fill="#08080C"
+            />
             <text
-              x={z.x + 12}
-              y={z.y + 18}
+              x={z.x + 17}
+              y={z.y}
+              dominantBaseline="middle"
               fill={c}
-              fillOpacity=".75"
+              fillOpacity=".85"
               fontSize="9"
               fontFamily="JetBrains Mono"
-              letterSpacing=".18em"
+              letterSpacing=".15em"
             >
               {z.label}
             </text>
@@ -332,16 +344,40 @@ export function ArchDiagram({
       })}
       {Object.entries(nodes).map(([k, n]) => {
         const c = ARCH_COLOR[n.kind] || "#94A3B8";
+        // Label cell runs from x=-50 up to ~x=42 (badge sits at x=44..62).
+        // For labels wider than the cell, compress with textLength so they
+        // never bleed under the right-side badge chip.
+        const labelMaxW = 92;
+        const labelW = n.label.length * 6.6;
+        const compressLabel = labelW > labelMaxW;
+        const subMaxW = 108;
+        const subW = (n.sub?.length ?? 0) * 5.4;
+        const compressSub = subW > subMaxW;
         return (
           <g key={k} transform={`translate(${n.x},${n.y})`}>
             <rect x={-72} y={-26} width={144} height={52} rx="10" fill={c} fillOpacity=".05" />
             <rect x={-70} y={-24} width={140} height={48} rx="9" fill="#0B0B12" stroke={c} strokeOpacity=".7" strokeWidth="1" />
             <circle cx={-58} cy={-12} r="2.5" fill={c} opacity={0.5 + 0.5 * Math.sin(t * 2 + n.x * 0.01)} />
-            <text x={-50} y={-7} fill="#F8FAFC" fontSize="11" fontFamily="JetBrains Mono" fontWeight="500">
+            <text
+              x={-50}
+              y={-7}
+              fill="#F8FAFC"
+              fontSize="11"
+              fontFamily="JetBrains Mono"
+              fontWeight="500"
+              {...(compressLabel && { textLength: labelMaxW, lengthAdjust: "spacingAndGlyphs" as const })}
+            >
               {n.label}
             </text>
             {n.sub && (
-              <text x={-50} y={9} fill="rgba(255,255,255,.45)" fontSize="9" fontFamily="JetBrains Mono">
+              <text
+                x={-50}
+                y={9}
+                fill="rgba(255,255,255,.45)"
+                fontSize="9"
+                fontFamily="JetBrains Mono"
+                {...(compressSub && { textLength: subMaxW, lengthAdjust: "spacingAndGlyphs" as const })}
+              >
                 {n.sub}
               </text>
             )}
