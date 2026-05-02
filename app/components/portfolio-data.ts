@@ -50,9 +50,9 @@ export const PROJECTS: Project[] = [
     blurb:
       "Time tracker con enfoque AI para builders: analiza paginas, captura contexto por voz o video y sincroniza trabajo entre web, desktop, Chrome Extension y VS Code.",
     metrics: [
-      { k: "free", v: "$0" },
-      { k: "pro", v: "$9/mo" },
-      { k: "team", v: "$19/u" },
+      { k: "surfaces", v: "4" },
+      { k: "input", v: "voice/video" },
+      { k: "stage", v: "prod" },
     ],
     accent: "cyan",
   },
@@ -65,9 +65,9 @@ export const PROJECTS: Project[] = [
     blurb:
       "SaaS premium para perfumeria con POS tactil, inventario por mililitro, pricing por presentacion y operacion multi-sucursal con roles, traslados y superadmin.",
     metrics: [
-      { k: "boutique", v: "$149/mo" },
-      { k: "atelier", v: "$299/mo" },
-      { k: "network", v: "custom" },
+      { k: "model", v: "B2B/POS" },
+      { k: "unit", v: "mL" },
+      { k: "stage", v: "prod" },
     ],
     accent: "violet",
   },
