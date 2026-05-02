@@ -1,6 +1,6 @@
 /**
  * Source: github.com/ErnestoCobos public profile + repos.
- * Bio: founder of @enkiflow + @getdecant.
+ * Bio: cloud platform @ford · founder of @enkiflow + @getdecant.
  */
 
 export const PROFILE = {
@@ -12,11 +12,11 @@ export const PROFILE = {
   github: "github.com/ErnestoCobos",
   linkedin: "linkedin.com/in/cobos",
   blog: "cobos.io",
-  company: "@enkiflow",
+  company: "@Ford",
   founded: "@enkiflow + @getdecant",
   avatarUrl: "https://avatars.githubusercontent.com/u/10171659?v=4",
   bio:
-    "Founder of @enkiflow & @getdecant. Cloud architect, platform engineer, builder chasing ideas that turn into useful tools.",
+    "Cloud platform & DevSecOps @Ford. Founder of @enkiflow & @getdecant. Builder chasing ideas that turn into useful tools.",
 };
 
 export const STACK = [
@@ -106,9 +106,9 @@ export const PROJECTS: Project[] = [
 ];
 
 export const EXPERIENCE = [
-  { y: "2024 — hoy", role: "Founder · Platform", co: "GetDecant", note: "SaaS perfumería: POS táctil, inventario por mililitro, multi-sucursal." },
-  { y: "2023 — hoy", role: "Founder · Platform", co: "EnkiFlow", note: "SaaS AI time tracking: web + desktop + Chrome ext + VS Code, multi-cloud." },
-  { y: "2021 — 2023", role: "Senior Cloud Architect", co: "Sector financiero", note: "Migración legacy → EKS regulado, FinOps." },
+  { y: "2024 — hoy", role: "Cloud Platform Eng.", co: "Ford", note: "Plataforma cloud + DevSecOps en sector automotriz: pipelines, observabilidad, golden paths." },
+  { y: "2023 — hoy", role: "Founder · Platform", co: "EnkiFlow + GetDecant", note: "SaaS productivos (AI time tracking · scent retail), multi-cloud, GitOps de extremo a extremo." },
+  { y: "2021 — 2023", role: "Senior Cloud Architect", co: "Sector bancario y automotriz", note: "Migración legacy → EKS regulado, FinOps, zero-trust." },
   { y: "2019 — 2021", role: "DevOps Lead", co: "Retail enterprise", note: "Multi-cloud (AWS+GCP), pipelines GitOps." },
   { y: "2016 — 2019", role: "Full-stack Engineer", co: "Agencias / consultoría", note: "Laravel, Django, Vue, infra." },
 ];
