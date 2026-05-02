@@ -1,6 +1,6 @@
 /**
  * Source: github.com/ErnestoCobos public profile + repos.
- * Bio: "Engineer @Ford & founder of @voltaflow."
+ * Bio: founder of @enkiflow + @getdecant.
  */
 
 export const PROFILE = {
@@ -12,11 +12,11 @@ export const PROFILE = {
   github: "github.com/ErnestoCobos",
   linkedin: "linkedin.com/in/cobos",
   blog: "cobos.io",
-  company: "@Ford",
-  founded: "@voltaflow",
+  company: "@enkiflow",
+  founded: "@enkiflow + @getdecant",
   avatarUrl: "https://avatars.githubusercontent.com/u/10171659?v=4",
   bio:
-    "Engineer @Ford & founder of @voltaflow. Dog dad, lifelong learner & builder chasing ideas that turn into useful tools.",
+    "Founder of @enkiflow & @getdecant. Cloud architect, platform engineer, builder chasing ideas that turn into useful tools.",
 };
 
 export const STACK = [
@@ -79,7 +79,7 @@ export const PROJECTS: Project[] = [
     repo: "github.com/ErnestoCobos/Infrastructure",
     tag: "OSS · Terraform platform",
     blurb:
-      "Repositorio local-first de IaC con Terraform oficial, Cloudflare DNS, HCP Terraform, Vercel, Supabase y secretos via 1Password para cobos.io, getdecant, voltaflow y enkiflow.",
+      "Repositorio local-first de IaC con Terraform oficial, Cloudflare DNS, HCP Terraform, Vercel, Supabase y secretos via 1Password para cobos.io, enkiflow y getdecant.",
     metrics: [
       { k: "projects", v: "4" },
       { k: "lang", v: "HCL 60%" },
@@ -106,8 +106,8 @@ export const PROJECTS: Project[] = [
 ];
 
 export const EXPERIENCE = [
-  { y: "2024 — hoy", role: "Engineer", co: "Ford", note: "Plataforma + DevSecOps." },
-  { y: "2023 — hoy", role: "Founder · Platform", co: "Voltaflow", note: "SaaS productivo, multi-cloud, GitOps." },
+  { y: "2024 — hoy", role: "Founder · Platform", co: "GetDecant", note: "SaaS perfumería: POS táctil, inventario por mililitro, multi-sucursal." },
+  { y: "2023 — hoy", role: "Founder · Platform", co: "EnkiFlow", note: "SaaS AI time tracking: web + desktop + Chrome ext + VS Code, multi-cloud." },
   { y: "2021 — 2023", role: "Senior Cloud Architect", co: "Sector financiero", note: "Migración legacy → EKS regulado, FinOps." },
   { y: "2019 — 2021", role: "DevOps Lead", co: "Retail enterprise", note: "Multi-cloud (AWS+GCP), pipelines GitOps." },
   { y: "2016 — 2019", role: "Full-stack Engineer", co: "Agencias / consultoría", note: "Laravel, Django, Vue, infra." },

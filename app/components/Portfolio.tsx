@@ -528,7 +528,7 @@ function Hero({ mobile }: { mobile: boolean }) {
   return (
     <section
       style={{
-        padding: mobile ? "20px 16px 32px" : "24px 48px 20px",
+        padding: mobile ? "20px 16px 32px" : "24px 48px 56px",
         height: mobile ? "auto" : "calc(100vh - 36px)",
         minHeight: mobile ? "auto" : 640,
         position: "relative",
@@ -902,6 +902,50 @@ function Hero({ mobile }: { mobile: boolean }) {
         </div>
       </div>
 
+      {!mobile && (
+        <button
+          type="button"
+          aria-label="Scroll to next section"
+          onClick={() => {
+            document
+              .getElementById("about")
+              ?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+          className="tap"
+          style={{
+            position: "absolute",
+            left: "50%",
+            bottom: 12,
+            transform: "translateX(-50%)",
+            zIndex: 5,
+            width: 32,
+            height: 32,
+            borderRadius: "999px",
+            background: "rgba(6,6,10,.85)",
+            border: `1px solid ${accent}55`,
+            color: accent,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backdropFilter: "blur(14px) saturate(140%)",
+            WebkitBackdropFilter: "blur(14px) saturate(140%)",
+            boxShadow: `0 0 0 4px rgba(0,212,255,.06), 0 0 24px ${accent}33, 0 8px 24px rgba(0,0,0,.45)`,
+            animation: reduced ? undefined : "hero-bounce 1.6s ease-in-out infinite",
+            cursor: "pointer",
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <path
+              d="M3.5 6 L8 10.5 L12.5 6"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+      )}
+
     </section>
   );
 }
@@ -1251,7 +1295,7 @@ const ARCH_EVENTS: Record<
   { t: string; m: string; c: string }[]
 > = {
   "aws-saas": [
-    { t: "+12s", m: "CodePipeline · canary api-gateway@v2.41 → green", c: "var(--cyan)" },
+    { t: "+12s", m: "CodeDeploy · canary api-gateway@v2.41 → green", c: "var(--cyan)" },
     { t: "+24s", m: "Cognito · MFA enrollment for tenant_842", c: "var(--violet)" },
     { t: "+47s", m: "Aurora · scale 8→12 ACU (tenant_217 burst)", c: "var(--muted)" },
     { t: "+58s", m: "WAF · 412 reqs blocked (rate-limit · /v2/auth)", c: "var(--violet)" },
@@ -1281,8 +1325,10 @@ function Infra({ mobile }: { mobile: boolean }) {
   const t = useTicker(!reduced);
   const [archIdx, setArchIdx] = useState(0);
   const arch = ARCHITECTURES[archIdx];
-  const cpu = 38 + Math.sin(t * 0.7) * 8;
-  const mem = 64 + Math.sin(t * 0.5 + 1) * 6;
+  // Baselines come from the active architecture so a SaaS, a bank, an
+  // analytics platform and an on-prem hybrid don't all read the same load.
+  const cpu = arch.cpu + Math.sin(t * 0.7) * 6;
+  const mem = arch.mem + Math.sin(t * 0.5 + 1) * 5;
   const rpsBase = arch.rps;
   const rps = rpsBase + Math.floor(Math.sin(t * 1.1) * Math.max(60, rpsBase * 0.1));
   const events = ARCH_EVENTS[arch.id] || [];
