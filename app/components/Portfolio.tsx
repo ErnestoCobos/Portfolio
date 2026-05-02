@@ -19,6 +19,7 @@ import {
   PROJECTS,
   STACK,
   TRENDS,
+  type Post,
 } from "./portfolio-data";
 import { ARCHITECTURES } from "./architectures";
 import {
@@ -1774,7 +1775,234 @@ function Trends({ mobile }: { mobile: boolean }) {
 }
 
 /* ─── Blog ───────────────────────────────────────────────── */
+/** Parse the body into paragraph + h2 blocks. Headings are lines that start
+ * with `## `; everything else becomes a paragraph. Blank lines split blocks. */
+function parsePostBody(body: string): { kind: "h2" | "p"; text: string }[] {
+  return body
+    .split(/\n\n+/)
+    .map((block) => block.trim())
+    .filter(Boolean)
+    .map((block) =>
+      block.startsWith("## ")
+        ? { kind: "h2" as const, text: block.slice(3).trim() }
+        : { kind: "p" as const, text: block }
+    );
+}
+
+function ArticleModal({
+  post,
+  onClose,
+  mobile,
+}: {
+  post: Post;
+  onClose: () => void;
+  mobile: boolean;
+}) {
+  const mounted = useMounted();
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  if (!mounted) return null;
+
+  const blocks = parsePostBody(post.body);
+
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="article-title"
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 80,
+        background: "rgba(6,6,10,.96)",
+        backdropFilter: "blur(18px) saturate(140%)",
+        WebkitBackdropFilter: "blur(18px) saturate(140%)",
+        display: "flex",
+        flexDirection: "column",
+        animation: "fadeIn .18s ease-out",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          padding: mobile ? "14px 16px" : "16px 24px",
+          borderBottom: "1px solid var(--hairline)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          background: "rgba(6,6,10,.7)",
+        }}
+      >
+        <span
+          className="mono"
+          style={{ fontSize: 13, color: "var(--fg)", letterSpacing: "-0.01em" }}
+        >
+          cobos<span style={{ color: "var(--cyan)" }}>::</span>blog
+          <span style={{ color: "var(--muted)" }}> · {post.slug}</span>
+        </span>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Cerrar artículo"
+          className="mono tap"
+          style={{
+            color: "var(--muted)",
+            border: "1px solid var(--hairline)",
+            borderRadius: 6,
+            padding: "6px 12px",
+            fontSize: 12,
+            background: "rgba(255,255,255,.02)",
+          }}
+        >
+          ESC ×
+        </button>
+      </div>
+
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{ flex: 1, overflowY: "auto" }}
+      >
+        <article
+          style={{
+            maxWidth: 720,
+            margin: "0 auto",
+            padding: mobile ? "32px 20px 80px" : "56px 32px 96px",
+          }}
+        >
+          <div
+            className="mono"
+            style={{
+              fontSize: 11,
+              color: "var(--muted)",
+              letterSpacing: ".15em",
+              textTransform: "uppercase",
+              display: "flex",
+              gap: 14,
+              marginBottom: 18,
+            }}
+          >
+            <span style={{ color: "var(--cyan)" }}>{post.d}</span>
+            <span>·</span>
+            <span>{post.r} read</span>
+          </div>
+
+          <h1
+            id="article-title"
+            style={{
+              fontSize: mobile ? 28 : 40,
+              fontWeight: 600,
+              letterSpacing: "-0.025em",
+              lineHeight: 1.1,
+              color: "var(--fg)",
+              marginBottom: 32,
+            }}
+          >
+            {post.t}
+          </h1>
+
+          <div
+            style={{
+              fontSize: mobile ? 15 : 17,
+              lineHeight: 1.75,
+              color: "var(--fg)",
+            }}
+          >
+            {blocks.map((b, i) =>
+              b.kind === "h2" ? (
+                <h2
+                  key={i}
+                  style={{
+                    fontSize: mobile ? 18 : 22,
+                    fontWeight: 600,
+                    letterSpacing: "-0.015em",
+                    color: "var(--cyan)",
+                    marginTop: i === 0 ? 0 : 36,
+                    marginBottom: 14,
+                  }}
+                >
+                  {b.text}
+                </h2>
+              ) : (
+                <p
+                  key={i}
+                  style={{
+                    color: "rgba(248,250,252,.82)",
+                    marginBottom: 18,
+                  }}
+                >
+                  {b.text}
+                </p>
+              )
+            )}
+          </div>
+
+          <div
+            className="mono"
+            style={{
+              marginTop: 56,
+              paddingTop: 24,
+              borderTop: "1px solid var(--hairline)",
+              fontSize: 12,
+              color: "var(--muted)",
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 12,
+              flexWrap: "wrap",
+            }}
+          >
+            <span>
+              <span style={{ color: "var(--cyan)" }}>$</span> cat
+              ./blog/{post.slug}.md
+            </span>
+            <span>— ernesto.cobos</span>
+          </div>
+        </article>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 function Blog({ mobile }: { mobile: boolean }) {
+  const [openSlug, setOpenSlug] = useState<string | null>(null);
+
+  // Open from URL hash on mount and when hash changes (linkeable: #blog/<slug>)
+  useEffect(() => {
+    const sync = () => {
+      const m = window.location.hash.match(/^#blog\/([\w-]+)$/);
+      setOpenSlug(m ? m[1] : null);
+    };
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
+
+  const open = openSlug ? POSTS.find((p) => p.slug === openSlug) ?? null : null;
+
+  const openPost = (slug: string) => {
+    setOpenSlug(slug);
+    window.history.replaceState(null, "", `#blog/${slug}`);
+  };
+
+  const closePost = () => {
+    setOpenSlug(null);
+    window.history.replaceState(null, "", "#blog");
+  };
+
   return (
     <Section id="blog" fsPath="/blog" mobile={mobile}>
       <SectionHeader n={7} t="notes" action={`tail -n ${POSTS.length} ./blog`} />
@@ -1783,8 +2011,11 @@ function Blog({ mobile }: { mobile: boolean }) {
         style={{ fontSize: mobile ? 13 : 14, lineHeight: 1.8 }}
       >
         {POSTS.map((p, i) => (
-          <div
-            key={i}
+          <button
+            key={p.slug}
+            type="button"
+            onClick={() => openPost(p.slug)}
+            className="tap"
             style={{
               display: "grid",
               gridTemplateColumns: mobile ? "1fr" : "110px 1fr 80px",
@@ -1792,6 +2023,13 @@ function Blog({ mobile }: { mobile: boolean }) {
               padding: "12px 0",
               borderTop: i ? "1px solid var(--hairline)" : "none",
               cursor: "pointer",
+              width: "100%",
+              textAlign: "left",
+              background: "transparent",
+              fontFamily: "inherit",
+              fontSize: "inherit",
+              color: "inherit",
+              alignItems: "baseline",
             }}
           >
             <span style={{ color: "var(--muted)" }}>{p.d.toLowerCase()}</span>
@@ -1803,9 +2041,10 @@ function Blog({ mobile }: { mobile: boolean }) {
                 {p.r} →
               </span>
             )}
-          </div>
+          </button>
         ))}
       </div>
+      {open && <ArticleModal post={open} onClose={closePost} mobile={mobile} />}
     </Section>
   );
 }
