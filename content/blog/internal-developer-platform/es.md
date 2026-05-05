@@ -1,70 +1,70 @@
 ---
 slug: internal-developer-platform
-title: "Por qué cada equipo necesita un Internal Developer Platform"
+title: "Por qué cada equipo necesita una Internal Developer Platform"
 d: "Dic 2025"
 date: "2025-12-15"
 r: "5 min"
 category: platform
 ---
 
-Si tu onboarding técnico para un dev nuevo lleva más de 1 semana hasta que mergea su primer PR a producción, no tenés un problema de onboarding — tenés un problema de plataforma. La solución se llama Internal Developer Platform (IDP) y no es Backstage.
+Si la integración técnica de un nuevo desarrollador toma más de 1 semana antes de que mergee su primer PR a producción, no tienes un problema de onboarding — tienes un problema de plataforma. La solución se llama Internal Developer Platform (IDP) y no es Backstage.
 
-## El problema real: cognitive load
+## El verdadero problema: carga cognitiva
 
-Un dev moderno tiene que conocer: Git, GitHub Actions, Docker, Kubernetes, Terraform, Vault, Argo CD, Datadog, AWS console, IAM, KMS, RDS, Helm, OPA, y todavía tiene que saber escribir el código del producto. Esto no es sostenible. Cada herramienta que el dev DEBE conocer es cognitive tax sobre la productividad real (escribir features).
+Un desarrollador moderno tiene que saber: Git, GitHub Actions, Docker, Kubernetes, Terraform, Vault, Argo CD, Datadog, consola de AWS, IAM, KMS, RDS, Helm, OPA — y aún tiene que saber cómo escribir el código del producto. Esto no es sostenible. Cada herramienta que el dev DEBE conocer es una carga cognitiva sobre el trabajo real (entregar funcionalidades).
 
-Un IDP corre el opuesto: el dev escribe código + define un manifiesto de servicio. El IDP se encarga del resto.
+Un IDP le da la vuelta: el dev escribe código + define un manifiesto de servicio. El IDP se encarga del resto.
 
 ## Qué es realmente un IDP
 
 Un IDP no es un portal. Es:
 
-Un catálogo: qué servicios existen, quién los owns, dónde están los runbooks.
+Un catálogo: qué servicios existen, quién es su dueño, dónde están los runbooks.
 
-Golden paths: templates opinados para crear un servicio nuevo (incluyen CI, CD, monitoring, alertas, RBAC, secrets management, todo).
+Golden paths: plantillas con opinión para crear un nuevo servicio (CI, CD, monitoreo, alertas, RBAC, gestión de secretos — todo incluido).
 
-Self-service: provision de DB, Redis, S3 bucket, dominio, sin tickets a infra.
+Self-service: aprovisionamiento de DB, Redis, bucket S3, dominio, sin tickets a infra.
 
-Observability built-in: métricas, logs, traces aparecen automáticamente sin configurar.
+Observabilidad incorporada: métricas, logs, trazas aparecen automáticamente sin configuración.
 
-Backstage es el frontend de los primeros dos. Los otros dos son backend (Crossplane, Argo Workflows, custom operators). Confundir Backstage con un IDP es como confundir un dashboard de Grafana con observabilidad.
+Backstage es el frontend para los dos primeros. Los otros dos son backend (Crossplane, Argo Workflows, operadores personalizados). Confundir Backstage con un IDP es como confundir un dashboard de Grafana con observabilidad.
 
-## Golden paths: opinionados pero escapables
+## Golden paths: con opinión pero escapables
 
-El error clásico: hacer el IDP demasiado rígido. "Solo podés usar Postgres, solo podés deployar a EKS". Resultado: equipos pinchan el IDP y arman lo suyo en paralelo.
+El error clásico: hacer el IDP demasiado rígido. "Solo puedes usar Postgres, solo puedes deployar a EKS". Resultado: los equipos ignoran el IDP y construyen lo suyo por separado.
 
-El balance que funciona: el golden path cubre el 80% de los casos felices. Para el 20% restante, hay un off-ramp documentado: cómo salir del path sin que la plataforma te bloquee. Si elegís off-ramp, perdés algunos beneficios (SLA del IDP, soporte) pero seguís siendo first-class citizen.
+El equilibrio que funciona: el golden path cubre el 80% de los happy path. Para el 20% restante, hay un off-ramp documentado: cómo salir del camino sin que la plataforma te bloquee. Si tomas el off-ramp, pierdes algunos beneficios (SLA del IDP, soporte) pero sigues siendo un ciudadano de primera.
 
-## Self-service no es "ticket más rápido"
+## Self-service no es "ticketing más rápido"
 
-Si el dev sigue abriendo un ticket a infra para crear un bucket S3, no tenés self-service. Tenés ticketing más rápido. Self-service real: el dev hace git push con un manifiesto que dice "necesito un bucket S3 con cifrado KMS y lifecycle a 30 días", y en 5 min existe, taggeado, monitoreado, en su cuenta de AWS, con permisos correctos.
+Si el dev aún abre un ticket a infra para crear un bucket S3, no tienes self-service. Tienes ticketing más rápido. Self-service de verdad: el dev hace un git push con un manifiesto que dice "Necesito un bucket S3 con cifrado KMS y un ciclo de vida de 30 días", y en 5 minutos existe, etiquetado, monitoreado, en su cuenta de AWS, con los permisos correctos.
 
-Lo armé con Crossplane + ArgoCD + un GitHub Actions workflow que valida el manifiesto contra políticas OPA antes de mergear. Tiempo de provisioning: 4 minutos promedio. Tickets a infra para crear recursos comunes: 0.
+Yo lo construí con Crossplane + ArgoCD + un workflow de GitHub Actions que valida el manifiesto contra políticas OPA antes de mergear. Tiempo de aprovisionamiento: 4 minutos en promedio. Tickets a infra para recursos comunes: 0.
 
 ## Métricas que importan
 
-DORA metrics aplicadas al IDP:
+Métricas DORA aplicadas al IDP:
 
-Lead time for changes (commit → prod): de 5 días a 2 horas.
+Tiempo de entrega de cambios (commit → prod): de 5 días a 2 horas.
 
-Deployment frequency: de 1/semana por equipo a 5/día por equipo.
+Frecuencia de deploy: de 1 por semana por equipo a 5 por día por equipo.
 
-Change failure rate: bajó de 18% a 6% (los golden paths incluyen tests obligatorios).
+Tasa de fallos en cambios: bajó de 18% a 6% (los golden paths incluyen pruebas obligatorias).
 
-MTTR: de 4 horas a 35 minutos (runbooks built-in + observability automática).
+MTTR: de 4 horas a 35 minutos (runbooks incorporados + observabilidad automática).
 
 Si el IDP no mueve estas 4, no está funcionando.
 
-## Build vs buy
+## Construir vs comprar
 
-Backstage open-source + plugins custom: 6 meses de un platform team de 3 personas para llegar a producción. Vendor IDP (Humanitec, Port, Mia-Platform): 4 semanas a feature básica, $$$ por seat.
+Backstage open-source + plugins personalizados: 6 meses para que un equipo de plataforma de 3 personas alcance producción. IDP de proveedor (Humanitec, Port, Mia-Platform): 4 semanas para funcionalidad básica, $$$ por puesto.
 
-Mi regla: si la organización tiene <50 devs, vendor. Si tiene >150, build (porque la inversión se amortiza y querés control). Entre 50 y 150, depende del platform team que tengas.
+Mi regla: si la organización tiene <50 devs, comprar. Si tiene >150, construir (porque la inversión se amortiza y quieres control). Entre 50 y 150, depende del equipo de plataforma que tengas.
 
-## Cuándo NO armar un IDP
+## Cuándo NO construir un IDP
 
-Si sos 10 devs, no lo armes. Es overhead sin ROI. Lo que necesitás es un buen Makefile y un README, no Backstage. El IDP empieza a tener sentido cuando hay 3+ equipos compartiendo infra y la coordinación se vuelve impuesto cognitivo.
+Si tienes 10 devs, no lo construyas. Es overhead sin ROI. Lo que necesitas es un buen Makefile y un README, no Backstage. El IDP empieza a tener sentido cuando hay 3+ equipos compartiendo infra y la coordinación se convierte en carga cognitiva.
 
 ## El resumen
 
-Un IDP bien hecho es la diferencia entre un equipo que pasa 60% del tiempo en plumbing (config, infra, debugging deploys) y uno que pasa 60% en features. Eso es ROI medible. Si tu plataforma no lo está dando, tu plataforma es plumbing disfrazado.
+Un IDP bien construido es la diferencia entre un equipo que dedica el 60% de su tiempo a plomería (config, infra, debuggear deploys) y uno que dedica el 60% a funcionalidades. Eso es ROI medible. Si tu plataforma no lo está entregando, tu plataforma es plomería disfrazada.
