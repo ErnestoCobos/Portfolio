@@ -31,10 +31,27 @@ import { getDictionary, type Locale } from "../lib/i18n";
 export function LocaleSwitcher() {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
+  const [pulse, setPulse] = useState(false);
 
   // Render the chip only after mount so SSR + hydration match cleanly.
+  // Also: fire a one-shot discovery pulse for visitors who haven't
+  // chosen a locale yet (no `locale` cookie). Returning users who
+  // already picked don't see it — they know the chip is there.
   useEffect(() => {
     setMounted(true);
+
+    if (typeof document === "undefined") return;
+    const hasCookie = /(?:^|;\s*)locale=/.test(document.cookie);
+    if (hasCookie) return;
+
+    // Delay the pulse slightly so it lands AFTER the entry fade-in,
+    // not concurrent — gives the eye time to settle on content first.
+    const startT = window.setTimeout(() => setPulse(true), 1400);
+    const stopT = window.setTimeout(() => setPulse(false), 1400 + 2400);
+    return () => {
+      window.clearTimeout(startT);
+      window.clearTimeout(stopT);
+    };
   }, []);
 
   // Derive the active locale from the URL — the prop-from-layout path
@@ -67,6 +84,7 @@ export function LocaleSwitcher() {
       aria-label={t.ariaLanguageGroup}
       className="locale-switcher mono"
       data-mounted={mounted ? "true" : "false"}
+      data-pulse={pulse ? "true" : "false"}
       style={{
         position: "fixed",
         right: "max(20px, env(safe-area-inset-right))",

@@ -1,23 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Inject a per-request `x-locale` header so the root layout can render
- * the correct `<html lang>` value without each route having to thread
- * locale through. Detection is purely path-based: `/en` prefix → en;
- * everything else → es (default).
+ * Two responsibilities:
  *
- * Notes:
- *   - The header lives on the *request* the rendering server sees
- *     (NextResponse.next forwards a clone with the header set), and is
- *     read in app/layout.tsx via headers().
- *   - Static / file / API routes are skipped — they don't render the
- *     root layout and don't care about lang.
- *   - This intentionally does NOT redirect based on Accept-Language.
- *     Auto-redirect breaks deep links and tanks SEO; the user picks
- *     a locale via the switcher (E4) and we persist it via cookie.
+ *   1. Inject a per-request `x-locale` header so the root layout can
+ *      render the correct `<html lang>` value without each route having
+ *      to thread locale through.
+ *
+ *   2. Honor the `locale` cookie set by the LocaleSwitcher chip — but
+ *      ONLY on the bare root paths `/` and `/en`. Deep links (e.g.
+ *      `/blog/foo`, `/en/blog/foo`) always serve the exact requested
+ *      URL so shared/bookmarked links land where the sender intended.
+ *
+ * Why bare-root only:
+ *   - SEO: crawlers don't send cookies, so they always see the canonical
+ *     URL they crawled — hreflang signals stay consistent.
+ *   - Deep-link safety: a friend in Madrid sharing /blog/finops-dashboard
+ *     with a friend in Berlin (cookie=en) — the Berlin friend sees the
+ *     ES post, exactly what was shared. They can switch via the chip.
+ *   - Returning visitor convenience: someone who picked EN previously
+ *     types `cobos.io` → cookie=en → 307 → /en. No friction.
  */
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // Cookie-based redirect on bare root paths only.
+  // 307 (Temporary Redirect) preserves method + signals to crawlers
+  // that this is a per-user routing decision, not a permanent move.
+  const cookieLocale = req.cookies.get("locale")?.value;
+  if (pathname === "/" && cookieLocale === "en") {
+    const url = req.nextUrl.clone();
+    url.pathname = "/en";
+    return NextResponse.redirect(url, 307);
+  }
+  if (pathname === "/en" && cookieLocale === "es") {
+    const url = req.nextUrl.clone();
+    url.pathname = "/";
+    return NextResponse.redirect(url, 307);
+  }
+
+  // Locale header injection (existing behavior).
   const locale = pathname === "/en" || pathname.startsWith("/en/") ? "en" : "es";
 
   const reqHeaders = new Headers(req.headers);
