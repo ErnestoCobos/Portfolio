@@ -102,6 +102,8 @@ function MobileMenu({
   onClose: () => void;
 }) {
   const mounted = useMounted();
+  const t = useT();
+  const locale = useLocale();
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -169,7 +171,7 @@ function MobileMenu({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Cerrar menú"
+          aria-label={t.nav.ariaCloseMenu}
           className="mono tap"
           style={{
             color: "var(--muted)",
@@ -233,7 +235,7 @@ function MobileMenu({
               return (
                 <li key={n.id}>
                   <Link
-                    href="/blog"
+                    href={locale === "en" ? "/en/blog" : "/blog"}
                     onClick={onClose}
                     className="mono tap"
                     style={linkStyle}
@@ -257,7 +259,7 @@ function MobileMenu({
                           color: "var(--cyan)",
                         }}
                       >
-                        ● here
+                        {t.nav.menuActiveHere}
                       </span>
                     )}
                   </Link>
@@ -295,7 +297,7 @@ function MobileMenu({
                         color: "var(--cyan)",
                       }}
                     >
-                      ● here
+                      {t.nav.menuActiveHere}
                     </span>
                   )}
                 </a>
@@ -313,8 +315,8 @@ function MobileMenu({
             justifyContent: "space-between",
           }}
         >
-          <span>{NAV.length} entries</span>
-          <span style={{ color: "var(--cyan)" }}>● online</span>
+          <span>{t.nav.menuEntries(NAV.length)}</span>
+          <span style={{ color: "var(--cyan)" }}>● {t.nav.online}</span>
         </div>
       </div>
     </div>,
@@ -329,16 +331,19 @@ function MobileMenu({
  * (online · ./contact). Mobile collapses to logo + path + ≡ trigger.
  */
 function Nav({ mobile }: { mobile: boolean }) {
+  const t = useT();
+  const locale = useLocale();
   const active = useActiveSection();
   const [menuOpen, setMenuOpen] = useState(false);
   const activeLabel =
     NAV.find((n) => n.id === active)?.label.toLowerCase() ?? "/";
+  const blogHref = locale === "en" ? "/en/blog" : "/blog";
 
   return (
     <>
       <div
         role="navigation"
-        aria-label="Sections"
+        aria-label={t.nav.ariaSections}
         style={{
           position: "sticky",
           top: 0,
@@ -361,7 +366,7 @@ function Nav({ mobile }: { mobile: boolean }) {
         {/* LEFT: logo + active-path */}
         <a
           href="#top"
-          aria-label="Volver al inicio"
+          aria-label={t.nav.ariaBackToTop}
           className="tap"
           style={{
             display: "flex",
@@ -428,7 +433,7 @@ function Nav({ mobile }: { mobile: boolean }) {
                 return (
                   <Link
                     key={n.id}
-                    href="/blog"
+                    href={blogHref}
                     data-active={isActive ? "true" : undefined}
                     className="mono nav-chip"
                     style={chipStyle}
@@ -475,7 +480,7 @@ function Nav({ mobile }: { mobile: boolean }) {
                 boxShadow: "0 0 8px var(--cyan)",
               }}
             />
-            online
+            {t.nav.online}
           </span>
         )}
 
@@ -495,14 +500,14 @@ function Nav({ mobile }: { mobile: boolean }) {
             fontSize: "var(--text-mono)",
           }}
         >
-          ./contact
+          {t.nav.contactCta}
         </a>
 
         {mobile && (
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
-            aria-label="Abrir menú"
+            aria-label={t.nav.ariaOpenMenu}
             aria-expanded={menuOpen}
             className="mono tap"
             style={{
@@ -2776,8 +2781,13 @@ function Field({
 }
 
 function ContactForm() {
+  const t = useT();
+  const locale = useLocale();
   const formRef = useRef<HTMLFormElement>(null);
   const [sent, setSent] = useState(false);
+
+  const subjectFallback =
+    locale === "en" ? "Contact from cobos.io" : "Contacto desde cobos.io";
 
   const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -2789,7 +2799,7 @@ function ContactForm() {
     const subject = String(data.get("subject") ?? "").trim();
     const body = String(data.get("body") ?? "").trim();
 
-    const subjectLine = subject || "Contacto desde cobos.io";
+    const subjectLine = subject || subjectFallback;
     const bodyText = `${body}\n\n— ${from || "—"}${email ? ` <${email}>` : ""}`;
     const url = `mailto:${PROFILE.email}?subject=${encodeURIComponent(
       subjectLine
@@ -2823,7 +2833,7 @@ function ContactForm() {
         }}
       >
         <span>
-          <span style={{ color: "var(--cyan)" }}>›</span> ./new-message.sh
+          <span style={{ color: "var(--cyan)" }}>›</span> {t.contact.formTitle.replace(/^›\s*/, "")}
         </span>
         {sent && (
           <span style={{ color: "var(--cyan)" }}>
@@ -2834,25 +2844,25 @@ function ContactForm() {
       <div style={{ display: "grid", gap: 12 }}>
         <Field
           name="from"
-          label="from"
-          placeholder="tu nombre · empresa"
+          label={t.contact.fieldFrom}
+          placeholder={t.contact.fieldFromPlaceholder}
           required
         />
         <Field
           name="email"
           type="email"
-          label="email"
-          placeholder="tu@empresa.com"
+          label={t.contact.fieldEmail}
+          placeholder={t.contact.fieldEmailPlaceholder}
         />
         <Field
           name="subject"
-          label="subject"
-          placeholder="auditoría · migración · plataforma · ..."
+          label={t.contact.fieldSubject}
+          placeholder={t.contact.fieldSubjectPlaceholder}
         />
         <Field
           name="body"
-          label="body"
-          placeholder="contexto del reto, stack actual, timing..."
+          label={t.contact.fieldBody}
+          placeholder={t.contact.fieldBodyPlaceholder}
           textarea
           required
         />
@@ -2864,7 +2874,7 @@ function ContactForm() {
             fontFamily: "var(--font-jetbrains-mono)",
           }}
         >
-          ./send <span aria-hidden>→</span>
+          {t.contact.sendCta} <span aria-hidden>→</span>
         </button>
       </div>
     </form>
@@ -2872,6 +2882,7 @@ function ContactForm() {
 }
 
 function Contact({ mobile }: { mobile: boolean }) {
+  const t = useT();
   const vw = useViewportWidth();
   const reduced = useReducedMotion();
   const topoW = mobile ? Math.min(vw, 600) : Math.min(vw - 96, 1440);
@@ -2935,7 +2946,11 @@ function Contact({ mobile }: { mobile: boolean }) {
           zIndex: 1,
         }}
       >
-        <SectionHeader n={9} t="contact" action="ssh hola@cobos.io" />
+        <SectionHeader
+          n={9}
+          t={t.contact.sectionLabel}
+          action={t.contact.action}
+        />
         <div
           style={{
             display: "grid",
@@ -2954,9 +2969,13 @@ function Contact({ mobile }: { mobile: boolean }) {
                 letterSpacing: "var(--ls-display)",
               }}
             >
-              <span style={{ color: "var(--violet)" }}>›</span> open
+              <span style={{ color: "var(--violet)" }}>{t.contact.headline[0]}</span>
+              {t.contact.headline[1]}
               <br />
-              <span style={{ color: "var(--violet)" }}>connection.</span>
+              <span style={{ color: "var(--violet)" }}>
+                {t.contact.headline[2]}
+                {t.contact.headline[3]}
+              </span>
             </h2>
             <p
               style={{
@@ -2966,8 +2985,7 @@ function Contact({ mobile }: { mobile: boolean }) {
                 maxWidth: 480,
               }}
             >
-              Auditorías, arquitectura objetivo, migraciones, plataformas
-              internas, FinOps. Si el problema es de infra y duele, escríbeme.
+              {t.contact.blurb}
             </p>
             <div
               className="mono"
@@ -2978,16 +2996,22 @@ function Contact({ mobile }: { mobile: boolean }) {
               }}
             >
               <div>
-                email   <span style={{ color: "var(--cyan)" }}>{PROFILE.email}</span>
+                {t.contact.linkEmail}{"   "}
+                <span style={{ color: "var(--cyan)" }}>{PROFILE.email}</span>
               </div>
               <div>
-                github  <span style={{ color: "var(--cyan)" }}>{PROFILE.github}</span>
+                {t.contact.linkGithub}{"  "}
+                <span style={{ color: "var(--cyan)" }}>{PROFILE.github}</span>
               </div>
               <div>
-                li      <span style={{ color: "var(--cyan)" }}>{PROFILE.linkedin}</span>
+                {t.contact.linkLi}
+                {"      "}
+                <span style={{ color: "var(--cyan)" }}>{PROFILE.linkedin}</span>
               </div>
               <div>
-                blog    <span style={{ color: "var(--cyan)" }}>cobos.io/blog</span>
+                {t.contact.linkBlog}
+                {"    "}
+                <span style={{ color: "var(--cyan)" }}>cobos.io/blog</span>
               </div>
             </div>
           </div>
@@ -3009,8 +3033,8 @@ function Contact({ mobile }: { mobile: boolean }) {
             gap: mobile ? 6 : 12,
           }}
         >
-          <span style={{ color: "var(--cyan)" }}>● connection alive</span>
-          <span>cobos.io / v3.0 · console</span>
+          <span style={{ color: "var(--cyan)" }}>{t.contact.connectionAlive}</span>
+          <span>{t.contact.consoleVersion}</span>
           <span>$ exit 0 · © 2026 ernesto cobos</span>
         </div>
       </div>
