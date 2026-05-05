@@ -1,0 +1,92 @@
+name: Sync from Notion
+
+# When this fires:
+#   - Twice a day at Mexico Central Time (UTC-6, no DST):
+#     * 13:00 UTC = 7:00 AM CT
+#     * 01:00 UTC = 7:00 PM CT
+#   - On manual dispatch from the Actions tab (when you don't want to
+#     wait up to 12h after marking a post Ready to publish).
+#
+# What it does:
+#   1. Pull every Notion page where Status = "Ready to publish"
+#   2. Convert each page → content/blog/<slug>/en.md
+#   3. Run translate-posts.mjs to generate es.md (cached if no change)
+#   4. If anything changed, commit + push to main
+#   5. Flip the same Notion pages → Status = "Published"
+#
+# Required GitHub repo secrets:
+#   NOTION_TOKEN          — Notion integration token (internal integration)
+#   NOTION_POSTS_DB       — Notion database ID (32-char hex from DB URL)
+#   AI_GATEWAY_API_KEY    — Vercel AI Gateway key (provision in Vercel
+#                            dashboard → AI Gateway → API Keys)
+
+on:
+  schedule:
+    - cron: "0 13 * * *"
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+
+# Don't allow two sync runs to race each other on the same branch.
+concurrency:
+  group: sync-notion
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      # Need to push the generated en.md / es.md / .translator-cache.json
+      # back to main.
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Fetch published posts from Notion
+        id: fetch
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_POSTS_DB: ${{ secrets.NOTION_POSTS_DB }}
+        run: node scripts/fetch-notion.mjs
+
+      - name: Translate (EN → ES) for any new/changed posts
+        if: steps.fetch.outputs.count != '0'
+        env:
+          AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
+        run: node scripts/translate-posts.mjs
+
+      - name: Commit + push if anything changed
+        id: commit
+        if: steps.fetch.outputs.count != '0'
+        run: |
+          git config user.name "Ernesto Cobos"
+          git config user.email "ernesto@cobos.io"
+          git add content/blog/
+          if git diff --cached --quiet; then
+            echo "skipped=true" >> "$GITHUB_OUTPUT"
+            echo "No changes after translation — nothing to commit."
+            exit 0
+          fi
+          git commit -m "Sync posts from Notion ($(date -u +%Y-%m-%dT%H:%MZ))"
+          git push
+          echo "skipped=false" >> "$GITHUB_OUTPUT"
+
+      # CRITICAL: only flip Notion to "Published" AFTER the commit + push
+      # succeeded. If push failed, leave Status as "Ready to publish" so
+      # the next run retries.
+      - name: Mark Notion pages as Published
+        if: steps.commit.outputs.skipped == 'false'
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          PROCESSED: ${{ steps.fetch.outputs.processed }}
+        run: node scripts/notion-mark-published.mjs

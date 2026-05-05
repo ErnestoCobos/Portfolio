@@ -4,18 +4,22 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node scripts/translate-posts.mjs && node scripts/git-modified-dates.mjs",
+    "prebuild": "node scripts/git-modified-dates.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "translate": "node scripts/translate-posts.mjs",
-    "translate:force": "rm -f content/blog/.translator-cache.json && node scripts/translate-posts.mjs"
+    "translate:force": "rm -f content/blog/.translator-cache.json && node scripts/translate-posts.mjs",
+    "sync-notion": "node scripts/fetch-notion.mjs && node scripts/translate-posts.mjs",
+    "sync-notion:dry-run": "node scripts/fetch-notion.mjs"
   },
   "dependencies": {
+    "@notionhq/client": "^5.20.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "marked": "^18.0.3",
     "next": "16.2.4",
+    "notion-to-md": "^3.1.9",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
