@@ -176,7 +176,7 @@ export default async function RootLayout({
           {skipLink}
         </a>
         {children}
-        <LocaleSwitcher locale={locale} />
+        <LocaleSwitcher />
       </body>
     </html>
   );

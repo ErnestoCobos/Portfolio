@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { Locale } from "../lib/i18n";
@@ -10,37 +9,43 @@ import type { Locale } from "../lib/i18n";
  * the rest of the operator-console shell: hairline border, mono font,
  * cyan accent on the active locale, meta-gray on the alternative.
  *
- * Clicking the alternative navigates to the equivalent URL in the other
- * locale (preserves the path; hashes are dropped — `usePathname` doesn't
- * expose them and we don't need them for the home anchors anyway).
+ * Locale is derived from the pathname (`/en/...` → en, else → es) via
+ * `usePathname()` so the chip stays reactive on client navigation. The
+ * server-injected `x-locale` header informs the root layout's
+ * `<html lang>` attr, but Next does NOT re-render shared layouts on
+ * client-side Link navigation — so the chip can't trust a prop derived
+ * from headers() and must derive locale itself.
+ *
+ * Clicking the alternative uses a regular `<a>` (not next/link Link)
+ * so the navigation triggers a full document fetch — that re-runs the
+ * server layout against the new URL, the proxy injects the right
+ * x-locale, and `<html lang>` flips correctly. SPA navigation across
+ * locales would leave lang/skip-link/RSS-link stuck on the previous
+ * locale's values.
  *
  * Persists the choice in a `locale` cookie (1 year, SameSite=Lax). The
- * cookie is informational — proxy.ts is intentionally NOT redirecting
+ * cookie is informational — proxy.ts intentionally does NOT redirect
  * based on it, so deep links keep working. A future opt-in middleware
  * could honor it on root visits.
- *
- * Locale comes in as a prop (resolved at the layout level from the
- * x-locale header set by proxy.ts) so this component doesn't require
- * a LocaleProvider wrapper — works on every route, including the
- * blog article pages that render fully on the server.
  */
-export function LocaleSwitcher({ locale }: { locale: Locale }) {
+export function LocaleSwitcher() {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
 
   // Render the chip only after mount so SSR + hydration match cleanly.
-  // The body of the page is the priority above-the-fold; a 200ms-delayed
-  // entry doesn't affect anyone but lines up nicely with the hero
-  // typewriter cursor settling.
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const otherLocale = locale === "en" ? "es" : "en";
+  // Derive the active locale from the URL — the prop-from-layout path
+  // is stale across client navigation. Pathname IS reactive.
+  const locale: Locale = pathname.startsWith("/en/") || pathname === "/en" ? "en" : "es";
+  const otherLocale: Locale = locale === "en" ? "es" : "en";
+
   // Build the equivalent URL in the alternative locale.
-  // /en/blog/foo  ↔  /blog/foo
-  // /en           ↔  /
-  // /             ↔  /en
+  //   /en/blog/foo  ↔  /blog/foo
+  //   /en           ↔  /
+  //   /             ↔  /en
   const otherHref = (() => {
     if (locale === "en") {
       const stripped = pathname.replace(/^\/en(?=\/|$)/, "");
@@ -51,6 +56,8 @@ export function LocaleSwitcher({ locale }: { locale: Locale }) {
 
   const persistAndGo = () => {
     document.cookie = `locale=${otherLocale}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
+    // Let the browser handle the navigation; the regular <a> below
+    // takes over from here. Cookie writes are synchronous.
   };
 
   return (
@@ -112,10 +119,9 @@ export function LocaleSwitcher({ locale }: { locale: Locale }) {
       >
         |
       </span>
-      <Link
+      <a
         href={otherHref}
         onClick={persistAndGo}
-        prefetch={false}
         aria-label={`Switch to ${otherLocale}`}
         className="locale-switch-other"
         style={{
@@ -126,7 +132,7 @@ export function LocaleSwitcher({ locale }: { locale: Locale }) {
         }}
       >
         {otherLocale}
-      </Link>
+      </a>
       <span
         aria-hidden
         style={{
