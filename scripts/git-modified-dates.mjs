@@ -1,20 +1,31 @@
 #!/usr/bin/env node
 /**
  * Generates content/blog/.modified-dates.json with the last-commit ISO
- * timestamp of every markdown post. Runs as a `prebuild` step so the
- * production bundle gets accurate dateModified values for JSON-LD
- * structured data without needing git available at runtime.
+ * timestamp of every (slug, locale) post pair. Runs as a `prebuild`
+ * step so the production bundle gets accurate dateModified values for
+ * JSON-LD structured data without needing git available at runtime.
+ *
+ * Output keys:
+ * - "<slug>:<locale>"  → primary key when content is in folder layout
+ * - "<slug>"           → legacy key (flat <slug>.md, default locale)
+ *
+ * The downstream loader in app/lib/posts.ts checks the locale-specific
+ * key first and falls back to the slug-only key.
  *
  * Behavior:
- * - If git isn't available (e.g. CI without history, or local install
- *   from a tarball), we still emit an empty JSON object instead of
- *   failing — the downstream loader treats missing entries as
- *   "no modification recorded" and falls back to the frontmatter date.
- * - We use %cI (committer date, ISO-8601 with timezone) so the output
- *   is search-engine-friendly without further parsing.
+ * - If git isn't available (CI without history, tarball install), we
+ *   still emit an empty JSON object instead of failing — the loader
+ *   treats missing entries as "no modification info" and falls back
+ *   to the frontmatter `date`.
+ * - We use %cI (committer date, ISO-8601 with timezone).
  */
 import { execSync } from "node:child_process";
-import { readdirSync, writeFileSync, existsSync } from "node:fs";
+import {
+  existsSync,
+  readdirSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -47,16 +58,40 @@ function main() {
   }
 
   const dates = {};
-  const files = readdirSync(blogDir).filter((f) => f.endsWith(".md"));
-  for (const f of files) {
-    const slug = f.replace(/\.md$/, "");
-    const iso = lastCommitIso(path.join(blogDir, f));
-    if (iso) dates[slug] = iso;
+  let count = 0;
+
+  for (const entry of readdirSync(blogDir)) {
+    if (entry.startsWith(".")) continue;
+    const fullPath = path.join(blogDir, entry);
+    const stat = statSync(fullPath);
+
+    if (stat.isDirectory()) {
+      // Folder-per-slug layout: scan for <locale>.md files.
+      const slug = entry;
+      for (const localeFile of readdirSync(fullPath)) {
+        const m = localeFile.match(/^([a-z]{2})\.md$/i);
+        if (!m) continue;
+        const locale = m[1].toLowerCase();
+        const iso = lastCommitIso(path.join(fullPath, localeFile));
+        if (iso) {
+          dates[`${slug}:${locale}`] = iso;
+          count++;
+        }
+      }
+    } else if (stat.isFile() && entry.endsWith(".md")) {
+      // Legacy flat layout — assumed default locale.
+      const slug = entry.replace(/\.md$/, "");
+      const iso = lastCommitIso(fullPath);
+      if (iso) {
+        dates[slug] = iso;
+        count++;
+      }
+    }
   }
 
   writeFileSync(outFile, JSON.stringify(dates, null, 2) + "\n");
   console.log(
-    `[git-modified-dates] wrote ${outFile} with ${Object.keys(dates).length} entries`
+    `[git-modified-dates] wrote ${outFile} with ${count} entries`
   );
 }
 

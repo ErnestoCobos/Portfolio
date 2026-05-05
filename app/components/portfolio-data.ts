@@ -120,6 +120,10 @@ export const CATEGORY_META: Record<
 export type Post = {
   slug: string;
   title: string;
+  /** Locale of this post version. Each post can exist in multiple
+   * locales (content/blog/<slug>/{es,en}.md); this field reflects the
+   * one that was loaded for this Post instance. */
+  locale: "es" | "en";
   /** Human-readable date used in UI (e.g. "Mar 2026"). */
   d: string;
   /** ISO date used for sorting and structured data (e.g. "2026-03-15"). */
