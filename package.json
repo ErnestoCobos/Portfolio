@@ -4,10 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "node scripts/git-modified-dates.mjs",
+    "prebuild": "node scripts/translate-posts.mjs && node scripts/git-modified-dates.mjs",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "translate": "node scripts/translate-posts.mjs",
+    "translate:force": "rm -f content/blog/.translator-cache.json && node scripts/translate-posts.mjs"
   },
   "dependencies": {
     "marked": "^18.0.3",
