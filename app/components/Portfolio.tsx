@@ -2307,7 +2307,10 @@ function Approach({ mobile }: { mobile: boolean }) {
       return false;
     };
     const armed = tryArm();
-    let retryT: ReturnType<typeof setTimeout> | undefined;
+    // window.setTimeout returns `number` in browsers; @types/node leaks
+    // a Node `Timeout` into the global setTimeout signature, so we just
+    // pin the variable to the browser return type explicitly.
+    let retryT: number | undefined;
     if (!armed) retryT = window.setTimeout(tryArm, 0);
 
     // Safety net: if the observer hasn't fired in 600ms (e.g. browser
