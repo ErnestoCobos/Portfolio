@@ -35,6 +35,9 @@ export const es = {
     ariaCloseMenu: "Cerrar menú",
     menuEntries: (n: number) => `${n} entries`,
     menuActiveHere: "● here",
+    ariaLanguageGroup: "Selector de idioma",
+    ariaSwitchTo: (other: "es" | "en"): string =>
+      other === "en" ? "Cambiar a inglés" : "Cambiar a español",
   },
 
   hero: {

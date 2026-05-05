@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import type { Locale } from "../lib/i18n";
+import { getDictionary, type Locale } from "../lib/i18n";
 
 /**
  * Floating language toggle. Sits bottom-right, terminal-styled to match
@@ -41,6 +41,7 @@ export function LocaleSwitcher() {
   // is stale across client navigation. Pathname IS reactive.
   const locale: Locale = pathname.startsWith("/en/") || pathname === "/en" ? "en" : "es";
   const otherLocale: Locale = locale === "en" ? "es" : "en";
+  const t = getDictionary(locale).nav;
 
   // Build the equivalent URL in the alternative locale.
   //   /en/blog/foo  ↔  /blog/foo
@@ -63,7 +64,7 @@ export function LocaleSwitcher() {
   return (
     <div
       role="group"
-      aria-label="Language"
+      aria-label={t.ariaLanguageGroup}
       className="locale-switcher mono"
       data-mounted={mounted ? "true" : "false"}
       style={{
@@ -122,13 +123,19 @@ export function LocaleSwitcher() {
       <a
         href={otherHref}
         onClick={persistAndGo}
-        aria-label={`Switch to ${otherLocale}`}
+        aria-label={t.ariaSwitchTo(otherLocale)}
         className="locale-switch-other"
         style={{
           color: "var(--meta)",
           textDecoration: "none",
-          padding: "0 2px",
-          transition: "color .18s ease-out, text-shadow .18s ease-out",
+          // Padding sized so the entire glyph + breathing room is the
+          // hit area — meets WCAG 2.1 AAA touch-target (44×44 effective
+          // when combined with the chip's outer padding) without making
+          // the chip visually heavier.
+          padding: "10px 12px",
+          margin: "-10px -8px",
+          borderRadius: "var(--r-tile)",
+          transition: "color .18s ease-out, text-shadow .18s ease-out, background .18s ease-out",
         }}
       >
         {otherLocale}

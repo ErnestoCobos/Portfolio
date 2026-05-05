@@ -600,11 +600,19 @@ textarea:focus-visible {
  * focus state that React's inline `style` prop can't express. Bumps
  * the alternative locale label to bright fg + cyan glow when hovered
  * so the affordance reads as "click me". */
-.locale-switcher .locale-switch-other:hover,
+.locale-switcher .locale-switch-other:hover {
+  color: var(--fg);
+  text-shadow: 0 0 12px rgba(0, 212, 255, 0.45);
+  background: rgba(0, 212, 255, 0.06);
+}
+/* :focus-visible gets a real cyan ring instead of the default
+ * browser outline — matches the brand accent and is keyboard-only
+ * (mouse clicks won't show the ring thanks to :focus-visible). */
 .locale-switcher .locale-switch-other:focus-visible {
   color: var(--fg);
   text-shadow: 0 0 12px rgba(0, 212, 255, 0.45);
-  outline: none;
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
 }
 .locale-switcher:hover {
   border-color: var(--cyan);

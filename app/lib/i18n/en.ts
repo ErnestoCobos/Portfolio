@@ -35,6 +35,9 @@ export const en: Dictionary = {
     ariaCloseMenu: "Close menu",
     menuEntries: (n: number) => `${n} entries`,
     menuActiveHere: "● here",
+    ariaLanguageGroup: "Language",
+    ariaSwitchTo: (other: "es" | "en"): string =>
+      other === "en" ? "Switch to English" : "Switch to Spanish",
   },
 
   hero: {
