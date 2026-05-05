@@ -1,9 +1,24 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArticleBody, postExcerpt } from "../../components/ArticleBody";
-import { CATEGORY_META, type Post } from "../../components/portfolio-data";
+import {
+  ArticleBody,
+  extractHeadings,
+  parsePostBody,
+  postExcerpt,
+} from "../../components/ArticleBody";
+import { ArticleProgress } from "../../components/ArticleProgress";
+import { TableOfContents } from "../../components/TableOfContents";
+import { ArticleAside } from "../../components/ArticleAside";
+import {
+  CATEGORY_META,
+  PROFILE,
+  type Post,
+} from "../../components/portfolio-data";
 import { getAdjacentPosts, getAllPosts, getPost } from "../../lib/posts";
+
+const SITE = "https://cobos.io";
+const REPO_RAW = "https://github.com/ErnestoCobos/Portfolio/blob/main/content/blog";
 
 export const dynamicParams = false;
 
@@ -23,6 +38,7 @@ export async function generateMetadata({
   if (!post) return { title: "Artículo no encontrado · cobos::/blog" };
   const description = postExcerpt(post.body, 160);
   const url = `https://cobos.io/blog/${post.slug}`;
+  const ogImage = `https://cobos.io/blog/${post.slug}/opengraph-image`;
   return {
     title: `${post.title} · cobos::/blog`,
     description,
@@ -35,7 +51,14 @@ export async function generateMetadata({
       "ernesto cobos",
     ],
     authors: [{ name: "Ernesto Cobos", url: "https://cobos.io" }],
-    alternates: { canonical: url },
+    alternates: {
+      canonical: url,
+      types: {
+        "application/rss+xml": [
+          { url: "https://cobos.io/rss.xml", title: "cobos::/blog · RSS" },
+        ],
+      },
+    },
     openGraph: {
       title: post.title,
       description,
@@ -45,13 +68,22 @@ export async function generateMetadata({
       locale: "es_MX",
       publishedTime: post.date,
       authors: ["Ernesto Cobos"],
-      tags: [post.category],
+      tags: [post.category, post.title],
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: `${post.title} · cobos::/blog`,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title: post.title,
       description,
       creator: "@ErnestoCobos",
+      images: [ogImage],
     },
   };
 }
@@ -71,7 +103,21 @@ export default async function BlogPostPage({
       ? "var(--cyan)"
       : "var(--violet)";
 
-  // BlogPosting structured data — Google rich results
+  // Up to 2 related posts: same category, exclude current. If none match,
+  // fall back to the next chronological siblings so the section never
+  // renders empty (visible only when at least 1 candidate exists).
+  const all = getAllPosts();
+  const sameCat = all.filter(
+    (p) => p.category === post.category && p.slug !== post.slug
+  );
+  const fallback = all.filter((p) => p.slug !== post.slug);
+  const related = (sameCat.length > 0 ? sameCat : fallback).slice(0, 2);
+
+  const headings = extractHeadings(parsePostBody(post.body));
+
+  // BlogPosting structured data — Google rich results require `image`
+  // for card-style snippets to render. Point to the dynamic OG image
+  // route which is always 1200×630 PNG.
   const blogPostingLd = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
@@ -79,6 +125,12 @@ export default async function BlogPostPage({
     description: postExcerpt(post.body, 200),
     datePublished: post.date,
     dateModified: post.date,
+    image: {
+      "@type": "ImageObject",
+      url: `https://cobos.io/blog/${post.slug}/opengraph-image`,
+      width: 1200,
+      height: 630,
+    },
     author: {
       "@type": "Person",
       "@id": "https://cobos.io/#person",
@@ -137,25 +189,41 @@ export default async function BlogPostPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
-      <ArticlePage post={post} prev={prev} next={next} accent={accent} />
+      <ArticlePage
+        post={post}
+        prev={prev}
+        next={next}
+        accent={accent}
+        headings={headings}
+        related={related}
+      />
     </>
   );
 }
 
-/* ── Page chrome (server-rendered, no client hooks) ─────────── */
+/* ── Page chrome (server-rendered with two small client islands for
+ * scroll-driven UI: ArticleProgress, TableOfContents, ArticleAside) */
 function ArticlePage({
   post,
   prev,
   next,
   accent,
+  headings,
+  related,
 }: {
   post: Post;
   prev: Post | null;
   next: Post | null;
   accent: string;
+  headings: { id: string; text: string }[];
+  related: Post[];
 }) {
+  const url = `${SITE}/blog/${post.slug}`;
+
   return (
     <div className="cobos-art" style={{ minHeight: "100vh" }}>
+      <ArticleProgress />
+
       <header
         style={{
           position: "sticky",
@@ -172,9 +240,8 @@ function ArticlePage({
           WebkitBackdropFilter: "blur(14px) saturate(140%)",
         }}
       >
-        <Link
-          href="/blog"
-          className="mono tap"
+        <div
+          className="mono"
           style={{
             fontSize: "var(--text-meta)",
             color: "var(--fg)",
@@ -182,13 +249,24 @@ function ArticlePage({
             alignItems: "center",
             gap: 8,
             letterSpacing: "-0.01em",
+            minWidth: 0,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
           }}
         >
-          <span style={{ color: "var(--muted)" }}>←</span>
-          cobos<span style={{ color: "var(--cyan)" }}>::</span>
-          <span style={{ color: "var(--cyan)" }}>/blog</span>
-          <span style={{ color: "var(--muted)" }}> · {post.slug}</span>
-        </Link>
+          <Link href="/" aria-label="Ir al home" style={{ color: "var(--meta)" }}>
+            cobos<span style={{ color: "var(--cyan)" }}>::</span>
+          </Link>
+          <Link
+            href="/blog"
+            className="tap"
+            style={{ color: "var(--cyan)" }}
+            aria-label="Volver al índice del blog"
+          >
+            /blog
+          </Link>
+          <span style={{ color: "var(--meta)" }}> · {post.slug}</span>
+        </div>
         <span
           className="mono"
           style={{
@@ -199,11 +277,15 @@ function ArticlePage({
             padding: "3px 10px",
             border: `1px solid ${accent}`,
             borderRadius: "var(--r-chip)",
+            flexShrink: 0,
           }}
         >
           {CATEGORY_META[post.category].label}
         </span>
       </header>
+
+      <ArticleAside url={url} title={post.title} />
+      <TableOfContents headings={headings} />
 
       <article
         style={{
@@ -212,111 +294,203 @@ function ArticlePage({
           padding: "56px 32px 64px",
         }}
       >
-        <ArticleBody post={post} mobile={false} />
+        <ArticleBody
+          post={post}
+          mobile={false}
+          headerExtra={<AuthorBlock />}
+        />
       </article>
 
-      {/* Prev / next navigation */}
-      <nav
-        aria-label="Navegación entre artículos"
-        style={{
-          maxWidth: 1180,
-          margin: "0 auto",
-          padding: "32px 32px 64px",
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 16,
-        }}
-      >
-        {prev ? (
-          <Link
-            href={`/blog/${prev.slug}`}
-            className="tap"
+      {/* Related posts — same category if any, otherwise chronological. */}
+      {related.length > 0 && (
+        <section
+          aria-label="Más artículos relacionados"
+          style={{
+            maxWidth: 1180,
+            margin: "0 auto",
+            padding: "16px 32px 0",
+          }}
+        >
+          <div
+            className="mono"
             style={{
-              padding: 20,
-              border: "1px solid var(--hairline-strong)",
-              borderRadius: 8,
-              textAlign: "left",
-              minWidth: 0,
+              fontSize: "var(--text-mono-xs)",
+              color: "var(--meta)",
+              letterSpacing: "var(--ls-overline)",
+              textTransform: "uppercase",
+              marginBottom: 16,
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
             }}
           >
-            <div
-              className="mono"
-              style={{
-                fontSize: "var(--text-mono-xs)",
-                color: "var(--muted)",
-                letterSpacing: "var(--ls-overline)",
-                textTransform: "uppercase",
-                marginBottom: 8,
-              }}
-            >
-              ← anterior · más viejo
-            </div>
-            <div
-              style={{
-                fontSize: "var(--text-body)",
-                fontWeight: 500,
-                letterSpacing: "var(--ls-tight)",
-                color: "var(--fg)",
-                lineHeight: 1.3,
-              }}
-            >
-              {prev.t}
-            </div>
-          </Link>
-        ) : (
-          <span />
-        )}
-        {next ? (
-          <Link
-            href={`/blog/${next.slug}`}
-            className="tap"
+            <span style={{ color: accent }}>$</span> grep -l "category:{" "}
+            {post.category}" ./blog/*.md
+          </div>
+          <ul
             style={{
-              padding: 20,
-              border: "1px solid var(--hairline-strong)",
-              borderRadius: 8,
-              textAlign: "right",
-              minWidth: 0,
+              listStyle: "none",
+              padding: 0,
+              margin: 0,
+              display: "grid",
+              gridTemplateColumns: related.length > 1 ? "1fr 1fr" : "1fr",
+              gap: 16,
             }}
           >
-            <div
-              className="mono"
+            {related.map((rp) => {
+              const relAccent =
+                CATEGORY_META[rp.category].accent === "cyan"
+                  ? "var(--cyan)"
+                  : "var(--violet)";
+              return (
+                <li key={rp.slug}>
+                  <Link
+                    href={`/blog/${rp.slug}`}
+                    className="tap"
+                    style={{
+                      display: "block",
+                      padding: 20,
+                      border: "1px solid var(--hairline-strong)",
+                      borderRadius: "var(--r-card-sm)",
+                      textDecoration: "none",
+                    }}
+                  >
+                    <div
+                      className="mono"
+                      style={{
+                        fontSize: "var(--text-mono-xs)",
+                        color: relAccent,
+                        letterSpacing: "var(--ls-overline)",
+                        textTransform: "uppercase",
+                        marginBottom: 8,
+                      }}
+                    >
+                      {rp.d.toLowerCase()} · {CATEGORY_META[rp.category].label}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "var(--text-body)",
+                        fontWeight: 500,
+                        letterSpacing: "var(--ls-tight)",
+                        color: "var(--fg)",
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      {rp.title}
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      {/* Prev / next navigation. Empty slots collapse instead of leaving
+       * a hollow grid cell — the existing post becomes full-width. */}
+      {(prev || next) && (
+        <nav
+          aria-label="Navegación entre artículos"
+          style={{
+            maxWidth: 1180,
+            margin: "0 auto",
+            padding: "32px 32px 64px",
+            display: "grid",
+            gridTemplateColumns:
+              prev && next ? "1fr 1fr" : "1fr",
+            gap: 16,
+          }}
+        >
+          {prev && (
+            <Link
+              href={`/blog/${prev.slug}`}
+              className="tap"
+              aria-label={`Anterior: ${prev.title}`}
               style={{
-                fontSize: "var(--text-mono-xs)",
-                color: "var(--muted)",
-                letterSpacing: "var(--ls-overline)",
-                textTransform: "uppercase",
-                marginBottom: 8,
+                padding: 20,
+                border: "1px solid var(--hairline-strong)",
+                borderRadius: "var(--r-card-sm)",
+                textAlign: "left",
+                minWidth: 0,
+                textDecoration: "none",
               }}
             >
-              siguiente · más nuevo →
-            </div>
-            <div
+              <div
+                className="mono"
+                style={{
+                  fontSize: "var(--text-mono-xs)",
+                  color: "var(--meta)",
+                  letterSpacing: "var(--ls-overline)",
+                  textTransform: "uppercase",
+                  marginBottom: 8,
+                }}
+              >
+                <span aria-hidden>←</span> anterior · más viejo
+              </div>
+              <div
+                style={{
+                  fontSize: "var(--text-body)",
+                  fontWeight: 500,
+                  letterSpacing: "var(--ls-tight)",
+                  color: "var(--fg)",
+                  lineHeight: 1.3,
+                }}
+              >
+                {prev.title}
+              </div>
+            </Link>
+          )}
+          {next && (
+            <Link
+              href={`/blog/${next.slug}`}
+              className="tap"
+              aria-label={`Siguiente: ${next.title}`}
               style={{
-                fontSize: "var(--text-body)",
-                fontWeight: 500,
-                letterSpacing: "var(--ls-tight)",
-                color: "var(--fg)",
-                lineHeight: 1.3,
+                padding: 20,
+                border: "1px solid var(--hairline-strong)",
+                borderRadius: "var(--r-card-sm)",
+                textAlign: "right",
+                minWidth: 0,
+                textDecoration: "none",
               }}
             >
-              {next.t}
-            </div>
-          </Link>
-        ) : (
-          <span />
-        )}
-      </nav>
+              <div
+                className="mono"
+                style={{
+                  fontSize: "var(--text-mono-xs)",
+                  color: "var(--meta)",
+                  letterSpacing: "var(--ls-overline)",
+                  textTransform: "uppercase",
+                  marginBottom: 8,
+                }}
+              >
+                siguiente · más nuevo <span aria-hidden>→</span>
+              </div>
+              <div
+                style={{
+                  fontSize: "var(--text-body)",
+                  fontWeight: 500,
+                  letterSpacing: "var(--ls-tight)",
+                  color: "var(--fg)",
+                  lineHeight: 1.3,
+                }}
+              >
+                {next.title}
+              </div>
+            </Link>
+          )}
+        </nav>
+      )}
 
       <footer
         className="mono"
         style={{
           maxWidth: 1180,
           margin: "0 auto",
-          padding: "0 32px 56px",
+          padding: "24px 32px 56px",
           borderTop: "1px solid var(--hairline)",
-          paddingTop: 24,
           fontSize: "var(--text-mono)",
-          color: "var(--muted)",
+          color: "var(--meta)",
           display: "flex",
           justifyContent: "space-between",
           gap: 12,
@@ -328,13 +502,96 @@ function ArticlePage({
           <span style={{ color: "var(--cyan)" }}>$</span> cat ./blog/{post.slug}
           .md · {post.r} read
         </span>
-        <Link
-          href="/blog"
-          style={{ color: "var(--cyan)", textDecoration: "none" }}
-        >
-          ← cobos::/blog
-        </Link>
+        <span style={{ display: "inline-flex", gap: 16, flexWrap: "wrap" }}>
+          <a
+            href={`${REPO_RAW}/${post.slug}.md`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "var(--cyan)", textDecoration: "none" }}
+          >
+            edit on github <span aria-hidden>↗</span>
+          </a>
+          <Link
+            href="/blog"
+            style={{ color: "var(--cyan)", textDecoration: "none" }}
+          >
+            <span aria-hidden>←</span> cobos::/blog
+          </Link>
+        </span>
       </footer>
+    </div>
+  );
+}
+
+/** Author byline rendered between the H1 and the article body. Avatar
+ * links to /about so readers can scope him beyond the post. */
+function AuthorBlock() {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        marginBottom: 36,
+        paddingBottom: 24,
+        borderBottom: "1px solid var(--hairline)",
+      }}
+    >
+      <Link
+        href="/#about"
+        aria-label={`${PROFILE.name} — sobre el autor`}
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: "var(--r-tile)",
+          overflow: "hidden",
+          border: "1px solid var(--cyan)",
+          display: "block",
+          flexShrink: 0,
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={PROFILE.avatarUrl}
+          alt={PROFILE.name}
+          width={40}
+          height={40}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            display: "block",
+          }}
+        />
+      </Link>
+      <div style={{ minWidth: 0 }}>
+        <div
+          style={{
+            fontSize: "var(--text-body-sm)",
+            color: "var(--fg)",
+            fontWeight: 500,
+            lineHeight: 1.2,
+          }}
+        >
+          <Link
+            href="/#about"
+            style={{ color: "inherit", textDecoration: "none" }}
+          >
+            {PROFILE.name}
+          </Link>
+        </div>
+        <div
+          className="mono"
+          style={{
+            fontSize: "var(--text-mono-xs)",
+            color: "var(--meta)",
+            letterSpacing: "var(--ls-meta)",
+            marginTop: 2,
+          }}
+        >
+          {PROFILE.role}
+        </div>
+      </div>
     </div>
   );
 }

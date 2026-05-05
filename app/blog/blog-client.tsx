@@ -114,17 +114,43 @@ export default function BlogClient({ posts }: { posts: Post[] }) {
           cobos<span style={{ color: "var(--cyan)" }}>::</span>
           <span style={{ color: "var(--cyan)" }}>/blog</span>
         </Link>
-        <span
+        <div
           className="mono"
           style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 12,
             fontSize: "var(--text-mono)",
-            color: "var(--muted)",
+            color: "var(--meta)",
             letterSpacing: "var(--ls-tag)",
             textTransform: "uppercase",
           }}
         >
-          ls -la ./blog · {posts.length} notas
-        </span>
+          <span>ls -la ./blog · {posts.length} notas</span>
+          <a
+            href="/rss.xml"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="RSS feed del blog"
+            title="RSS feed"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "3px 10px",
+              border: "1px solid var(--hairline-strong)",
+              borderRadius: "var(--r-chip)",
+              color: "var(--cyan)",
+              textDecoration: "none",
+              fontSize: "var(--text-mono-xs)",
+            }}
+          >
+            <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor" aria-hidden>
+              <path d="M6.18 17.82A2.18 2.18 0 1 1 4 15.64a2.18 2.18 0 0 1 2.18 2.18zM4 4.44v3.04a12.52 12.52 0 0 1 12.52 12.52h3.04A15.56 15.56 0 0 0 4 4.44zm0 6.05v3.04a6.47 6.47 0 0 1 6.47 6.47h3.04A9.51 9.51 0 0 0 4 10.49z" />
+            </svg>
+            rss
+          </a>
+        </div>
       </header>
 
       <main

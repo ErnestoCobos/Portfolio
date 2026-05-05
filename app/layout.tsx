@@ -125,6 +125,12 @@ export default function RootLayout({
       <head>
         <link rel="me" href="https://github.com/ErnestoCobos" />
         <link rel="me" href="https://linkedin.com/in/cobos" />
+        <link
+          rel="alternate"
+          type="application/rss+xml"
+          title="cobos::/blog · notas de campo"
+          href="https://cobos.io/rss.xml"
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

@@ -407,6 +407,19 @@ textarea:focus-visible {
   border: 0;
 }
 
+/* Article TOC + share aside: only visible on wide screens. The
+ * fixed-position panes would compete with the 720px article column on
+ * smaller viewports. Above 1280px there's room to host them on either
+ * edge. */
+@media (min-width: 1280px) {
+  .article-toc {
+    display: block !important;
+  }
+  .article-aside {
+    display: flex !important;
+  }
+}
+
 /* Skip-to-content: hidden until keyboard focus pulls it into view. Lets
  * screen-reader and keyboard users bypass the nav + status dock and land
  * directly on the first content section. */
