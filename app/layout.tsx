@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Inter_Tight, JetBrains_Mono } from "next/font/google";
+import { headers } from "next/headers";
 import "./globals.css";
+import { resolveLocale } from "./lib/i18n";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -123,14 +125,29 @@ const websiteLd = {
   author: { "@id": "https://cobos.io/#person" },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // The middleware sets `x-locale` based on URL prefix so the lang
+  // attribute matches the rendered content even though Next doesn't
+  // expose route params at the root layout level.
+  const h = await headers();
+  const locale = resolveLocale(h.get("x-locale") ?? undefined);
+  const isEn = locale === "en";
+
+  const rssTitle = isEn
+    ? "cobos::/blog · field notes"
+    : "cobos::/blog · notas de campo";
+  const rssHref = isEn
+    ? "https://cobos.io/en/rss.xml"
+    : "https://cobos.io/rss.xml";
+  const skipLink = isEn ? "↓ skip to content" : "↓ saltar al contenido";
+
   return (
     <html
-      lang="es"
+      lang={isEn ? "en" : "es"}
       className={`${inter.variable} ${interTight.variable} ${jetbrainsMono.variable}`}
     >
       <head>
@@ -139,8 +156,8 @@ export default function RootLayout({
         <link
           rel="alternate"
           type="application/rss+xml"
-          title="cobos::/blog · notas de campo"
-          href="https://cobos.io/rss.xml"
+          title={rssTitle}
+          href={rssHref}
         />
         <script
           type="application/ld+json"
@@ -155,7 +172,7 @@ export default function RootLayout({
       </head>
       <body>
         <a href="#about" className="skip-link">
-          ↓ skip to content
+          {skipLink}
         </a>
         {children}
       </body>
