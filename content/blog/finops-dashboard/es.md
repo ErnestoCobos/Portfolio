@@ -1,64 +1,66 @@
 ---
 slug: finops-dashboard
-title: "FinOps no es Excel: cómo construí un dashboard que ahorra 38%"
+title: "FinOps no es Excel: cómo construí un dashboard que ahorra un 38%"
 d: "Ene 2026"
 date: "2026-01-15"
 r: "5 min"
 category: finops
 ---
 
-Cualquiera puede armar un Excel con la factura de AWS y mandárselo al CFO el viernes. FinOps real es otra cosa: es hacer que el ahorro sea automático y los engineering leads vean el costo de sus decisiones en tiempo real, no 30 días después.
+Cualquiera puede armar un Excel con la factura de AWS y enviárselo por email al CFO el viernes. El verdadero FinOps es otra cosa: es automatizar el ahorro y mostrarle a los líderes de ingeniería el costo de sus decisiones en tiempo real, no 30 días después.
 
-Cuento cómo armé el dashboard que en un retail enterprise nos ahorró 38% de la factura cloud (de ~$180k/mes a ~$112k/mes) en 9 meses, y por qué Excel no era opción.
+Así construí el dashboard que en una empresa de retail nos ahorró un 38% de la factura cloud (de ~$180k/mes a ~$112k/mes) en 9 meses, y por qué Excel no era una opción.
 
-## Paso 1: tagging strategy o nada funciona
+## Paso 1: estrategia de etiquetado, o nada funciona
 
-Sin tags, no hay FinOps. Los tags mínimos: team, service, env, cost-center. Política: cualquier recurso sin esos 4 tags se elimina automáticamente después de 7 días (excepción: producción). El primer mes el equipo gritó. El segundo mes todos taggeaban. Lambda + CloudWatch event para auditoría diaria.
+Sin etiquetas, no hay FinOps. Las etiquetas mínimas: team, service, env, cost-center. Política: cualquier recurso sin esas 4 etiquetas se elimina automáticamente después de 7 días (excepción: production). El primer mes el equipo gritó. El segundo mes todos etiquetaron. Lambda + evento de CloudWatch para auditoría diaria.
 
-## Paso 2: dónde estaba el 38%
+## Paso 2: dónde vivía el 38%
 
 Análisis postmortem del ahorro real:
 
-Idle resources (12%): instancias dev encendidas 24/7. Auto-stop después de 19hs y los fines de semana. Esto solo no rompe nada y nadie lo nota.
+Recursos ociosos (12%): instancias de dev corriendo 24/7. Auto-parada después de las 7pm y fines de semana. Esto solo no rompe nada y nadie se da cuenta.
 
-Oversized RDS (9%): instancias r5.4xlarge corriendo a 6% CPU promedio. Rightsizing a r5.large + read replica si hace falta.
+RDS sobredimensionado (9%): instancias r5.4xlarge corriendo al 6% de CPU promedio. Rightsize a r5.large + réplica de lectura si es necesario.
 
-Orphan resources (7%): EBS volumes desatachados, ELBs sin targets, snapshots viejos. CloudCustodian + tag de "delete-after" automático.
+Recursos huérfanos (7%): volúmenes EBS no asociados, ELBs sin targets, snapshots viejos. CloudCustodian + etiqueta automática "delete-after".
 
-NAT Gateway data transfer (5%): equipos llamando S3 vía internet en vez de VPC endpoint. Migrar a gateway endpoints, $0/GB en vez de $0.045/GB.
+Transferencia de NAT Gateway (5%): equipos accediendo a S3 por internet público en lugar de un VPC endpoint. Migrar a gateway endpoints, $0/GB en vez de $0.045/GB.
 
-Reserved Instances mal modeladas (5%): RIs compradas hace 2 años para shape que ya no se usaba. Vender en marketplace + comprar Compute Savings Plans (más flexibles).
+Reserved Instances mal modeladas (5%): RIs compradas hace 2 años para un tipo de instancia que ya no se usa. Vender en el marketplace + comprar Compute Savings Plans (más flexibles).
 
 ## Paso 3: el dashboard real
 
-Stack: Cost & Usage Report (CUR) → S3 → Athena → Grafana. No usé Cost Explorer porque no permite custom dimensions cruzadas. Cada equipo tiene su panel: gasto del mes, vs forecast, vs misma semana del mes anterior, desglose por servicio. Drill-down hasta el recurso individual.
+Stack: Cost & Usage Report (CUR) → S3 → Athena → Grafana. No usé Cost Explorer porque no permite consultas personalizadas entre dimensiones.
 
-Lo que cambia el comportamiento: cada PR a infra (Terraform) corre infracost y postea el delta de costo en el PR. Los devs ven "este cambio agrega $42/mes" antes de mergear. Cero discusión, dato directo.
+Cada equipo tiene su panel: gasto mensual, vs forecast, vs la misma semana del mes pasado, breakdown por servicio. Drill-down al recurso individual.
+
+Lo que realmente cambia el comportamiento: cada PR de infra (Terraform) corre infracost y publica el delta de costo en el PR. Los devs ven "este cambio agrega $42/mes" antes de mergear. Cero discusión, datos directos.
 
 ## Paso 4: Reserved Instances vs Savings Plans vs Spot
 
 Modelo simple:
 
-Spot para batch, CI/CD, dev environments (60–90% ahorro, hay que tolerar interrupción).
+Spot para batch, CI/CD, entornos de dev (60–90% de ahorro, toleras la interrupción).
 
-Compute Savings Plans 1yr no upfront para baseline de prod (40% ahorro, flexibilidad de instancia).
+Compute Savings Plans 1 año no-upfront para la baseline de producción (40% de ahorro, flexibilidad de instancia).
 
 RIs solo para RDS y ElastiCache (no hay SP para esos).
 
-Comprar el SP/RI no es un evento, es un proceso recurrente. Cada mes: review de utilización, ajuste de commit. Lo automaticé con un script que recomienda compras basado en últimos 90 días.
+Comprar el SP/RI no es un evento único, es un proceso recurrente. Cada mes: revisión de utilización, ajuste de compromiso. Lo automaticé con un script que recomienda compras basándose en los últimos 90 días.
 
 ## Paso 5: showback antes que chargeback
 
-Chargeback (cobrar al equipo) es controversial y genera política. Showback (mostrar el costo, sin cobrar) genera 80% del cambio cultural sin la política. Empezar por showback. Si después de 6 meses el comportamiento no mejora, evaluar chargeback.
+Chargeback (cobrarle al equipo) es controversial y genera política. Showback (mostrar el costo, sin cobrar) impulsa el 80% del cambio cultural sin la política. Empieza con showback. Si después de 6 meses el comportamiento no mejora, evalúa chargeback.
 
 ## Lo que no funciona
 
-Kubecost solo. Es buen storyteller para K8s pero no ve el resto (RDS, S3, transfer). Necesitás CUR.
+Kubecost solo. Es un buen cuentacuentos para K8s pero no ve el resto (RDS, S3, transferencia). Necesitas CUR.
 
-Auto-rightsize sin aprobación. Probé. Rompe production. Recomendaciones → tickets, no auto-apply.
+Auto-rightsize sin aprobación. Lo intenté. Rompe producción. Recomendaciones → tickets, no auto-apply.
 
-Meeting mensual de FinOps con todos los equipos. Aburre, nadie va. Mejor: un canal Slack con bot que postea top-5 spenders semanal y deja que el equipo se autoorganice.
+Reunión mensual de FinOps con cada equipo. Aburrido, nadie aparece. Mejor: un canal de Slack con un bot que publica los top-5 gastadores semanalmente y deja que el equipo se auto-organice.
 
-## Lo importante
+## Lo que importa
 
-El 38% no vino de un truco. Vino de hacer que el costo sea visible, accionable, y que el feedback loop sea de horas, no de meses. La parte difícil no es técnica — es montar el ciclo cultural donde optimizar costo es trabajo de todos, no del CFO.
+El 38% no vino de un truco. Vino de hacer el costo visible, accionable, y de reducir el ciclo de feedback de meses a horas. La parte difícil no es técnica — es establecer el ciclo cultural donde optimizar el costo es trabajo de todos, no del CFO.

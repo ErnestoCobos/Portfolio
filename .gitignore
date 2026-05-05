@@ -60,3 +60,4 @@ content/blog/.translator-cache.json
 # calling the LLM. Commit deliberately when used (it's the source of
 # truth for that locale, takes precedence over the auto-generated one).
 # (intentionally NOT ignored — comment for clarity, no glob.)
+.env*.local
