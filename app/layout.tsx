@@ -3,6 +3,7 @@ import { Inter, Inter_Tight, JetBrains_Mono } from "next/font/google";
 import { headers } from "next/headers";
 import "./globals.css";
 import { resolveLocale } from "./lib/i18n";
+import { LocaleSwitcher } from "./components/LocaleSwitcher";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -175,6 +176,7 @@ export default async function RootLayout({
           {skipLink}
         </a>
         {children}
+        <LocaleSwitcher locale={locale} />
       </body>
     </html>
   );
