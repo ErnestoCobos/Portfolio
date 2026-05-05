@@ -28,6 +28,18 @@ import {
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
+
+// Auto-load .env.local before anything else, so provider configs see
+// AI_GATEWAY_API_KEY without the user having to source the file or
+// prefix the command. Mirrors the behavior Next.js gives the app at
+// runtime. Silent if the file doesn't exist (Vercel uses OIDC).
+{
+  const envPath = path.resolve(".env.local");
+  if (existsSync(envPath)) {
+    process.loadEnvFile(envPath);
+  }
+}
+
 import {
   BLOG_DIR,
   DEFAULT_MODEL,
