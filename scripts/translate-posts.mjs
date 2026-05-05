@@ -12,13 +12,19 @@
  *     es.md exists on disk → skip (no API call).
  *  5. Else call the LLM, write es.md, update the cache.
  *
- * The script is idempotent: a clean run translates 0 posts when nothing
- * has changed since the last successful run.
+ * Concurrency: posts that need translation run IN PARALLEL via
+ * Promise.allSettled — the LLM API tolerates concurrent calls fine,
+ * and at 4 posts × ~120s/post serial would be ~8 min vs ~2 min
+ * parallel. Cached/overridden/skipped posts return immediately, so
+ * the parallelism only kicks in for actual API calls. Concurrency cap
+ * (TRANSLATOR_CONCURRENCY env, default 6) gates per-host load if the
+ * corpus grows large enough to matter.
  *
- * Cost reporting: prints per-post and total token + dollar usage.
+ * The cache file `content/blog/.translator-cache.json` is committed
+ * to git so Vercel builds skip the API entirely on unchanged posts.
  *
- * Failure mode: API errors mark the post as failed but the run continues
- * for the remaining posts. Process exits 1 if any post failed.
+ * Failure mode: API errors mark the post as failed but the run
+ * continues for the remaining posts. Process exits 1 if any failed.
  */
 import {
   existsSync,
@@ -53,6 +59,11 @@ import {
 } from "../app/lib/translator/cache.mjs";
 import { callProvider } from "../app/lib/translator/providers.mjs";
 
+const CONCURRENCY = Math.max(
+  1,
+  Number.parseInt(process.env.TRANSLATOR_CONCURRENCY ?? "6", 10) || 6
+);
+
 function parseFrontmatter(text) {
   const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
   if (!m) return { data: {} };
@@ -80,6 +91,70 @@ function fmtCost(usd) {
   return `$${usd.toFixed(6)}`;
 }
 
+/**
+ * Per-slug planning: figure out what to do with each post BEFORE
+ * touching the network. Returns one of:
+ *   { kind: "skip" }                       — no en.md
+ *   { kind: "override", esPath, override } — copy override
+ *   { kind: "cached", slug }                — hash matches, no work
+ *   { kind: "translate", slug, enPath, esPath, enText, model }
+ *   { kind: "configError", slug, model }    — bad translator value
+ */
+function planSlug(slug, cache) {
+  const slugPath = path.join(BLOG_DIR, slug);
+  const slugStat = statSync(slugPath);
+  if (!slugStat.isDirectory()) return { kind: "skip" };
+
+  const enPath = path.join(slugPath, "en.md");
+  const esPath = path.join(slugPath, "es.md");
+  const overridePath = path.join(slugPath, "es.override.md");
+
+  if (!existsSync(enPath)) return { kind: "skip" };
+
+  if (existsSync(overridePath)) {
+    return {
+      kind: "override",
+      slug,
+      esPath,
+      overrideContent: readFileSync(overridePath, "utf8"),
+    };
+  }
+
+  const enText = readFileSync(enPath, "utf8");
+  const { data: fm } = parseFrontmatter(enText);
+  const model = fm.translator || DEFAULT_MODEL;
+
+  if (!PROVIDERS[model]) {
+    return { kind: "configError", slug, model };
+  }
+
+  const fresh = !shouldRetranslate(slug, enText, model, cache);
+  if (fresh && existsSync(esPath)) {
+    return { kind: "cached", slug };
+  }
+
+  return { kind: "translate", slug, enPath, esPath, enText, model };
+}
+
+/** Run an async worker over an array with a concurrency cap. */
+async function pMapLimit(items, limit, worker) {
+  const results = new Array(items.length);
+  let cursor = 0;
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (true) {
+      const i = cursor++;
+      if (i >= items.length) return;
+      try {
+        results[i] = { ok: true, value: await worker(items[i], i) };
+      } catch (err) {
+        results[i] = { ok: false, err };
+      }
+    }
+  });
+  await Promise.all(runners);
+  return results;
+}
+
 async function main() {
   if (!existsSync(BLOG_DIR)) {
     console.warn(
@@ -101,83 +176,90 @@ async function main() {
     outputTokens: 0,
   };
 
+  // Phase 1: plan every slug synchronously. Cheap I/O + cache lookup.
+  const plans = [];
   for (const slug of readdirSync(BLOG_DIR)) {
     if (slug.startsWith(".")) continue;
-    const slugPath = path.join(BLOG_DIR, slug);
-    const slugStat = statSync(slugPath);
-    if (!slugStat.isDirectory()) continue;
-
-    const enPath = path.join(slugPath, "en.md");
-    const esPath = path.join(slugPath, "es.md");
-    const overridePath = path.join(slugPath, "es.override.md");
-
-    if (!existsSync(enPath)) continue;
+    const plan = planSlug(slug, cache);
+    if (plan.kind === "skip") continue;
     stats.total++;
+    plans.push(plan);
+  }
 
-    if (existsSync(overridePath)) {
-      writeFileSync(esPath, readFileSync(overridePath, "utf8"));
+  // Phase 2: handle the cheap cases inline (overrides + cached + config
+  // errors), so the parallel worker pool only does network calls.
+  const toTranslate = [];
+  for (const plan of plans) {
+    if (plan.kind === "override") {
+      writeFileSync(plan.esPath, plan.overrideContent);
       stats.overridden++;
-      console.log(`[translate] ${slug}: using es.override.md (manual)`);
-      continue;
-    }
-
-    const enText = readFileSync(enPath, "utf8");
-    const { data: fm } = parseFrontmatter(enText);
-    const model = fm.translator || DEFAULT_MODEL;
-
-    if (!PROVIDERS[model]) {
+      console.log(`[translate] ${plan.slug}: using es.override.md (manual)`);
+    } else if (plan.kind === "cached") {
+      stats.cached++;
+    } else if (plan.kind === "configError") {
       console.error(
-        `[translate] ${slug}: unknown translator "${model}". Allowed: ${Object.keys(PROVIDERS).join(", ")}`
+        `[translate] ${plan.slug}: unknown translator "${plan.model}". Allowed: ${Object.keys(PROVIDERS).join(", ")}`
       );
       stats.failed++;
-      continue;
+    } else if (plan.kind === "translate") {
+      toTranslate.push(plan);
     }
+  }
 
-    const fresh = !shouldRetranslate(slug, enText, model, cache);
-    if (fresh && existsSync(esPath)) {
-      stats.cached++;
-      continue;
-    }
+  // Phase 3: parallel API calls for the slugs that actually need work.
+  if (toTranslate.length > 0) {
+    const concurrency = Math.min(CONCURRENCY, toTranslate.length);
+    console.log(
+      `[translate] ${toTranslate.length} post(s) need translation; running ${concurrency}-way parallel`
+    );
+    const startedAt = Date.now();
 
-    console.log(`[translate] ${slug} → ${model}`);
-    try {
-      const { text, usage } = await callProvider(model, enText);
-      writeFileSync(esPath, text.endsWith("\n") ? text : text + "\n");
-      cache[slug] = {
-        hash: hashContent(enText, model),
-        model,
-        translatedAt: new Date().toISOString(),
-        tokensUsed: usage,
-      };
-      const provider = PROVIDERS[model];
-      const cost =
-        (usage.input * provider.inputCostPerM +
-          usage.output * provider.outputCostPerM) /
-        1_000_000;
-      stats.translated++;
-      stats.costUsd += cost;
-      stats.inputTokens += usage.input;
-      stats.outputTokens += usage.output;
-      console.log(
-        `[translate]   ${usage.input} in + ${usage.output} out tokens, ${fmtCost(cost)}`
-      );
-    } catch (err) {
-      // Resiliency: if es.md already exists, the build can still succeed
-      // with stale ES content. We warn loudly but don't fail. This lets
-      // a Vercel build without the API key set still ship — the previously
-      // committed es.md is used. If es.md is missing, that's a hard fail.
-      if (existsSync(esPath)) {
-        stats.stale++;
-        console.warn(
-          `[translate] ${slug} WARN: ${err.message}. Falling back to existing es.md (may be stale).`
+    await pMapLimit(toTranslate, concurrency, async (plan) => {
+      const { slug, enPath, esPath, enText, model } = plan;
+      console.log(`[translate] ${slug} → ${model}`);
+      try {
+        const { text, usage } = await callProvider(model, enText);
+        writeFileSync(esPath, text.endsWith("\n") ? text : text + "\n");
+        cache[slug] = {
+          hash: hashContent(enText, model),
+          model,
+          translatedAt: new Date().toISOString(),
+          tokensUsed: usage,
+        };
+        const provider = PROVIDERS[model];
+        const cost =
+          (usage.input * provider.inputCostPerM +
+            usage.output * provider.outputCostPerM) /
+          1_000_000;
+        stats.translated++;
+        stats.costUsd += cost;
+        stats.inputTokens += usage.input;
+        stats.outputTokens += usage.output;
+        console.log(
+          `[translate]   ${slug}: ${usage.input} in + ${usage.output} out tokens, ${fmtCost(cost)}`
         );
-      } else {
-        stats.failed++;
-        console.error(
-          `[translate] ${slug} FAILED: ${err.message}. No es.md exists — cannot fall back.`
-        );
+      } catch (err) {
+        // Resiliency: if es.md already exists, the build can still
+        // succeed with stale ES content. We warn loudly but don't fail.
+        // Lets a Vercel build without the API key set still ship.
+        if (existsSync(esPath)) {
+          stats.stale++;
+          console.warn(
+            `[translate] ${slug} WARN: ${err.message}. Falling back to existing es.md (may be stale).`
+          );
+        } else {
+          stats.failed++;
+          console.error(
+            `[translate] ${slug} FAILED: ${err.message}. No es.md exists — cannot fall back.`
+          );
+        }
       }
-    }
+      // Avoid swallowing in pMapLimit — we already classified to stats.
+      enPath; // silence unused-var lint when imports change
+    });
+
+    const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
+    console.log(`[translate] parallel batch finished in ${elapsed}s`);
   }
 
   saveCache(cache);
