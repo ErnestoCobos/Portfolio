@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Inter_Tight, JetBrains_Mono } from "next/font/google";
 import { headers } from "next/headers";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import { resolveLocale } from "./lib/i18n";
 import { LocaleSwitcher } from "./components/LocaleSwitcher";
@@ -177,6 +179,13 @@ export default async function RootLayout({
         </a>
         {children}
         <LocaleSwitcher />
+        {/* Vercel Analytics: pageviews + custom events to project dashboard.
+         * Speed Insights: real-user Core Web Vitals (LCP/CLS/INP) sampled
+         * from production traffic — complements synthetic Lighthouse runs
+         * with field data. Both are zero-config when deployed on Vercel
+         * (no env vars or props needed). */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
