@@ -29,6 +29,12 @@ export const en: Dictionary = {
     contact: "Contact",
     online: "online",
     contactCta: "./contact",
+    ariaSections: "Sections",
+    ariaBackToTop: "Back to top",
+    ariaOpenMenu: "Open menu",
+    ariaCloseMenu: "Close menu",
+    menuEntries: (n: number) => `${n} entries`,
+    menuActiveHere: "● here",
   },
 
   hero: {

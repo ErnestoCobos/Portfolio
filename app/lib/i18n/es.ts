@@ -29,6 +29,12 @@ export const es = {
     contact: "Contact",
     online: "online",
     contactCta: "./contact",
+    ariaSections: "Secciones",
+    ariaBackToTop: "Volver al inicio",
+    ariaOpenMenu: "Abrir menú",
+    ariaCloseMenu: "Cerrar menú",
+    menuEntries: (n: number) => `${n} entries`,
+    menuActiveHere: "● here",
   },
 
   hero: {
