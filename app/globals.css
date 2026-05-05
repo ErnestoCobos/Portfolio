@@ -617,6 +617,23 @@ textarea:focus-visible {
 .locale-switcher:hover {
   border-color: var(--cyan);
 }
+/* One-shot discovery pulse for first-time visitors (no `locale` cookie).
+ * Fires once on mount, ~2.4s total, then settles. Returning users who
+ * already picked don't trigger it. Two cycles of border + soft glow so
+ * the eye catches it without it feeling like a spinner. */
+@keyframes locale-switcher-pulse {
+  0%, 100% {
+    border-color: var(--hairline-strong);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 212, 255, 0.04);
+  }
+  50% {
+    border-color: var(--cyan);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 0 4px rgba(0, 212, 255, 0.18), 0 0 28px rgba(0, 212, 255, 0.45);
+  }
+}
+.locale-switcher[data-pulse="true"] {
+  animation: locale-switcher-pulse 1.2s ease-in-out 2;
+}
 @media (prefers-reduced-motion: reduce) {
   .locale-switcher {
     transition: none !important;
@@ -625,5 +642,8 @@ textarea:focus-visible {
   }
   .locale-switcher .locale-switch-other {
     transition: none !important;
+  }
+  .locale-switcher[data-pulse="true"] {
+    animation: none !important;
   }
 }
