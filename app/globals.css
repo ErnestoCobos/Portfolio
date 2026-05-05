@@ -1,17 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  /* Palette */
+  /* ── Palette ─────────────────────────────────────── */
   --bg: #0A0A0F;
   --surface: #111118;
   --cyan: #00D4FF;
   --violet: #7C3AED;
   --fg: #F8FAFC;
   --muted: #94A3B8;
+  /* --meta: better contrast (~6.8:1) for ≤11px mono. Use this instead of
+   * --muted for any metadata smaller than body size. */
+  --meta: #A8B5C7;
+
+  /* Hairlines */
   --hairline: rgba(255, 255, 255, 0.08);
   --hairline-strong: rgba(255, 255, 255, 0.14);
 
-  /* Spacing scale (8px) */
+  /* ── Spacing scale (8px) ─────────────────────────── */
   --s1: 8px;
   --s2: 16px;
   --s3: 24px;
@@ -21,10 +26,89 @@
   --s7: 96px;
   --s8: 128px;
 
-  /* Radii */
-  --r-card: 20px;
-  --r-btn: 12px;
-  --r-chip: 999px;
+  /* ── Radii ───────────────────────────────────────── */
+  --r-tile: 6px;       /* small chips, status pills, inline buttons */
+  --r-card-sm: 10px;   /* mid cards (blog tiles, hero card, work CTA) */
+  --r-card: 20px;      /* big cards (existing — Hero, glass surfaces) */
+  --r-btn: 12px;       /* primary/secondary CTAs */
+  --r-chip: 999px;     /* pill chips, dots */
+
+  /* ── Type scale (desktop) ────────────────────────── */
+  --text-display:     88px;   /* OG, /blog hero (desktop) */
+  --text-h1:          64px;   /* hero H1, /blog hero */
+  --text-h2-page:     52px;   /* page-level H2 (Approach, About) */
+  --text-h2-section:  44px;   /* mid-level (Work) */
+  --text-h3:          28px;   /* card titles grandes */
+  --text-h3-sm:       21px;   /* card titles medianos */
+  --text-body-lg:     18px;   /* hero subhead */
+  --text-body:        16px;   /* default body */
+  --text-body-sm:     14px;   /* card descriptions */
+  --text-meta:        13px;   /* metadata */
+  --text-mono:        11px;   /* mono badges, status */
+  --text-mono-xs:     10px;   /* tiny mono */
+  --text-mono-mm:     9px;    /* metric labels */
+
+  /* Type scale (mobile) */
+  --text-display-m:    36px;
+  --text-h1-m:         36px;
+  --text-h2-page-m:    30px;
+  --text-h2-section-m: 28px;
+  --text-h3-m:         22px;
+  --text-h3-sm-m:      19px;
+  --text-body-lg-m:    16px;
+  --text-body-m:       15px;
+
+  /* ── Line heights ────────────────────────────────── */
+  --lh-display: 1.02;
+  --lh-heading: 1.1;
+  --lh-tight:   1.2;
+  --lh-body:    1.55;
+  --lh-prose:   1.75;
+
+  /* ── Letter spacing ──────────────────────────────── */
+  --ls-display:  -0.03em;
+  --ls-heading:  -0.025em;
+  --ls-tight:    -0.015em;
+  --ls-mono:     0;
+  --ls-meta:     .05em;
+  --ls-tag:      .15em;
+  --ls-overline: .22em;
+
+  /* ── Surfaces (translucent fill on top of --bg) ──── */
+  --surface-overlay:  rgba(255, 255, 255, 0.015);
+  --surface-soft:     rgba(255, 255, 255, 0.025);
+  --surface-elev:     rgba(255, 255, 255, 0.05);
+  --backdrop-deep:    rgba(6, 6, 10, 0.96);
+  --backdrop-light:   rgba(10, 10, 15, 0.78);
+  --backdrop-mid:     rgba(6, 6, 10, 0.7);
+
+  /* ── Cyan tints (rises in opacity steps) ──────────── */
+  --cyan-glow:         rgba(0, 212, 255, 0.6);
+  --cyan-tint-soft:    rgba(0, 212, 255, 0.06);
+  --cyan-tint:         rgba(0, 212, 255, 0.08);
+  --cyan-tint-mid:     rgba(0, 212, 255, 0.10);
+  --cyan-tint-strong:  rgba(0, 212, 255, 0.14);
+  --cyan-tint-loud:    rgba(0, 212, 255, 0.22);
+  --border-cyan-soft:  rgba(0, 212, 255, 0.25);
+
+  /* ── Violet tints ────────────────────────────────── */
+  --violet-glow:        rgba(124, 58, 237, 0.6);
+  --violet-tint-soft:   rgba(124, 58, 237, 0.06);
+  --violet-tint:        rgba(124, 58, 237, 0.10);
+  --violet-tint-mid:    rgba(124, 58, 237, 0.12);
+  --violet-tint-strong: rgba(124, 58, 237, 0.18);
+  --violet-tint-loud:   rgba(124, 58, 237, 0.26);
+  --border-violet-soft: rgba(124, 58, 237, 0.25);
+
+  /* ── Status colors ───────────────────────────────── */
+  --green:      #22c55e;
+  --green-glow: rgba(34, 197, 94, 0.5);
+  --amber:      #f59e0b;
+  --amber-glow: rgba(245, 158, 11, 0.5);
+
+  /* ── Body text variants (split from --muted) ──────── */
+  --body-soft:   rgba(248, 250, 252, 0.82);
+  --body-softer: rgba(248, 250, 252, 0.55);
 }
 
 @theme inline {
@@ -143,6 +227,26 @@ textarea:focus-visible {
   50%      { transform: translateY(4px); opacity: 1; }
 }
 
+@keyframes pipe-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.45), 0 0 24px rgba(0, 212, 255, 0.15); }
+  50%      { box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.85), 0 0 36px rgba(0, 212, 255, 0.45); }
+}
+
+@keyframes pipe-cursor {
+  0%, 49%   { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@keyframes pipe-dot {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50%      { opacity: 1;    transform: scale(1.25); }
+}
+
+@keyframes pipe-iterate {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -198,13 +302,13 @@ textarea:focus-visible {
 }
 
 .dot.green {
-  background: #22c55e;
-  box-shadow: 0 0 12px #22c55e;
+  background: var(--green);
+  box-shadow: 0 0 12px var(--green);
 }
 
 .dot.amber {
-  background: #f59e0b;
-  box-shadow: 0 0 10px #f59e0b;
+  background: var(--amber);
+  box-shadow: 0 0 10px var(--amber);
 }
 
 .btn-primary {
@@ -230,6 +334,34 @@ textarea:focus-visible {
   transform: translateY(1px) scale(0.98);
   filter: brightness(1.15);
   box-shadow: 0 0 0 4px rgba(0, 212, 255, 0.18), 0 0 16px rgba(0, 212, 255, 0.3);
+}
+
+/* Violet variant of the primary button. Used for "founder-reach" CTAs
+ * (Contact ./send) per the cyan/violet semantic rule. Same shape and feel
+ * as .btn-primary so they read as siblings. */
+.btn-primary-violet {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px;
+  border-radius: var(--r-btn);
+  background: var(--violet);
+  color: #F8FAFC;
+  font-weight: 600;
+  font-size: 15px;
+  transition: box-shadow 0.2s, transform 0.12s, filter 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-primary-violet:hover {
+  box-shadow: 0 0 0 6px rgba(124, 58, 237, 0.14), 0 0 32px rgba(124, 58, 237, 0.45);
+  transform: translateY(-1px);
+}
+
+.btn-primary-violet:active {
+  transform: translateY(1px) scale(0.98);
+  filter: brightness(1.15);
+  box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.22), 0 0 16px rgba(124, 58, 237, 0.35);
 }
 
 .btn-secondary {
@@ -273,6 +405,34 @@ textarea:focus-visible {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* Skip-to-content: hidden until keyboard focus pulls it into view. Lets
+ * screen-reader and keyboard users bypass the nav + status dock and land
+ * directly on the first content section. */
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  padding: 10px 16px;
+  background: var(--cyan);
+  color: #001018;
+  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+  font-size: var(--text-meta);
+  font-weight: 600;
+  letter-spacing: var(--ls-meta);
+  border-radius: var(--r-tile);
+  text-decoration: none;
+  transform: translateY(-200%);
+  transition: transform 0.18s ease;
+}
+
+.skip-link:focus,
+.skip-link:focus-visible {
+  transform: translateY(0);
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
 }
 
 /* Hide vertical scrollbars on artboard surfaces */

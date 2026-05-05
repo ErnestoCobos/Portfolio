@@ -20,11 +20,96 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ["400", "500", "600"],
 });
 
+const siteDescription =
+  "Migraciones legacy → cloud-native, Kubernetes en sectores regulados, multi-cloud, DevSecOps y FinOps. Construyo plataformas como producto.";
+
 export const metadata: Metadata = {
-  title: "Ernesto Cobos — Cloud Architect · Platform Engineer · DevSecOps",
-  description:
-    "Migraciones legacy → cloud-native, Kubernetes en sectores regulados, multi-cloud, DevSecOps y FinOps. Construyo plataformas como producto.",
+  title: {
+    default: "Ernesto Cobos — Cloud Architect · Platform Engineer · DevSecOps",
+    template: "%s",
+  },
+  description: siteDescription,
   metadataBase: new URL("https://cobos.io"),
+  authors: [{ name: "Ernesto Cobos", url: "https://cobos.io" }],
+  creator: "Ernesto Cobos",
+  keywords: [
+    "cloud architect",
+    "platform engineering",
+    "devsecops",
+    "kubernetes",
+    "gitops",
+    "finops",
+    "ernesto cobos",
+    "cobos.io",
+  ],
+  alternates: { canonical: "https://cobos.io" },
+  openGraph: {
+    type: "website",
+    siteName: "cobos.io",
+    locale: "es_MX",
+    url: "https://cobos.io",
+    title: "Ernesto Cobos — Cloud Architect · Platform Engineer · DevSecOps",
+    description: siteDescription,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Ernesto Cobos — Cloud Architect · Platform Engineer · DevSecOps",
+    description: siteDescription,
+    creator: "@ErnestoCobos",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
+  },
+};
+
+/* Site-wide structured data — declares the author (Person) and the
+ * site (WebSite). Helps Google build a Knowledge Graph entity and
+ * gives LLMs deterministic identity / authorship signals. */
+const personLd = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: "Ernesto Cobos",
+  alternateName: "ErnestoCobos",
+  jobTitle: "Cloud Architect · Platform Engineer · DevSecOps",
+  url: "https://cobos.io",
+  email: "ernesto@cobos.io",
+  image: "https://avatars.githubusercontent.com/u/10171659?v=4",
+  worksFor: { "@type": "Organization", name: "Ford" },
+  sameAs: [
+    "https://github.com/ErnestoCobos",
+    "https://linkedin.com/in/cobos",
+    "https://www.enkiflow.com",
+    "https://www.getdecant.com",
+  ],
+  knowsAbout: [
+    "Cloud Architecture",
+    "Platform Engineering",
+    "DevSecOps",
+    "Kubernetes",
+    "GitOps",
+    "FinOps",
+    "Internal Developer Platforms",
+    "Multi-cloud",
+    "Terraform",
+    "Argo CD",
+  ],
+};
+
+const websiteLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "cobos.io",
+  alternateName: "Ernesto Cobos · cobos::",
+  url: "https://cobos.io",
+  inLanguage: "es",
+  description:
+    "Portfolio y blog técnico de Ernesto Cobos — Cloud Architect, Platform Engineer, DevSecOps.",
+  author: { "@id": "https://cobos.io/#person" },
 };
 
 export default function RootLayout({
@@ -37,7 +122,26 @@ export default function RootLayout({
       lang="es"
       className={`${inter.variable} ${interTight.variable} ${jetbrainsMono.variable}`}
     >
-      <body>{children}</body>
+      <head>
+        <link rel="me" href="https://github.com/ErnestoCobos" />
+        <link rel="me" href="https://linkedin.com/in/cobos" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({ ...personLd, "@id": "https://cobos.io/#person" }),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteLd) }}
+        />
+      </head>
+      <body>
+        <a href="#about" className="skip-link">
+          ↓ skip to content
+        </a>
+        {children}
+      </body>
     </html>
   );
 }

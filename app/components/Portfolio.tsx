@@ -10,17 +10,23 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import {
   APPROACH,
+  CATEGORY_META,
   EXPERIENCE,
   NAV,
-  POSTS,
   PROFILE,
   PROJECTS,
   STACK,
   TRENDS,
   type Post,
 } from "./portfolio-data";
+import { ArticleModal } from "./ArticleModal";
+import { BlogCover } from "./BlogCover";
+import { createRand } from "./seeded-rand";
+import { StackRadial } from "./visuals/StackRadial";
+import { ExperienceTimeline } from "./visuals/ExperienceTimeline";
 import { ARCHITECTURES } from "./architectures";
 import {
   ArchDiagram,
@@ -151,7 +157,7 @@ function MobileMenu({
         <span
           className="mono"
           style={{
-            fontSize: 13,
+            fontSize: "var(--text-meta)",
             color: "var(--fg)",
             letterSpacing: "-0.01em",
           }}
@@ -166,10 +172,10 @@ function MobileMenu({
           style={{
             color: "var(--muted)",
             border: "1px solid var(--hairline)",
-            borderRadius: 6,
+            borderRadius: "var(--r-tile)",
             padding: "6px 12px",
             fontSize: 12,
-            background: "rgba(255,255,255,.02)",
+            background: "var(--surface-overlay)",
           }}
         >
           ESC ×
@@ -191,7 +197,7 @@ function MobileMenu({
         </div>
         <div
           className="mono"
-          style={{ fontSize: 14, color: "var(--fg)", marginBottom: 8 }}
+          style={{ fontSize: "var(--text-body-sm)", color: "var(--fg)", marginBottom: 8 }}
         >
           cobos.io/
         </div>
@@ -209,6 +215,53 @@ function MobileMenu({
             const isLast = i === NAV.length - 1;
             const branch = isLast ? "└──" : "├──";
             const isActive = active === n.id;
+            const linkStyle = {
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              padding: "12px 8px",
+              fontSize: 15,
+              color: isActive ? "var(--cyan)" : "var(--fg)",
+              background: isActive
+                ? "var(--cyan-tint)"
+                : "transparent",
+              borderRadius: "var(--r-tile)",
+            } as const;
+            if (n.id === "blog") {
+              return (
+                <li key={n.id}>
+                  <Link
+                    href="/blog"
+                    onClick={onClose}
+                    className="mono tap"
+                    style={linkStyle}
+                  >
+                    <span style={{ color: "var(--muted)", fontSize: 13 }}>
+                      {branch}
+                    </span>
+                    <span
+                      style={{
+                        color: isActive ? "var(--cyan)" : "var(--muted)",
+                      }}
+                    >
+                      /
+                    </span>
+                    <span>{n.label.toLowerCase()}</span>
+                    {isActive && (
+                      <span
+                        style={{
+                          marginLeft: "auto",
+                          fontSize: "var(--text-mono)",
+                          color: "var(--cyan)",
+                        }}
+                      >
+                        ● here
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              );
+            }
             return (
               <li key={n.id}>
                 <a
@@ -218,23 +271,12 @@ function MobileMenu({
                     handlePick(n.id);
                   }}
                   className="mono tap"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    padding: "12px 8px",
-                    fontSize: 15,
-                    color: isActive ? "var(--cyan)" : "var(--fg)",
-                    background: isActive
-                      ? "rgba(0,212,255,.08)"
-                      : "transparent",
-                    borderRadius: 6,
-                  }}
+                  style={linkStyle}
                 >
                   <span
                     style={{
                       color: "var(--muted)",
-                      fontSize: 13,
+                      fontSize: "var(--text-meta)",
                     }}
                   >
                     {branch}
@@ -247,7 +289,7 @@ function MobileMenu({
                     <span
                       style={{
                         marginLeft: "auto",
-                        fontSize: 11,
+                        fontSize: "var(--text-mono)",
                         color: "var(--cyan)",
                       }}
                     >
@@ -263,7 +305,7 @@ function MobileMenu({
           className="mono"
           style={{
             marginTop: 24,
-            fontSize: 11,
+            fontSize: "var(--text-mono)",
             color: "var(--muted)",
             display: "flex",
             justifyContent: "space-between",
@@ -311,7 +353,7 @@ function Nav({ mobile }: { mobile: boolean }) {
           borderBottom: "1px solid var(--hairline-strong)",
           boxShadow: "0 8px 24px rgba(0,0,0,.45)",
           fontFamily: "var(--font-jetbrains-mono)",
-          fontSize: 11,
+          fontSize: "var(--text-mono)",
         }}
       >
         {/* LEFT: logo + active-path */}
@@ -325,7 +367,7 @@ function Nav({ mobile }: { mobile: boolean }) {
             gap: 8,
             borderRadius: 4,
             padding: "4px 8px 4px 4px",
-            background: "rgba(0,212,255,.06)",
+            background: "var(--cyan-tint-soft)",
             border: "1px solid rgba(0,212,255,.22)",
             color: "var(--fg)",
             flexShrink: 0,
@@ -336,7 +378,7 @@ function Nav({ mobile }: { mobile: boolean }) {
           </span>
           <span
             style={{
-              fontSize: 11,
+              fontSize: "var(--text-mono)",
               fontWeight: 500,
               letterSpacing: "-0.01em",
               whiteSpace: "nowrap",
@@ -372,20 +414,34 @@ function Nav({ mobile }: { mobile: boolean }) {
           >
             {NAV.map((n) => {
               const isActive = active === n.id;
+              const chipStyle = {
+                padding: "5px 10px",
+                fontSize: "var(--text-mono)",
+                color: isActive ? "var(--cyan)" : "var(--muted)",
+                background: isActive ? "rgba(0,212,255,.10)" : "transparent",
+                borderRadius: 4,
+                cursor: "pointer",
+              } as const;
+              if (n.id === "blog") {
+                return (
+                  <Link
+                    key={n.id}
+                    href="/blog"
+                    data-active={isActive ? "true" : undefined}
+                    className="mono nav-chip"
+                    style={chipStyle}
+                  >
+                    /{n.label.toLowerCase()}
+                  </Link>
+                );
+              }
               return (
                 <a
                   key={n.id}
                   href={`#${n.id}`}
                   data-active={isActive ? "true" : undefined}
                   className="mono nav-chip"
-                  style={{
-                    padding: "5px 10px",
-                    fontSize: 11,
-                    color: isActive ? "var(--cyan)" : "var(--muted)",
-                    background: isActive ? "rgba(0,212,255,.10)" : "transparent",
-                    borderRadius: 4,
-                    cursor: "pointer",
-                  }}
+                  style={chipStyle}
                 >
                   /{n.label.toLowerCase()}
                 </a>
@@ -412,7 +468,7 @@ function Nav({ mobile }: { mobile: boolean }) {
               style={{
                 width: 6,
                 height: 6,
-                borderRadius: 999,
+                borderRadius: "var(--r-chip)",
                 background: "var(--cyan)",
                 boxShadow: "0 0 8px var(--cyan)",
               }}
@@ -429,12 +485,12 @@ function Nav({ mobile }: { mobile: boolean }) {
             border: "1px solid var(--cyan)",
             color: "var(--cyan)",
             borderRadius: 4,
-            background: "rgba(0,212,255,.08)",
+            background: "var(--cyan-tint)",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             flexShrink: 0,
-            fontSize: 11,
+            fontSize: "var(--text-mono)",
           }}
         >
           ./contact
@@ -462,7 +518,7 @@ function Nav({ mobile }: { mobile: boolean }) {
               flexShrink: 0,
             }}
           >
-            <span aria-hidden style={{ fontSize: 14, lineHeight: 1 }}>
+            <span aria-hidden style={{ fontSize: "var(--text-body-sm)", lineHeight: 1 }}>
               ≡
             </span>
           </button>
@@ -473,6 +529,15 @@ function Nav({ mobile }: { mobile: boolean }) {
       )}
     </>
   );
+}
+
+/** Format session uptime. <1min: `12.3s`. ≥1min: `1m 23s`. Ticks every
+ * frame from useTicker so it always reads as "real time". */
+function fmtSession(seconds: number): string {
+  if (seconds < 60) return `${seconds.toFixed(1)}s`;
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}m ${s.toString().padStart(2, "0")}s`;
 }
 
 /* ─── Hero (terminal chrome + animated boot log + iso lattice) ── */
@@ -527,11 +592,14 @@ function Hero({ mobile }: { mobile: boolean }) {
   const topoH = mobile ? 720 : 1000;
 
   return (
+    // Hero is intentionally <100vh so the next section's header peeks ~60px
+    // below the fold — turns scrolling from a decision into a consequence.
     <section
       style={{
         padding: mobile ? "20px 16px 32px" : "24px 48px 56px",
-        height: mobile ? "auto" : "calc(100vh - 36px)",
+        height: mobile ? "auto" : "calc(85vh - 36px)",
         minHeight: mobile ? "auto" : 640,
+        maxHeight: mobile ? "none" : 920,
         position: "relative",
         overflow: "hidden",
         display: "flex",
@@ -566,7 +634,7 @@ function Hero({ mobile }: { mobile: boolean }) {
             position: "absolute",
             inset: 0,
             backgroundImage:
-              "linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px)",
+              "linear-gradient(var(--surface-soft) 1px, transparent 1px), linear-gradient(90deg, var(--surface-soft) 1px, transparent 1px)",
             backgroundSize: "48px 48px",
             maskImage:
               "radial-gradient(ellipse at center, #000 30%, transparent 80%)",
@@ -602,14 +670,14 @@ function Hero({ mobile }: { mobile: boolean }) {
             gap: 8,
             padding: "12px 16px",
             borderBottom: "1px solid var(--hairline)",
-            background: "rgba(255,255,255,.02)",
+            background: "var(--surface-overlay)",
           }}
         >
           <span
             style={{
               width: 12,
               height: 12,
-              borderRadius: 999,
+              borderRadius: "var(--r-chip)",
               background: "#444",
             }}
           />
@@ -617,7 +685,7 @@ function Hero({ mobile }: { mobile: boolean }) {
             style={{
               width: 12,
               height: 12,
-              borderRadius: 999,
+              borderRadius: "var(--r-chip)",
               background: "#444",
             }}
           />
@@ -625,7 +693,7 @@ function Hero({ mobile }: { mobile: boolean }) {
             style={{
               width: 12,
               height: 12,
-              borderRadius: 999,
+              borderRadius: "var(--r-chip)",
               background: accent,
               boxShadow: `0 0 12px ${accent}`,
             }}
@@ -648,15 +716,16 @@ function Hero({ mobile }: { mobile: boolean }) {
             className="mono"
             style={{
               fontSize: 12,
-              color: "var(--muted)",
+              color: "var(--meta)",
               marginLeft: "auto",
               display: "flex",
               alignItems: "center",
               gap: 8,
               flexShrink: 0,
             }}
+            aria-label={`Sesión activa hace ${Math.floor(t)} segundos`}
           >
-            <span className="dot green" /> live · {(t % 60).toFixed(1)}s
+            <span className="dot green" aria-hidden /> session · {fmtSession(t)}
           </span>
         </div>
 
@@ -714,7 +783,7 @@ function Hero({ mobile }: { mobile: boolean }) {
             <div
               className="mono"
               style={{
-                fontSize: 11,
+                fontSize: "var(--text-mono)",
                 color: "var(--muted)",
                 marginBottom: 16,
               }}
@@ -801,6 +870,56 @@ function Hero({ mobile }: { mobile: boolean }) {
                 <IsoCloud size={mobile ? 200 : 320} animate={!reduced} />
               )}
             </div>
+            {/* Connector lines from cube center to each orbiting pill. The
+             * "active" index cycles every 2s, drawing a bright stroke + glow
+             * to that pill while others stay as faint hairlines. */}
+            {mounted && !mobile && (() => {
+              const PILL_LABELS = ["EKS", "GKE", "AKS", "Argo CD", "Vault", "OPA"];
+              const active = Math.floor(t * 0.5) % PILL_LABELS.length;
+              return (
+                <svg
+                  aria-hidden
+                  viewBox="-200 -150 400 300"
+                  preserveAspectRatio="xMidYMid meet"
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    width: "100%",
+                    height: "100%",
+                    pointerEvents: "none",
+                    zIndex: 1,
+                  }}
+                >
+                  {PILL_LABELS.map((_, i) => {
+                    const a = t * 0.32 + i * ((Math.PI * 2) / 6);
+                    const x = Math.cos(a) * 165;
+                    const y = Math.sin(a) * 100;
+                    const isActive = i === active;
+                    const c = i % 2 === 0 ? accent : violet;
+                    return (
+                      <g key={i}>
+                        <line
+                          x1={0}
+                          y1={0}
+                          x2={x}
+                          y2={y}
+                          stroke={isActive ? c : "rgba(168,181,199,.18)"}
+                          strokeWidth={isActive ? 1.4 : 0.6}
+                          strokeDasharray={isActive ? "none" : "2 4"}
+                          opacity={isActive ? 1 : 0.65}
+                          style={{
+                            filter: isActive
+                              ? `drop-shadow(0 0 6px ${c})`
+                              : "none",
+                            transition: "opacity .3s",
+                          }}
+                        />
+                      </g>
+                    );
+                  })}
+                </svg>
+              );
+            })()}
             {mounted &&
               ["EKS", "GKE", "AKS", "Argo CD", "Vault", "OPA"].map((l, i) => {
                 if (mobile) {
@@ -810,6 +929,8 @@ function Hero({ mobile }: { mobile: boolean }) {
                 const dx = (Math.cos(a) * 165).toFixed(2);
                 const dy = (Math.sin(a) * 100).toFixed(2);
                 const c = i % 2 === 0 ? accent : violet;
+                const active = Math.floor(t * 0.5) % 6;
+                const isActive = i === active;
                 return (
                   <div
                     key={l}
@@ -819,17 +940,20 @@ function Hero({ mobile }: { mobile: boolean }) {
                       left: "50%",
                       top: "50%",
                       transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`,
-                      fontSize: 11,
+                      fontSize: "var(--text-mono)",
                       color: c,
                       padding: "4px 10px",
                       background: "rgba(6,6,10,.82)",
-                      border: `1px solid ${c}55`,
-                      borderRadius: 5,
-                      boxShadow: `0 0 12px ${c}33`,
+                      border: `1px solid ${c}${isActive ? "" : "55"}`,
+                      borderRadius: "var(--r-tile)",
+                      boxShadow: isActive
+                        ? `0 0 0 1px ${c}, 0 0 18px ${c}66`
+                        : `0 0 12px ${c}33`,
                       pointerEvents: "none",
                       zIndex: 2,
-                      letterSpacing: ".05em",
+                      letterSpacing: "var(--ls-meta)",
                       whiteSpace: "nowrap",
+                      transition: "box-shadow .3s, border-color .3s",
                     }}
                   >
                     {l}
@@ -857,14 +981,14 @@ function Hero({ mobile }: { mobile: boolean }) {
                       key={l}
                       className="mono"
                       style={{
-                        fontSize: 10,
+                        fontSize: "var(--text-mono-xs)",
                         color: c,
                         padding: "4px 8px",
                         background: "rgba(6,6,10,.82)",
                         border: `1px solid ${c}55`,
                         borderRadius: 5,
                         boxShadow: `0 0 12px ${c}22`,
-                        letterSpacing: ".05em",
+                        letterSpacing: "var(--ls-meta)",
                         whiteSpace: "nowrap",
                       }}
                     >
@@ -885,19 +1009,19 @@ function Hero({ mobile }: { mobile: boolean }) {
             justifyContent: "space-between",
             gap: 12,
             flexWrap: "wrap",
-            background: "rgba(255,255,255,.015)",
+            background: "var(--surface-overlay)",
           }}
         >
-          <span className="mono" style={{ fontSize: 11, color: "var(--muted)" }}>
+          <span className="mono" style={{ fontSize: "var(--text-mono)", color: "var(--muted)" }}>
             eks-prod · eu-west-1
           </span>
-          <span className="mono" style={{ fontSize: 11, color: "var(--muted)" }}>
+          <span className="mono" style={{ fontSize: "var(--text-mono)", color: "var(--muted)" }}>
             argo cd: synced
           </span>
-          <span className="mono" style={{ fontSize: 11, color: accent }}>
+          <span className="mono" style={{ fontSize: "var(--text-mono)", color: accent }}>
             p95 118ms
           </span>
-          <span className="mono" style={{ fontSize: 11, color: "#22c55e" }}>
+          <span className="mono" style={{ fontSize: "var(--text-mono)", color: "#22c55e" }}>
             ● healthy
           </span>
         </div>
@@ -930,7 +1054,7 @@ function Hero({ mobile }: { mobile: boolean }) {
             justifyContent: "center",
             backdropFilter: "blur(14px) saturate(140%)",
             WebkitBackdropFilter: "blur(14px) saturate(140%)",
-            boxShadow: `0 0 0 4px rgba(0,212,255,.06), 0 0 24px ${accent}33, 0 8px 24px rgba(0,0,0,.45)`,
+            boxShadow: `0 0 0 4px var(--cyan-tint-soft), 0 0 24px ${accent}33, 0 8px 24px rgba(0,0,0,.45)`,
             animation: reduced ? undefined : "hero-bounce 1.6s ease-in-out infinite",
             cursor: "pointer",
           }}
@@ -956,10 +1080,12 @@ function SectionHeader({
   n,
   t,
   action,
+  onActionClick,
 }: {
   n: number;
   t: string;
   action?: string;
+  onActionClick?: () => void;
 }) {
   return (
     <div
@@ -977,18 +1103,36 @@ function SectionHeader({
       <div
         className="mono"
         style={{
-          fontSize: 11,
+          fontSize: "var(--text-mono)",
           color: "var(--cyan)",
-          letterSpacing: ".15em",
+          letterSpacing: "var(--ls-tag)",
         }}
       >
         <span style={{ color: "var(--muted)" }}>0{n}</span> &nbsp;·&nbsp; {t}
       </div>
-      {action && (
-        <div className="mono" style={{ fontSize: 11, color: "var(--muted)" }}>
-          {action}
-        </div>
-      )}
+      {action &&
+        (onActionClick ? (
+          <button
+            type="button"
+            onClick={onActionClick}
+            className="mono tap"
+            style={{
+              fontSize: "var(--text-mono)",
+              color: "var(--cyan)",
+              background: "transparent",
+              padding: 0,
+              border: "none",
+              cursor: "pointer",
+              letterSpacing: "var(--ls-meta)",
+            }}
+          >
+            {action}
+          </button>
+        ) : (
+          <div className="mono" style={{ fontSize: "var(--text-mono)", color: "var(--muted)" }}>
+            {action}
+          </div>
+        ))}
     </div>
   );
 }
@@ -1042,13 +1186,13 @@ function About({ mobile }: { mobile: boolean }) {
             rel="noopener noreferrer"
             aria-label={`${PROFILE.name} on GitHub`}
             style={{
-              width: mobile ? 72 : 96,
-              height: mobile ? 72 : 96,
-              borderRadius: 8,
+              width: mobile ? 96 : 140,
+              height: mobile ? 96 : 140,
+              borderRadius: "var(--r-card-sm)",
               border: "1px solid var(--cyan)",
               display: "block",
               overflow: "hidden",
-              boxShadow: "0 0 24px rgba(0,212,255,.18)",
+              boxShadow: "0 0 32px rgba(0,212,255,.22)",
               transition: "box-shadow .2s, transform .2s",
             }}
           >
@@ -1056,8 +1200,8 @@ function About({ mobile }: { mobile: boolean }) {
             <img
               src={PROFILE.avatarUrl}
               alt={PROFILE.name}
-              width={96}
-              height={96}
+              width={140}
+              height={140}
               style={{
                 width: "100%",
                 height: "100%",
@@ -1102,7 +1246,7 @@ function About({ mobile }: { mobile: boolean }) {
               fontWeight: 500,
               lineHeight: 1.15,
               marginBottom: 24,
-              letterSpacing: "-0.025em",
+              letterSpacing: "var(--ls-heading)",
             }}
           >
             <span data-fs-text>
@@ -1133,30 +1277,11 @@ function About({ mobile }: { mobile: boolean }) {
             }}
           >
             Hoy: Kubernetes regulado, GitOps E2E, multi-cloud (AWS · GCP ·
-            Azure), AI-ready y FinOps. Y construyo{" "}
-            <span style={{ color: "var(--fg)" }}>EnkiFlow</span> — SaaS en
+            Azure), AI-ready y FinOps. Construyo{" "}
+            <span style={{ color: "var(--violet)" }}>EnkiFlow</span> y{" "}
+            <span style={{ color: "var(--violet)" }}>GetDecant</span> — SaaS en
             producción.
           </p>
-          <div
-            style={{
-              display: "flex",
-              gap: 8,
-              flexWrap: "wrap",
-              marginTop: 24,
-            }}
-          >
-            {["k8s", "gitops", "multi-cloud", "devsecops", "finops", "ai-ready"].map(
-              (t) => (
-                <span
-                  key={t}
-                  className="mono chip"
-                  style={{ fontSize: 11 }}
-                >
-                  --{t}
-                </span>
-              )
-            )}
-          </div>
         </div>
       </div>
     </Section>
@@ -1168,77 +1293,68 @@ function Stack({ mobile }: { mobile: boolean }) {
   return (
     <Section id="stack" fsPath="/stack" mobile={mobile} dark>
       <SectionHeader n={2} t="stack" action="ls -la ./tools | wc -l → 38" />
-      <div
-        style={{
-          border: "1px solid var(--hairline)",
-          borderRadius: 8,
-          overflow: "hidden",
-        }}
-      >
-        {STACK.map((s, i) => (
-          <div
-            key={s.group}
-            style={{
-              display: "grid",
-              gridTemplateColumns: mobile ? "90px 1fr" : "160px 1fr 80px",
-              borderTop: i ? "1px solid var(--hairline)" : "none",
-              background:
-                i % 2 === 0 ? "rgba(255,255,255,.015)" : "transparent",
-            }}
-          >
+      {mobile ? (
+        // Mobile: keep the dense table — radial loses density below ~600px
+        <div
+          style={{
+            border: "1px solid var(--hairline)",
+            borderRadius: "var(--r-card-sm)",
+            overflow: "hidden",
+          }}
+        >
+          {STACK.map((s, i) => (
             <div
-              className="mono"
+              key={s.group}
               style={{
-                padding: mobile ? "14px 12px" : "20px 24px",
-                fontSize: 12,
-                color: "var(--cyan)",
-                borderRight: "1px solid var(--hairline)",
+                display: "grid",
+                gridTemplateColumns: "90px 1fr",
+                borderTop: i ? "1px solid var(--hairline)" : "none",
+                background:
+                  i % 2 === 0 ? "var(--surface-overlay)" : "transparent",
               }}
             >
-              {s.group.toLowerCase()}/
-            </div>
-            <div
-              style={{
-                padding: mobile ? "14px 12px" : "20px 24px",
-                display: "flex",
-                gap: 6,
-                flexWrap: "wrap",
-              }}
-            >
-              {s.items.map((it) => (
-                <span
-                  key={it}
-                  className="mono"
-                  style={{
-                    fontSize: 12,
-                    padding: "4px 10px",
-                    borderRadius: 4,
-                    border: "1px solid var(--hairline)",
-                    background: "rgba(0,212,255,.04)",
-                    color: "var(--fg)",
-                  }}
-                >
-                  {it}
-                </span>
-              ))}
-            </div>
-            {!mobile && (
               <div
                 className="mono"
                 style={{
-                  padding: "20px 24px",
+                  padding: "14px 12px",
                   fontSize: 12,
-                  color: "var(--muted)",
-                  borderLeft: "1px solid var(--hairline)",
-                  textAlign: "right",
+                  color: "var(--cyan)",
+                  borderRight: "1px solid var(--hairline)",
                 }}
               >
-                {s.items.length} items
+                {s.group.toLowerCase()}/
               </div>
-            )}
-          </div>
-        ))}
-      </div>
+              <div
+                style={{
+                  padding: "14px 12px",
+                  display: "flex",
+                  gap: 6,
+                  flexWrap: "wrap",
+                }}
+              >
+                {s.items.map((it) => (
+                  <span
+                    key={it}
+                    className="mono"
+                    style={{
+                      fontSize: 12,
+                      padding: "4px 10px",
+                      borderRadius: "var(--r-tile)",
+                      border: "1px solid var(--hairline)",
+                      background: "var(--cyan-tint-soft)",
+                      color: "var(--fg)",
+                    }}
+                  >
+                    {it}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <StackRadial stack={STACK} />
+      )}
     </Section>
   );
 }
@@ -1275,7 +1391,7 @@ function Gauge({
         style={{
           height: 4,
           background: "rgba(255,255,255,.05)",
-          borderRadius: 999,
+          borderRadius: "var(--r-chip)",
           overflow: "hidden",
         }}
       >
@@ -1365,7 +1481,7 @@ function Infra({ mobile }: { mobile: boolean }) {
                 padding: mobile ? "10px 12px" : "10px 16px",
                 fontSize: 12,
                 color: active ? "var(--cyan)" : "var(--muted)",
-                background: active ? "rgba(0,212,255,.06)" : "transparent",
+                background: active ? "var(--cyan-tint-soft)" : "transparent",
                 border: "none",
                 borderBottom: active
                   ? "2px solid var(--cyan)"
@@ -1389,7 +1505,7 @@ function Infra({ mobile }: { mobile: boolean }) {
       <div
         className="mono"
         style={{
-          fontSize: 11,
+          fontSize: "var(--text-mono)",
           color: "var(--muted)",
           marginBottom: 16,
         }}
@@ -1415,7 +1531,7 @@ function Infra({ mobile }: { mobile: boolean }) {
           <div
             className="mono"
             style={{
-              fontSize: 11,
+              fontSize: "var(--text-mono)",
               color: "var(--muted)",
               marginBottom: 16,
             }}
@@ -1435,7 +1551,7 @@ function Infra({ mobile }: { mobile: boolean }) {
             <div
               className="mono"
               style={{
-                fontSize: 11,
+                fontSize: "var(--text-mono)",
                 color: "var(--muted)",
                 marginBottom: 16,
               }}
@@ -1456,7 +1572,7 @@ function Infra({ mobile }: { mobile: boolean }) {
             <div
               className="mono"
               style={{
-                fontSize: 11,
+                fontSize: "var(--text-mono)",
                 color: "var(--muted)",
                 marginBottom: 12,
               }}
@@ -1468,7 +1584,7 @@ function Infra({ mobile }: { mobile: boolean }) {
                 key={i}
                 className="mono"
                 style={{
-                  fontSize: 11,
+                  fontSize: "var(--text-mono)",
                   padding: "6px 0",
                   borderTop: i ? "1px solid var(--hairline)" : "none",
                   display: "flex",
@@ -1501,7 +1617,7 @@ function Work({ mobile }: { mobile: boolean }) {
           style={{
             fontSize: mobile ? 28 : 44,
             fontWeight: 500,
-            letterSpacing: "-0.025em",
+            letterSpacing: "var(--ls-heading)",
             lineHeight: 1.1,
             marginBottom: 12,
           }}
@@ -1541,9 +1657,9 @@ function Work({ mobile }: { mobile: boolean }) {
               data-fs-type="file"
               style={{
                 border: "1px solid var(--hairline-strong)",
-                borderRadius: 10,
+                borderRadius: "var(--r-card-sm)",
                 padding: 24,
-                background: "rgba(255,255,255,.015)",
+                background: "var(--surface-overlay)",
                 display: "flex",
                 flexDirection: "column",
                 minHeight: mobile ? "auto" : 360,
@@ -1552,7 +1668,7 @@ function Work({ mobile }: { mobile: boolean }) {
               <div
                 className="mono"
                 style={{
-                  fontSize: 11,
+                  fontSize: "var(--text-mono)",
                   color: c,
                   display: "flex",
                   alignItems: "center",
@@ -1587,7 +1703,7 @@ function Work({ mobile }: { mobile: boolean }) {
               <div
                 className="mono"
                 style={{
-                  fontSize: 11,
+                  fontSize: "var(--text-mono)",
                   color: "var(--muted)",
                   marginBottom: 16,
                   display: "flex",
@@ -1613,7 +1729,7 @@ function Work({ mobile }: { mobile: boolean }) {
               <p
                 style={{
                   color: "var(--muted)",
-                  fontSize: 14,
+                  fontSize: "var(--text-body-sm)",
                   lineHeight: 1.6,
                   marginBottom: 24,
                   flex: 1,
@@ -1621,53 +1737,31 @@ function Work({ mobile }: { mobile: boolean }) {
               >
                 {p.blurb}
               </p>
-              <div
+              <a
+                href={href}
+                target="_blank"
+                rel="noreferrer"
+                className="tap mono"
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: `repeat(${p.metrics.length}, 1fr)`,
-                  border: "1px solid var(--hairline)",
-                  borderRadius: 6,
-                  overflow: "hidden",
-                  background: "#0A0A0F",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "12px 14px",
+                  border: `1px solid ${c}`,
+                  borderRadius: "var(--r-tile)",
+                  background: `linear-gradient(180deg, ${
+                    p.accent === "violet"
+                      ? "rgba(124,58,237,.10)"
+                      : "var(--cyan-tint)"
+                  }, transparent)`,
+                  color: c,
+                  fontSize: "var(--text-meta)",
+                  letterSpacing: ".02em",
                 }}
               >
-                {p.metrics.map((m, mi) => (
-                  <div
-                    key={m.k}
-                    style={{
-                      padding: "12px 10px",
-                      borderRight:
-                        mi < p.metrics.length - 1
-                          ? "1px solid var(--hairline)"
-                          : "none",
-                    }}
-                  >
-                    <div
-                      className="mono"
-                      style={{
-                        fontSize: mobile ? 16 : 18,
-                        fontWeight: 500,
-                        color: "var(--fg)",
-                        letterSpacing: "-0.01em",
-                      }}
-                    >
-                      {m.v}
-                    </div>
-                    <div
-                      className="mono"
-                      style={{
-                        fontSize: 9,
-                        color: "var(--muted)",
-                        textTransform: "uppercase",
-                        letterSpacing: ".18em",
-                        marginTop: 4,
-                      }}
-                    >
-                      {m.k}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                <span>{p.repo ? "Ver repositorio" : "Visitar sitio"}</span>
+                <span aria-hidden style={{ fontSize: 14 }}>→</span>
+              </a>
             </div>
           );
         })}
@@ -1681,37 +1775,286 @@ function Experience({ mobile }: { mobile: boolean }) {
   return (
     <Section id="exp" fsPath="/experience" mobile={mobile}>
       <SectionHeader n={5} t="experience" action="git log --oneline" />
-      <div
-        className="mono"
-        style={{ fontSize: mobile ? 13 : 14, lineHeight: 1.9 }}
-      >
-        {EXPERIENCE.map((e, i) => (
-          <div
-            key={i}
-            style={{
-              display: "grid",
-              gridTemplateColumns: mobile ? "1fr" : "110px 240px 1fr",
-              gap: 16,
-              padding: "10px 0",
-              borderTop: i ? "1px solid var(--hairline)" : "none",
-            }}
-          >
-            <span style={{ color: "var(--cyan)" }}>{e.y}</span>
-            <span style={{ color: "var(--fg)" }}>{e.role}</span>
-            <span style={{ color: "var(--muted)" }}>
-              <span style={{ color: "var(--violet)" }}>
-                @{e.co.toLowerCase().replace(/\s+/g, "_")}
-              </span>{" "}
-              {e.note}
-            </span>
-          </div>
-        ))}
-      </div>
+      {mobile ? (
+        // Mobile keeps the dense git-log style — timeline needs horizontal
+        // real estate the radial doesn't have on small screens
+        <div
+          className="mono"
+          style={{ fontSize: "var(--text-meta)", lineHeight: 1.9 }}
+        >
+          {EXPERIENCE.map((e, i) => (
+            <div
+              key={i}
+              style={{
+                padding: "10px 0",
+                borderTop: i ? "1px solid var(--hairline)" : "none",
+              }}
+            >
+              <span style={{ color: "var(--cyan)" }}>{e.y}</span>
+              <div style={{ color: "var(--fg)", marginTop: 4 }}>{e.role}</div>
+              <div style={{ color: "var(--muted)", marginTop: 2 }}>
+                <span style={{ color: "var(--violet)" }}>
+                  @{e.co.toLowerCase().replace(/\s+/g, "_")}
+                </span>{" "}
+                {e.note}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <ExperienceTimeline entries={EXPERIENCE} currentYear={2026} />
+      )}
     </Section>
   );
 }
 
 /* ─── Trends ─────────────────────────────────────────────── */
+/** Categorize each trend by semantic color. Transformation/product-leaning
+ * trends (AI, platform engineering) read as violet; ops-leaning trends
+ * (FinOps, zero-trust, edge, policy) read as cyan. Two trends are marked
+ * `staged` (amber) for visual variety — they're the more nascent ones. */
+const TREND_META: Record<
+  string,
+  { accent: "cyan" | "violet"; status: "enabled" | "staged" }
+> = {
+  "AI-ready infra": { accent: "violet", status: "staged" },
+  "Platform engineering": { accent: "violet", status: "enabled" },
+  "FinOps + GreenOps": { accent: "cyan", status: "enabled" },
+  "Zero-trust by default": { accent: "cyan", status: "enabled" },
+  "Cloud-native edge": { accent: "cyan", status: "staged" },
+  "Policy as code": { accent: "cyan", status: "enabled" },
+};
+
+/** Generate a deterministic, monotonically rising adoption curve for a trend.
+ * 12 weekly samples in [0, 1]. The wobble keeps it from looking "too perfect"
+ * but each call with the same seed always returns the same series. */
+function adoptionSeries(seed: string, n = 12): number[] {
+  const rand = createRand(seed);
+  const out: number[] = [];
+  let v = 0.05 + rand() * 0.1; // start low (~5–15%)
+  for (let i = 0; i < n; i++) {
+    const slope = 0.04 + rand() * 0.08; // weekly delta
+    const wobble = (rand() - 0.5) * 0.04; // ±2pp noise
+    v = Math.max(0, Math.min(1, v + slope + wobble));
+    out.push(v);
+  }
+  return out;
+}
+
+function TrendCard({
+  tr,
+  i,
+  mobile,
+}: {
+  tr: { t: string; d: string };
+  i: number;
+  mobile: boolean;
+}) {
+  const meta = TREND_META[tr.t] ?? { accent: "cyan", status: "enabled" as const };
+  const accent = meta.accent === "violet" ? "var(--violet)" : "var(--cyan)";
+  const accentGlow =
+    meta.accent === "violet" ? "var(--violet-glow)" : "var(--cyan-glow)";
+  const tintSoft =
+    meta.accent === "violet" ? "var(--violet-tint-soft)" : "var(--cyan-tint-soft)";
+  const statusColor = meta.status === "staged" ? "var(--amber)" : accent;
+  const statusBg =
+    meta.status === "staged" ? "rgba(245,158,11,.06)" : tintSoft;
+
+  // Deterministic mock numbers for the metrics row.
+  const rand = createRand(tr.t);
+  const rollout = Math.floor(10 + rand() * 80); // 10-90%
+  const tenants = Math.floor(50 + rand() * 9950);
+
+  // Adoption sparkline: 12 weekly samples in [0,1], plot in a 120×30 viewBox.
+  const series = adoptionSeries(tr.t, 12);
+  const W = 240;
+  const H = 48;
+  const pad = 4;
+  const stepX = (W - pad * 2) / (series.length - 1);
+  const points = series
+    .map((v, idx) => `${pad + idx * stepX},${H - pad - v * (H - pad * 2)}`)
+    .join(" ");
+  // Area path under the sparkline for soft fill
+  const areaPath =
+    `M ${pad},${H - pad} ` +
+    series
+      .map(
+        (v, idx) =>
+          `L ${pad + idx * stepX},${H - pad - v * (H - pad * 2)}`
+      )
+      .join(" ") +
+    ` L ${W - pad},${H - pad} Z`;
+
+  return (
+    <div
+      style={{
+        border: "1px solid var(--hairline)",
+        borderTop: `1px solid ${accent}`,
+        borderRadius: "var(--r-card-sm)",
+        padding: mobile ? 16 : 20,
+        background: `linear-gradient(180deg, ${tintSoft}, transparent 40%)`,
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+      }}
+    >
+      {/* Top row: flag id + status pill */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <span
+          className="mono"
+          style={{
+            fontSize: "var(--text-mono)",
+            color: "var(--meta)",
+            letterSpacing: "var(--ls-tag)",
+          }}
+        >
+          flag_{(i + 1).toString().padStart(2, "0")}
+        </span>
+        <span
+          className="mono"
+          style={{
+            fontSize: "var(--text-mono-xs)",
+            color: statusColor,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "3px 10px",
+            border: `1px solid ${statusColor}`,
+            borderRadius: "var(--r-chip)",
+            background: statusBg,
+            letterSpacing: "var(--ls-tag)",
+            textTransform: "uppercase",
+          }}
+        >
+          <span
+            aria-hidden
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: "var(--r-chip)",
+              background: statusColor,
+              boxShadow: `0 0 8px ${
+                meta.status === "staged" ? "var(--amber-glow)" : accentGlow
+              }`,
+            }}
+          />
+          {meta.status}
+        </span>
+      </div>
+
+      {/* Title + description */}
+      <div>
+        <h3
+          style={{
+            fontSize: mobile ? "var(--text-h3-sm-m)" : "var(--text-h3-sm)",
+            fontWeight: 500,
+            marginBottom: 6,
+            letterSpacing: "var(--ls-tight)",
+          }}
+        >
+          {tr.t}
+        </h3>
+        <p
+          style={{
+            color: "var(--muted)",
+            fontSize: "var(--text-body-sm)",
+            lineHeight: "var(--lh-body)",
+          }}
+        >
+          {tr.d}
+        </p>
+      </div>
+
+      {/* Sparkline + metrics row */}
+      <div
+        style={{
+          marginTop: 4,
+          display: "grid",
+          gridTemplateColumns: "1fr auto",
+          gap: 16,
+          alignItems: "end",
+        }}
+      >
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          width="100%"
+          height={H}
+          aria-hidden
+          preserveAspectRatio="none"
+          style={{ display: "block" }}
+        >
+          {/* Baseline grid */}
+          <line
+            x1={pad}
+            y1={H - pad}
+            x2={W - pad}
+            y2={H - pad}
+            stroke="var(--hairline)"
+            strokeWidth={0.5}
+          />
+          <line
+            x1={pad}
+            y1={pad}
+            x2={W - pad}
+            y2={pad}
+            stroke="var(--hairline)"
+            strokeWidth={0.5}
+            strokeDasharray="2 4"
+          />
+          {/* Area fill */}
+          <path d={areaPath} fill={accent} opacity={0.12} />
+          {/* Line */}
+          <polyline
+            points={points}
+            fill="none"
+            stroke={accent}
+            strokeWidth={1.5}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            opacity={0.95}
+          />
+          {/* Latest value dot */}
+          <circle
+            cx={pad + (series.length - 1) * stepX}
+            cy={H - pad - series[series.length - 1] * (H - pad * 2)}
+            r={3}
+            fill={accent}
+            style={{ filter: `drop-shadow(0 0 4px ${accentGlow})` }}
+          />
+        </svg>
+        <div
+          className="mono"
+          style={{
+            fontSize: "var(--text-mono-xs)",
+            color: "var(--meta)",
+            letterSpacing: "var(--ls-tag)",
+            textTransform: "uppercase",
+            textAlign: "right",
+            lineHeight: 1.5,
+            whiteSpace: "nowrap",
+          }}
+        >
+          <div>
+            rollout <span style={{ color: accent }}>{rollout}%</span>
+          </div>
+          <div>
+            tenants{" "}
+            <span style={{ color: "var(--fg)" }}>
+              {tenants.toLocaleString("en-US")}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Trends({ mobile }: { mobile: boolean }) {
   return (
     <Section id="trends" fsPath="/trends" mobile={mobile} dark>
@@ -1720,54 +2063,11 @@ function Trends({ mobile }: { mobile: boolean }) {
         style={{
           display: "grid",
           gridTemplateColumns: mobile ? "1fr" : "repeat(2, 1fr)",
-          gap: 12,
+          gap: 14,
         }}
       >
         {TRENDS.map((tr, i) => (
-          <div
-            key={tr.t}
-            style={{
-              border: "1px solid var(--hairline)",
-              borderRadius: 8,
-              padding: 20,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 12,
-              }}
-            >
-              <span className="mono" style={{ fontSize: 11, color: "var(--cyan)" }}>
-                flag_{(i + 1).toString().padStart(2, "0")}
-              </span>
-              <span
-                className="mono"
-                style={{
-                  fontSize: 11,
-                  color: "var(--cyan)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                <span className="dot" /> enabled
-              </span>
-            </div>
-            <h3
-              style={{
-                fontSize: mobile ? 18 : 20,
-                fontWeight: 500,
-                marginBottom: 8,
-                letterSpacing: "-0.02em",
-              }}
-            >
-              {tr.t}
-            </h3>
-            <p style={{ color: "var(--muted)", fontSize: 14 }}>{tr.d}</p>
-          </div>
+          <TrendCard key={tr.t} tr={tr} i={i} mobile={mobile} />
         ))}
       </div>
     </Section>
@@ -1775,209 +2075,7 @@ function Trends({ mobile }: { mobile: boolean }) {
 }
 
 /* ─── Blog ───────────────────────────────────────────────── */
-/** Parse the body into paragraph + h2 blocks. Headings are lines that start
- * with `## `; everything else becomes a paragraph. Blank lines split blocks. */
-function parsePostBody(body: string): { kind: "h2" | "p"; text: string }[] {
-  return body
-    .split(/\n\n+/)
-    .map((block) => block.trim())
-    .filter(Boolean)
-    .map((block) =>
-      block.startsWith("## ")
-        ? { kind: "h2" as const, text: block.slice(3).trim() }
-        : { kind: "p" as const, text: block }
-    );
-}
-
-function ArticleModal({
-  post,
-  onClose,
-  mobile,
-}: {
-  post: Post;
-  onClose: () => void;
-  mobile: boolean;
-}) {
-  const mounted = useMounted();
-
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = prev;
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [onClose]);
-
-  if (!mounted) return null;
-
-  const blocks = parsePostBody(post.body);
-
-  return createPortal(
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="article-title"
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 80,
-        background: "rgba(6,6,10,.96)",
-        backdropFilter: "blur(18px) saturate(140%)",
-        WebkitBackdropFilter: "blur(18px) saturate(140%)",
-        display: "flex",
-        flexDirection: "column",
-        animation: "fadeIn .18s ease-out",
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          padding: mobile ? "14px 16px" : "16px 24px",
-          borderBottom: "1px solid var(--hairline)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-          background: "rgba(6,6,10,.7)",
-        }}
-      >
-        <span
-          className="mono"
-          style={{ fontSize: 13, color: "var(--fg)", letterSpacing: "-0.01em" }}
-        >
-          cobos<span style={{ color: "var(--cyan)" }}>::</span>blog
-          <span style={{ color: "var(--muted)" }}> · {post.slug}</span>
-        </span>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Cerrar artículo"
-          className="mono tap"
-          style={{
-            color: "var(--muted)",
-            border: "1px solid var(--hairline)",
-            borderRadius: 6,
-            padding: "6px 12px",
-            fontSize: 12,
-            background: "rgba(255,255,255,.02)",
-          }}
-        >
-          ESC ×
-        </button>
-      </div>
-
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{ flex: 1, overflowY: "auto" }}
-      >
-        <article
-          style={{
-            maxWidth: 720,
-            margin: "0 auto",
-            padding: mobile ? "32px 20px 80px" : "56px 32px 96px",
-          }}
-        >
-          <div
-            className="mono"
-            style={{
-              fontSize: 11,
-              color: "var(--muted)",
-              letterSpacing: ".15em",
-              textTransform: "uppercase",
-              display: "flex",
-              gap: 14,
-              marginBottom: 18,
-            }}
-          >
-            <span style={{ color: "var(--cyan)" }}>{post.d}</span>
-            <span>·</span>
-            <span>{post.r} read</span>
-          </div>
-
-          <h1
-            id="article-title"
-            style={{
-              fontSize: mobile ? 28 : 40,
-              fontWeight: 600,
-              letterSpacing: "-0.025em",
-              lineHeight: 1.1,
-              color: "var(--fg)",
-              marginBottom: 32,
-            }}
-          >
-            {post.t}
-          </h1>
-
-          <div
-            style={{
-              fontSize: mobile ? 15 : 17,
-              lineHeight: 1.75,
-              color: "var(--fg)",
-            }}
-          >
-            {blocks.map((b, i) =>
-              b.kind === "h2" ? (
-                <h2
-                  key={i}
-                  style={{
-                    fontSize: mobile ? 18 : 22,
-                    fontWeight: 600,
-                    letterSpacing: "-0.015em",
-                    color: "var(--cyan)",
-                    marginTop: i === 0 ? 0 : 36,
-                    marginBottom: 14,
-                  }}
-                >
-                  {b.text}
-                </h2>
-              ) : (
-                <p
-                  key={i}
-                  style={{
-                    color: "rgba(248,250,252,.82)",
-                    marginBottom: 18,
-                  }}
-                >
-                  {b.text}
-                </p>
-              )
-            )}
-          </div>
-
-          <div
-            className="mono"
-            style={{
-              marginTop: 56,
-              paddingTop: 24,
-              borderTop: "1px solid var(--hairline)",
-              fontSize: 12,
-              color: "var(--muted)",
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 12,
-              flexWrap: "wrap",
-            }}
-          >
-            <span>
-              <span style={{ color: "var(--cyan)" }}>$</span> cat
-              ./blog/{post.slug}.md
-            </span>
-            <span>— ernesto.cobos</span>
-          </div>
-        </article>
-      </div>
-    </div>,
-    document.body
-  );
-}
-
-function Blog({ mobile }: { mobile: boolean }) {
+function Blog({ mobile, posts }: { mobile: boolean; posts: Post[] }) {
   const [openSlug, setOpenSlug] = useState<string | null>(null);
 
   // Open from URL hash on mount and when hash changes (linkeable: #blog/<slug>)
@@ -1991,7 +2089,7 @@ function Blog({ mobile }: { mobile: boolean }) {
     return () => window.removeEventListener("hashchange", sync);
   }, []);
 
-  const open = openSlug ? POSTS.find((p) => p.slug === openSlug) ?? null : null;
+  const open = openSlug ? posts.find((p) => p.slug === openSlug) ?? null : null;
 
   const openPost = (slug: string) => {
     setOpenSlug(slug);
@@ -2005,44 +2103,143 @@ function Blog({ mobile }: { mobile: boolean }) {
 
   return (
     <Section id="blog" fsPath="/blog" mobile={mobile}>
-      <SectionHeader n={7} t="notes" action={`tail -n ${POSTS.length} ./blog`} />
+      <SectionHeader n={7} t="notes" action={`tail -n ${posts.length} ./blog`} />
       <div
         className="mono"
         style={{ fontSize: mobile ? 13 : 14, lineHeight: 1.8 }}
       >
-        {POSTS.map((p, i) => (
-          <button
-            key={p.slug}
-            type="button"
-            onClick={() => openPost(p.slug)}
-            className="tap"
-            style={{
-              display: "grid",
-              gridTemplateColumns: mobile ? "1fr" : "110px 1fr 80px",
-              gap: 16,
-              padding: "12px 0",
-              borderTop: i ? "1px solid var(--hairline)" : "none",
-              cursor: "pointer",
-              width: "100%",
-              textAlign: "left",
-              background: "transparent",
-              fontFamily: "inherit",
-              fontSize: "inherit",
-              color: "inherit",
-              alignItems: "baseline",
-            }}
+        {posts.slice(0, 3).map((p, i) => {
+          const accent =
+            CATEGORY_META[p.category].accent === "cyan"
+              ? "var(--cyan)"
+              : "var(--violet)";
+          return (
+            <button
+              key={p.slug}
+              type="button"
+              onClick={() => openPost(p.slug)}
+              className="tap"
+              style={{
+                display: "grid",
+                gridTemplateColumns: mobile
+                  ? "44px 1fr"
+                  : "44px 90px 100px 1fr 70px",
+                gap: 14,
+                padding: "12px 0",
+                borderTop: i ? "1px solid var(--hairline)" : "none",
+                cursor: "pointer",
+                width: "100%",
+                textAlign: "left",
+                background: "transparent",
+                fontFamily: "inherit",
+                fontSize: "inherit",
+                color: "inherit",
+                alignItems: "center",
+              }}
+            >
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 4,
+                  overflow: "hidden",
+                  border: "1px solid var(--hairline)",
+                  flexShrink: 0,
+                }}
+              >
+                <BlogCover
+                  slug={p.slug}
+                  category={p.category}
+                  variant="thumb"
+                />
+              </div>
+              {mobile ? (
+                <div style={{ minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: "var(--text-mono-xs)",
+                      color: "var(--muted)",
+                      letterSpacing: "var(--ls-tag)",
+                      textTransform: "uppercase",
+                      display: "flex",
+                      gap: 8,
+                      marginBottom: 4,
+                    }}
+                  >
+                    <span style={{ color: accent }}>{p.d.toLowerCase()}</span>
+                    <span>·</span>
+                    <span style={{ color: accent }}>
+                      {CATEGORY_META[p.category].label}
+                    </span>
+                  </div>
+                  <span style={{ color: "var(--fg)", fontSize: 14 }}>
+                    {p.t}
+                  </span>
+                </div>
+              ) : (
+                <>
+                  <span style={{ color: "var(--muted)" }}>
+                    {p.d.toLowerCase()}
+                  </span>
+                  <span
+                    style={{
+                      color: accent,
+                      fontSize: "var(--text-mono-xs)",
+                      letterSpacing: "var(--ls-tag)",
+                      textTransform: "uppercase",
+                      padding: "2px 8px",
+                      border: `1px solid ${accent}`,
+                      borderRadius: "var(--r-chip)",
+                      justifySelf: "start",
+                    }}
+                  >
+                    {CATEGORY_META[p.category].label}
+                  </span>
+                  <span style={{ color: "var(--fg)", fontSize: 16 }}>
+                    {p.t}
+                  </span>
+                  <span style={{ color: accent, textAlign: "right" }}>
+                    {p.r} →
+                  </span>
+                </>
+              )}
+            </button>
+          );
+        })}
+      </div>
+      <div
+        style={{
+          marginTop: mobile ? 24 : 32,
+          display: "flex",
+          justifyContent: "flex-start",
+        }}
+      >
+        <a
+          href="/blog"
+          className="tap mono"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "12px 18px",
+            border: "1px solid var(--cyan)",
+            borderRadius: "var(--r-tile)",
+            color: "var(--cyan)",
+            fontSize: "var(--text-meta)",
+            letterSpacing: ".04em",
+            textTransform: "uppercase",
+            background:
+              "linear-gradient(180deg, var(--cyan-tint), transparent)",
+          }}
+        >
+          read more
+          <span aria-hidden style={{ fontSize: 14 }}>→</span>
+          <span
+            style={{ color: "var(--muted)", textTransform: "none", marginLeft: 6 }}
           >
-            <span style={{ color: "var(--muted)" }}>{p.d.toLowerCase()}</span>
-            <span style={{ color: "var(--fg)", fontSize: mobile ? 14 : 16 }}>
-              {p.t}
-            </span>
-            {!mobile && (
-              <span style={{ color: "var(--cyan)", textAlign: "right" }}>
-                {p.r} →
-              </span>
-            )}
-          </button>
-        ))}
+            ({posts.length} notas)
+          </span>
+        </a>
       </div>
       {open && <ArticleModal post={open} onClose={closePost} mobile={mobile} />}
     </Section>
@@ -2050,16 +2247,156 @@ function Blog({ mobile }: { mobile: boolean }) {
 }
 
 /* ─── Approach ───────────────────────────────────────────── */
+/** Per-phase running duration (ms). Slightly varied so the cycle feels
+ * organic rather than robotic. */
+const APPROACH_PHASE_MS = [1100, 1350, 1250, 1050];
+
+type PhaseStatus = "pending" | "running" | "done";
+
 function Approach({ mobile }: { mobile: boolean }) {
+  const reduceMotion = useReducedMotion();
+  // -1 = idle, 0..3 = that index running, 4 = all done.
+  // If the user prefers reduced motion, jump straight to "done" so the
+  // section stays visually consistent without animation.
+  const [phase, setPhase] = useState<number>(reduceMotion ? 4 : -1);
+  const [inView, setInView] = useState(false);
+  const startedRef = useRef(false);
+
+  // Trigger the pipeline once when the section enters the viewport. In
+  // dev React Strict Mode, this effect re-runs on mount; the startedRef
+  // gate ensures we only kick off once per page load. We attach the
+  // observer to the section's <section> element via id lookup since the
+  // shared Section wrapper does not forward refs.
+  useEffect(() => {
+    if (reduceMotion) {
+      setPhase(4);
+      return;
+    }
+    if (typeof window === "undefined") return;
+
+    const arm = (el: Element) => {
+      if (typeof IntersectionObserver === "undefined") {
+        // Fallback: just kick the cycle
+        if (!startedRef.current) {
+          startedRef.current = true;
+          setPhase(0);
+        }
+        return () => {};
+      }
+      const obs = new IntersectionObserver(
+        (entries) => {
+          const visible = entries.some((e) => e.isIntersecting);
+          if (visible && !startedRef.current) {
+            startedRef.current = true;
+            setPhase(0);
+          }
+        },
+        { rootMargin: "0px 0px -10% 0px", threshold: 0 }
+      );
+      obs.observe(el);
+      return () => obs.disconnect();
+    };
+
+    let cleanup: (() => void) | undefined;
+    const tryArm = () => {
+      const el = document.getElementById("approach");
+      if (el) {
+        cleanup = arm(el);
+        return true;
+      }
+      return false;
+    };
+    const armed = tryArm();
+    let retryT: ReturnType<typeof setTimeout> | undefined;
+    if (!armed) retryT = window.setTimeout(tryArm, 0);
+
+    // Safety net: if the observer hasn't fired in 600ms (e.g. browser
+    // doesn't support it well, or section is already past the viewport),
+    // start the pipeline anyway. We're not gating on visibility for
+    // correctness, only for niceness.
+    const safetyT = window.setTimeout(() => {
+      if (!startedRef.current) {
+        startedRef.current = true;
+        setPhase(0);
+      }
+    }, 600);
+
+    return () => {
+      if (retryT) window.clearTimeout(retryT);
+      window.clearTimeout(safetyT);
+      cleanup?.();
+    };
+  }, [reduceMotion]);
+
+  // Step through phases.
+  useEffect(() => {
+    if (phase < 0 || phase >= 4) return;
+    const t = window.setTimeout(
+      () => setPhase((p) => p + 1),
+      APPROACH_PHASE_MS[phase]
+    );
+    return () => window.clearTimeout(t);
+  }, [phase]);
+
+  // Track viewport visibility for the soft-loop (separate from the kickoff
+  // observer above). The loop only restarts the cycle if the user is
+  // actively looking at the section.
+  useEffect(() => {
+    if (reduceMotion) return;
+    if (typeof IntersectionObserver === "undefined") return;
+    const el = document.getElementById("approach");
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => setInView(entries.some((e) => e.isIntersecting)),
+      { rootMargin: "0px", threshold: 0.15 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [reduceMotion]);
+
+  // Soft-loop: when all 4 phases are done AND the section is still in view,
+  // wait 4s and re-kick the cycle. Cancels cleanly if the user scrolls
+  // away (inView flips to false).
+  useEffect(() => {
+    if (reduceMotion) return;
+    if (phase < 4) return;
+    if (!inView) return;
+    const t = window.setTimeout(() => {
+      setPhase(-1);
+      window.setTimeout(() => setPhase(0), 80);
+    }, 4000);
+    return () => window.clearTimeout(t);
+  }, [phase, inView, reduceMotion]);
+
+  const replay = () => {
+    setPhase(-1);
+    window.setTimeout(() => setPhase(0), 80);
+  };
+
+  const statusFor = (i: number): PhaseStatus => {
+    if (phase === -1) return "pending";
+    if (phase > i) return "done";
+    if (phase === i) return "running";
+    return "pending";
+  };
+
+  const allDone = phase >= 4;
+  const headerAction = allDone ? "↻ replay" : "man cobos";
+
   return (
     <Section id="approach" fsPath="/approach" mobile={mobile} dark>
-      <SectionHeader n={8} t="mi enfoque" action="man cobos" />
+      <SectionHeader
+        n={8}
+        t="mi enfoque"
+        action={headerAction}
+        onActionClick={allDone ? replay : undefined}
+      />
       <div style={{ marginBottom: mobile ? 40 : 56, maxWidth: 720 }}>
         <h2
           style={{
             fontSize: mobile ? 30 : 52,
             fontWeight: 500,
-            letterSpacing: "-0.03em",
+            letterSpacing: "var(--ls-display)",
             lineHeight: 1.05,
           }}
         >
@@ -2077,67 +2414,17 @@ function Approach({ mobile }: { mobile: boolean }) {
         }}
       >
         {APPROACH.map((it, i) => (
-          <div
+          <ApproachCard
             key={it.n}
-            style={{
-              padding: mobile
-                ? "24px 0"
-                : `32px 24px 32px ${i > 0 ? 24 : 0}px`,
-              borderRight:
-                !mobile && i < APPROACH.length - 1
-                  ? "1px solid var(--hairline)"
-                  : "none",
-              borderTop: mobile && i > 0 ? "1px solid var(--hairline)" : "none",
-            }}
-          >
-            <div
-              className="mono"
-              style={{
-                fontSize: 11,
-                color: "var(--cyan)",
-                letterSpacing: ".18em",
-                marginBottom: 14,
-              }}
-            >
-              {it.n}
-            </div>
-            <h3
-              style={{
-                fontSize: mobile ? 19 : 21,
-                fontWeight: 500,
-                letterSpacing: "-0.015em",
-                marginBottom: 12,
-                lineHeight: 1.2,
-              }}
-            >
-              {it.t}
-            </h3>
-            <p
-              style={{
-                color: "var(--muted)",
-                fontSize: 14,
-                lineHeight: 1.55,
-                marginBottom: 18,
-              }}
-            >
-              {it.d}
-            </p>
-            <div
-              className="mono"
-              style={{
-                fontSize: 10,
-                color: "var(--cyan)",
-                padding: "6px 10px",
-                border: "1px solid rgba(0,212,255,.25)",
-                borderRadius: 4,
-                background: "rgba(0,212,255,.04)",
-                display: "inline-block",
-                letterSpacing: ".02em",
-              }}
-            >
-              $ {it.cmd}
-            </div>
-          </div>
+            n={it.n}
+            t={it.t}
+            d={it.d}
+            cmd={it.cmd}
+            status={statusFor(i)}
+            mobile={mobile}
+            isLast={i === APPROACH.length - 1}
+            isFirst={i === 0}
+          />
         ))}
       </div>
       <div
@@ -2149,13 +2436,32 @@ function Approach({ mobile }: { mobile: boolean }) {
           gap: 12,
         }}
       >
-        <span className="mono" style={{ fontSize: 11, color: "var(--muted)" }}>
+        <span className="mono" style={{ fontSize: "var(--text-mono)", color: "var(--muted)" }}>
           method:{" "}
           <span style={{ color: "var(--cyan)" }}>
+            <span
+              aria-hidden
+              style={{
+                display: "inline-block",
+                width: 6,
+                height: 6,
+                borderRadius: "var(--r-chip)",
+                background: "var(--cyan)",
+                marginRight: 8,
+                verticalAlign: "middle",
+                animation: allDone
+                  ? "pipe-iterate 1.6s ease-in-out infinite"
+                  : "none",
+                opacity: allDone ? undefined : 0.45,
+                boxShadow: allDone
+                  ? "0 0 10px rgba(0,212,255,.6)"
+                  : "none",
+              }}
+            />
             iterative · evidence-first · slo-bound
           </span>
         </span>
-        <span className="mono" style={{ fontSize: 11, color: "var(--muted)" }}>
+        <span className="mono" style={{ fontSize: "var(--text-mono)", color: "var(--muted)" }}>
           deliverables:{" "}
           <span style={{ color: "var(--fg)" }}>
             arquitectura · IaC · runbooks · DX
@@ -2163,6 +2469,186 @@ function Approach({ mobile }: { mobile: boolean }) {
         </span>
       </div>
     </Section>
+  );
+}
+
+function ApproachCard({
+  n,
+  t,
+  d,
+  cmd,
+  status,
+  mobile,
+  isLast,
+  isFirst,
+}: {
+  n: string;
+  t: string;
+  d: string;
+  cmd: string;
+  status: PhaseStatus;
+  mobile: boolean;
+  isLast: boolean;
+  isFirst: boolean;
+}) {
+  const isRunning = status === "running";
+  const isDone = status === "done";
+  const isPending = status === "pending";
+
+  const numberColor = isPending
+    ? "rgba(0,212,255,.35)"
+    : "var(--cyan)";
+
+  const cmdBorder = isRunning
+    ? "1px solid rgba(0,212,255,.7)"
+    : isDone
+      ? "1px solid var(--border-cyan-soft)"
+      : "1px solid rgba(255,255,255,.08)";
+
+  const cmdBg = isRunning
+    ? "var(--cyan-tint)"
+    : isDone
+      ? "var(--cyan-tint-soft)"
+      : "var(--surface-overlay)";
+
+  const cmdColor = isPending
+    ? "rgba(148,163,184,.6)"
+    : "var(--cyan)";
+
+  return (
+    <div
+      style={{
+        position: "relative",
+        padding: mobile ? "24px 0" : `32px 24px 32px ${isFirst ? 0 : 24}px`,
+        borderRight: !mobile && !isLast ? "1px solid var(--hairline)" : "none",
+        borderTop: mobile && !isFirst ? "1px solid var(--hairline)" : "none",
+        opacity: isPending ? 0.6 : 1,
+        transition: "opacity 0.4s ease",
+      }}
+    >
+      {/* Status row — small mono indicator at the top of each card */}
+      <div
+        className="mono"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          fontSize: "var(--text-mono-xs)",
+          letterSpacing: "var(--ls-tag)",
+          textTransform: "uppercase",
+          marginBottom: 12,
+          color: isRunning
+            ? "var(--cyan)"
+            : isDone
+              ? "rgba(34,197,94,.95)"
+              : "var(--muted)",
+          transition: "color 0.3s ease",
+        }}
+      >
+        <span
+          aria-hidden
+          style={{
+            display: "inline-block",
+            width: 6,
+            height: 6,
+            borderRadius: "var(--r-chip)",
+            background: isRunning
+              ? "var(--cyan)"
+              : isDone
+                ? "#22c55e"
+                : "rgba(148,163,184,.5)",
+            boxShadow: isRunning
+              ? "0 0 10px rgba(0,212,255,.6)"
+              : isDone
+                ? "0 0 8px rgba(34,197,94,.5)"
+                : "none",
+            animation: isRunning
+              ? "pipe-dot 0.9s ease-in-out infinite"
+              : "none",
+          }}
+        />
+        {isRunning ? "running" : isDone ? "done" : "pending"}
+      </div>
+
+      {/* Phase number */}
+      <div
+        className="mono"
+        style={{
+          fontSize: "var(--text-mono)",
+          color: numberColor,
+          letterSpacing: "var(--ls-tag)",
+          marginBottom: 14,
+          textShadow: isRunning
+            ? "0 0 12px rgba(0,212,255,.5)"
+            : "none",
+          transition: "color 0.3s ease, text-shadow 0.3s ease",
+        }}
+      >
+        {n}
+      </div>
+
+      <h3
+        style={{
+          fontSize: mobile ? 19 : 21,
+          fontWeight: 500,
+          letterSpacing: "var(--ls-tight)",
+          marginBottom: 12,
+          lineHeight: 1.2,
+        }}
+      >
+        {t}
+      </h3>
+      <p
+        style={{
+          color: "var(--muted)",
+          fontSize: "var(--text-body-sm)",
+          lineHeight: 1.55,
+          marginBottom: 18,
+        }}
+      >
+        {d}
+      </p>
+
+      {/* Command box — animates while running */}
+      <div
+        className="mono"
+        style={{
+          fontSize: "var(--text-mono-xs)",
+          color: cmdColor,
+          padding: "6px 10px",
+          border: cmdBorder,
+          borderRadius: 4,
+          background: cmdBg,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          letterSpacing: ".02em",
+          animation: isRunning
+            ? "pipe-pulse 1.1s ease-in-out infinite"
+            : "none",
+          transition: "background 0.3s ease, border-color 0.3s ease",
+        }}
+      >
+        <span>$ {cmd}</span>
+        {isRunning && (
+          <span
+            aria-hidden
+            style={{
+              display: "inline-block",
+              width: 6,
+              height: 11,
+              background: "var(--cyan)",
+              animation: "pipe-cursor 0.9s steps(1) infinite",
+            }}
+          />
+        )}
+        {isDone && (
+          <span aria-hidden style={{ color: "#22c55e" }}>
+            ✓
+          </span>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -2186,11 +2672,11 @@ function Field({
     width: "100%",
     padding: "14px 16px",
     borderRadius: 12,
-    background: "rgba(255,255,255,.02)",
+    background: "var(--surface-overlay)",
     border: "1px solid var(--hairline)",
     color: "var(--fg)",
     fontFamily: "inherit",
-    fontSize: 16,
+    fontSize: "var(--text-body)",
     resize: textarea ? "vertical" : "none",
     minHeight: textarea ? 120 : "auto",
     transition: "border-color .15s, background .15s",
@@ -2200,10 +2686,10 @@ function Field({
       <div
         className="mono"
         style={{
-          fontSize: 11,
+          fontSize: "var(--text-mono)",
           color: "var(--muted)",
           textTransform: "uppercase",
-          letterSpacing: ".15em",
+          letterSpacing: "var(--ls-tag)",
           marginBottom: 8,
         }}
       >
@@ -2259,7 +2745,7 @@ function ContactForm() {
       onSubmit={submit}
       style={{
         border: "1px solid var(--hairline-strong)",
-        borderRadius: 10,
+        borderRadius: "var(--r-card-sm)",
         padding: 24,
         background: "rgba(6,6,10,.72)",
         backdropFilter: "blur(12px) saturate(140%)",
@@ -2270,7 +2756,7 @@ function ContactForm() {
       <div
         className="mono"
         style={{
-          fontSize: 11,
+          fontSize: "var(--text-mono)",
           color: "var(--muted)",
           marginBottom: 16,
           display: "flex",
@@ -2313,13 +2799,13 @@ function ContactForm() {
         />
         <button
           type="submit"
-          className="btn-primary"
+          className="btn-primary-violet"
           style={{
             alignSelf: "flex-start",
             fontFamily: "var(--font-jetbrains-mono)",
           }}
         >
-          ./send →
+          ./send <span aria-hidden>→</span>
         </button>
       </div>
     </form>
@@ -2373,7 +2859,7 @@ function Contact({ mobile }: { mobile: boolean }) {
             position: "absolute",
             inset: 0,
             backgroundImage:
-              "linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px)",
+              "linear-gradient(var(--surface-soft) 1px, transparent 1px), linear-gradient(90deg, var(--surface-soft) 1px, transparent 1px)",
             backgroundSize: "48px 48px",
             maskImage:
               "radial-gradient(ellipse at center, #000 30%, transparent 80%)",
@@ -2406,17 +2892,17 @@ function Contact({ mobile }: { mobile: boolean }) {
                 fontWeight: 500,
                 lineHeight: 0.95,
                 marginBottom: 24,
-                letterSpacing: "-0.03em",
+                letterSpacing: "var(--ls-display)",
               }}
             >
-              <span style={{ color: "var(--cyan)" }}>›</span> open
+              <span style={{ color: "var(--violet)" }}>›</span> open
               <br />
-              connection.
+              <span style={{ color: "var(--violet)" }}>connection.</span>
             </h2>
             <p
               style={{
                 color: "var(--muted)",
-                fontSize: 16,
+                fontSize: "var(--text-body)",
                 marginBottom: 32,
                 maxWidth: 480,
               }}
@@ -2427,7 +2913,7 @@ function Contact({ mobile }: { mobile: boolean }) {
             <div
               className="mono"
               style={{
-                fontSize: 13,
+                fontSize: "var(--text-meta)",
                 lineHeight: 2.2,
                 color: "var(--muted)",
               }}
@@ -2454,7 +2940,7 @@ function Contact({ mobile }: { mobile: boolean }) {
             marginTop: mobile ? 48 : 80,
             paddingTop: 24,
             borderTop: "1px solid var(--hairline)",
-            fontSize: 11,
+            fontSize: "var(--text-mono)",
             color: "var(--muted)",
             display: "flex",
             flexDirection: mobile ? "column" : "row",
@@ -2474,7 +2960,7 @@ function Contact({ mobile }: { mobile: boolean }) {
 }
 
 /* ─── Root ───────────────────────────────────────────────── */
-export default function Portfolio() {
+export default function Portfolio({ posts }: { posts: Post[] }) {
   const mobile = useIsMobile();
   return (
     <div className="cobos-art">
@@ -2487,7 +2973,7 @@ export default function Portfolio() {
       <Work mobile={mobile} />
       <Experience mobile={mobile} />
       <Trends mobile={mobile} />
-      <Blog mobile={mobile} />
+      <Blog mobile={mobile} posts={posts} />
       <Approach mobile={mobile} />
       <Contact mobile={mobile} />
       {LiveTerminal && <LiveTerminal />}
