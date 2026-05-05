@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import type { Post } from "./portfolio-data";
 import { useMounted } from "./portfolio-visuals";
 import { ArticleBody } from "./ArticleBody";
+import { ArticleProgress } from "./ArticleProgress";
 
 export function ArticleModal({
   post,
@@ -17,6 +18,7 @@ export function ArticleModal({
   mobile: boolean;
 }) {
   const mounted = useMounted();
+  const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -108,9 +110,13 @@ export function ArticleModal({
       </div>
 
       <div
+        ref={scrollRef}
         onClick={(e) => e.stopPropagation()}
-        style={{ flex: 1, overflowY: "auto" }}
+        style={{ flex: 1, overflowY: "auto", position: "relative" }}
       >
+        {/* Reading progress scoped to the modal's scroll container, not
+         * the document. Sits at the very top of the article column. */}
+        <ArticleProgress scrollRoot={scrollRef} />
         <article
           style={{
             maxWidth: 720,

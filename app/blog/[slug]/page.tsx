@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import {
   ArticleBody,
   extractHeadings,
-  parsePostBody,
   postExcerpt,
 } from "../../components/ArticleBody";
+import { BlogCover } from "../../components/BlogCover";
 import { ArticleProgress } from "../../components/ArticleProgress";
 import { TableOfContents } from "../../components/TableOfContents";
 import { ArticleAside } from "../../components/ArticleAside";
@@ -38,7 +39,14 @@ export async function generateMetadata({
   if (!post) return { title: "Artículo no encontrado · cobos::/blog" };
   const description = postExcerpt(post.body, 160);
   const url = `https://cobos.io/blog/${post.slug}`;
-  const ogImage = `https://cobos.io/blog/${post.slug}/opengraph-image`;
+  // If the post supplies a cover image (real photo / curated), prefer
+  // it for social sharing — otherwise the dynamic procedural OG route
+  // is the canonical preview.
+  const ogImage = post.cover
+    ? post.cover.startsWith("http")
+      ? post.cover
+      : `https://cobos.io${post.cover.startsWith("/") ? "" : "/"}${post.cover}`
+    : `https://cobos.io/blog/${post.slug}/opengraph-image`;
   return {
     title: `${post.title} · cobos::/blog`,
     description,
@@ -113,7 +121,7 @@ export default async function BlogPostPage({
   const fallback = all.filter((p) => p.slug !== post.slug);
   const related = (sameCat.length > 0 ? sameCat : fallback).slice(0, 2);
 
-  const headings = extractHeadings(parsePostBody(post.body));
+  const headings = extractHeadings(post.body);
 
   // BlogPosting structured data — Google rich results require `image`
   // for card-style snippets to render. Point to the dynamic OG image
@@ -127,7 +135,11 @@ export default async function BlogPostPage({
     dateModified: post.dateModified ?? post.date,
     image: {
       "@type": "ImageObject",
-      url: `https://cobos.io/blog/${post.slug}/opengraph-image`,
+      url: post.cover
+        ? post.cover.startsWith("http")
+          ? post.cover
+          : `https://cobos.io${post.cover.startsWith("/") ? "" : "/"}${post.cover}`
+        : `https://cobos.io/blog/${post.slug}/opengraph-image`,
       width: 1200,
       height: 630,
     },
@@ -287,11 +299,55 @@ function ArticlePage({
       <ArticleAside url={url} title={post.title} />
       <TableOfContents headings={headings} />
 
+      {/* Hero cover. If the post defines a `cover` field in frontmatter,
+       * render that real image (next/image, optimized). Otherwise fall
+       * back to the procedural BlogCover so the article still has a
+       * visual anchor that matches its featured-card preview in /blog. */}
+      <div
+        style={{
+          maxWidth: 1180,
+          margin: "32px auto 0",
+          padding: "0 32px",
+        }}
+      >
+        <div
+          style={{
+            position: "relative",
+            width: "100%",
+            aspectRatio: "21 / 9",
+            borderRadius: "var(--r-card-sm)",
+            overflow: "hidden",
+            border: `1px solid ${accent}`,
+            boxShadow:
+              CATEGORY_META[post.category].accent === "cyan"
+                ? "0 12px 48px rgba(0,212,255,.18)"
+                : "0 12px 48px rgba(124,58,237,.22)",
+          }}
+        >
+          {post.cover ? (
+            <Image
+              src={post.cover}
+              alt={post.coverAlt ?? post.title}
+              fill
+              priority
+              sizes="(max-width: 1180px) 100vw, 1180px"
+              style={{ objectFit: "cover" }}
+            />
+          ) : (
+            <BlogCover
+              slug={post.slug}
+              category={post.category}
+              variant="hero"
+            />
+          )}
+        </div>
+      </div>
+
       <article
         style={{
           maxWidth: 720,
           margin: "0 auto",
-          padding: "56px 32px 64px",
+          padding: "40px 32px 64px",
         }}
       >
         <ArticleBody
