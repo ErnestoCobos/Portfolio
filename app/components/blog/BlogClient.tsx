@@ -6,9 +6,9 @@ import {
   CATEGORY_META,
   type Post,
   type PostCategory,
-} from "../components/portfolio-data";
-import { ArticleModal } from "../components/ArticleModal";
-import { BlogCover } from "../components/BlogCover";
+} from "../portfolio-data";
+import { ArticleModal } from "../ArticleModal";
+import { BlogCover } from "../BlogCover";
 
 function useIsMobile(breakpoint = 768) {
   const [mobile, setMobile] = useState(false);

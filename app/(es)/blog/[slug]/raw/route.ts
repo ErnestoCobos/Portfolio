@@ -1,5 +1,5 @@
-import { PROFILE } from "../../../components/portfolio-data";
-import { getPost } from "../../../lib/posts";
+import { PROFILE } from "../../../../components/portfolio-data";
+import { getPost } from "../../../../lib/posts";
 
 const SITE = "https://cobos.io";
 

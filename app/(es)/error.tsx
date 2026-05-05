@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { ErrorTerminal } from "./components/ErrorTerminal";
+import { ErrorTerminal } from "../components/ErrorTerminal";
 
 export default function Error({
   error,

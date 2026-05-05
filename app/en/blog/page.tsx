@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import BlogClient from "../../blog/blog-client";
+import BlogClient from "../../components/blog/BlogClient";
 import { LocaleProvider } from "../../lib/i18n/locale-context";
 import { getAllPosts } from "../../lib/posts";
 

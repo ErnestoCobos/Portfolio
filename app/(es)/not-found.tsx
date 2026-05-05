@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { NotFoundTerminal } from "./components/NotFoundTerminal";
-import { getAllPosts } from "./lib/posts";
+import { NotFoundTerminal } from "../components/NotFoundTerminal";
+import { getAllPosts } from "../lib/posts";
 
 export const metadata: Metadata = {
   title: "404 · cobos::",

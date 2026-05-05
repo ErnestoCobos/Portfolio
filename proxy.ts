@@ -1,33 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Two responsibilities:
+ * Cookie-based locale redirect on bare root paths only.
  *
- *   1. Inject a per-request `x-locale` header so the root layout can
- *      render the correct `<html lang>` value without each route having
- *      to thread locale through.
+ * Returning visitors who picked EN previously type `cobos.io` and want
+ * to land on `/en` directly — this honors that. Symmetric for `/en` →
+ * `/` when their cookie is `es`.
  *
- *   2. Honor the `locale` cookie set by the LocaleSwitcher chip — but
- *      ONLY on the bare root paths `/` and `/en`. Deep links (e.g.
- *      `/blog/foo`, `/en/blog/foo`) always serve the exact requested
- *      URL so shared/bookmarked links land where the sender intended.
+ * Deep links (`/blog/<slug>`, `/en/blog/<slug>`, etc.) are never
+ * touched: shared/bookmarked URLs always serve the exact requested
+ * locale, and the floating LocaleSwitcher chip handles the toggle.
  *
  * Why bare-root only:
- *   - SEO: crawlers don't send cookies, so they always see the canonical
- *     URL they crawled — hreflang signals stay consistent.
+ *   - SEO: crawlers don't send cookies, always see canonical URLs.
  *   - Deep-link safety: a friend in Madrid sharing /blog/finops-dashboard
- *     with a friend in Berlin (cookie=en) — the Berlin friend sees the
- *     ES post, exactly what was shared. They can switch via the chip.
- *   - Returning visitor convenience: someone who picked EN previously
- *     types `cobos.io` → cookie=en → 307 → /en. No friction.
+ *     with a friend in Berlin (cookie=en) — Berlin lands on the ES post
+ *     they were sent.
+ *
+ * NOTE: this proxy used to also inject an `x-locale` header for the
+ * root layout to read via `headers()`. Removed when route groups gave
+ * each locale its own root layout with hardcoded `lang` — the layout
+ * no longer needs runtime-derived locale, and removing `headers()`
+ * unlocked full static SSG for every page.
  */
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
-
-  // Cookie-based redirect on bare root paths only.
-  // 307 (Temporary Redirect) preserves method + signals to crawlers
-  // that this is a per-user routing decision, not a permanent move.
   const cookieLocale = req.cookies.get("locale")?.value;
+
   if (pathname === "/" && cookieLocale === "en") {
     const url = req.nextUrl.clone();
     url.pathname = "/en";
@@ -38,20 +37,12 @@ export function proxy(req: NextRequest) {
     url.pathname = "/";
     return NextResponse.redirect(url, 307);
   }
-
-  // Locale header injection (existing behavior).
-  const locale = pathname === "/en" || pathname.startsWith("/en/") ? "en" : "es";
-
-  const reqHeaders = new Headers(req.headers);
-  reqHeaders.set("x-locale", locale);
-  reqHeaders.set("x-pathname", pathname);
-
-  return NextResponse.next({ request: { headers: reqHeaders } });
+  return NextResponse.next();
 }
 
 export const config = {
-  // Skip Next internals, static assets, and API routes — they don't
-  // render the root layout. The negative lookahead matches everything
-  // except those paths.
-  matcher: ["/((?!_next/|api/|.*\\..*).*)"],
+  // Only run on the two paths that can be cookie-redirected. Skipping
+  // every other request means proxy adds zero latency to /blog,
+  // /en/blog, RSS, sitemap, etc.
+  matcher: ["/", "/en"],
 };
