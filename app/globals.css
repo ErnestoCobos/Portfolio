@@ -594,3 +594,28 @@ textarea:focus-visible {
   width: 0;
   height: 0;
 }
+
+/* ── Locale switcher (LocaleSwitcher.tsx) ─────────────────────
+ * Inline styles handle the static look; this rule covers the hover/
+ * focus state that React's inline `style` prop can't express. Bumps
+ * the alternative locale label to bright fg + cyan glow when hovered
+ * so the affordance reads as "click me". */
+.locale-switcher .locale-switch-other:hover,
+.locale-switcher .locale-switch-other:focus-visible {
+  color: var(--fg);
+  text-shadow: 0 0 12px rgba(0, 212, 255, 0.45);
+  outline: none;
+}
+.locale-switcher:hover {
+  border-color: var(--cyan);
+}
+@media (prefers-reduced-motion: reduce) {
+  .locale-switcher {
+    transition: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+  .locale-switcher .locale-switch-other {
+    transition: none !important;
+  }
+}
