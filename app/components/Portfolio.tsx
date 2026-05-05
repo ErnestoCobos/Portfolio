@@ -20,8 +20,10 @@ import {
   PROJECTS,
   STACK,
   TRENDS,
+  pick,
   type Post,
 } from "./portfolio-data";
+import { useLocale, useT } from "../lib/i18n/locale-context";
 import { ArticleModal } from "./ArticleModal";
 import { BlogCover } from "./BlogCover";
 import { createRand } from "./seeded-rand";
@@ -542,6 +544,7 @@ function fmtSession(seconds: number): string {
 
 /* ─── Hero (terminal chrome + animated boot log + iso lattice) ── */
 function Hero({ mobile }: { mobile: boolean }) {
+  const dict = useT();
   const mounted = useMounted();
   const reduced = useReducedMotion();
   const tickerT = useTicker(!reduced);
@@ -710,7 +713,7 @@ function Hero({ mobile }: { mobile: boolean }) {
               whiteSpace: "nowrap",
             }}
           >
-            {mobile ? "~/cobos.io" : "~/cobos.io  —  zsh  —  120×40"}
+            {mobile ? dict.hero.terminalTitleMobile : dict.hero.terminalTitle}
           </span>
           <span
             className="mono"
@@ -725,7 +728,7 @@ function Hero({ mobile }: { mobile: boolean }) {
             }}
             aria-label={`Sesión activa hace ${Math.floor(t)} segundos`}
           >
-            <span className="dot green" aria-hidden /> session · {fmtSession(t)}
+            <span className="dot green" aria-hidden /> {dict.hero.sessionLabel} · {fmtSession(t)}
           </span>
         </div>
 
@@ -788,7 +791,7 @@ function Hero({ mobile }: { mobile: boolean }) {
                 marginBottom: 16,
               }}
             >
-              <span style={{ color: accent }}>›</span> rendering portfolio · v3.0
+              <span style={{ color: accent }}>›</span> {dict.hero.versionLine.replace(/^›\s*/, "")}
             </div>
             <h1
               style={{
@@ -829,13 +832,11 @@ function Hero({ mobile }: { mobile: boolean }) {
                 lineHeight: 1.55,
               }}
             >
-              Migraciones legacy → cloud-native, Kubernetes en sectores
-              regulados, multi-cloud, DevSecOps y FinOps. Construyo
-              plataformas como producto.
+              {dict.hero.subhead}
             </p>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               <a href="#work" className="btn-primary">
-                ./view-work.sh
+                {dict.hero.cta}
               </a>
             </div>
           </div>
@@ -1169,9 +1170,14 @@ function Section({
 
 /* ─── About ─────────────────────────────────────────────── */
 function About({ mobile }: { mobile: boolean }) {
+  const t = useT();
   return (
     <Section id="about" fsPath="/about" mobile={mobile}>
-      <SectionHeader n={1} t="about" action="cat ./about.md" />
+      <SectionHeader
+        n={1}
+        t={t.about.sectionLabel}
+        action={t.about.action}
+      />
       <div
         style={{
           display: "grid",
@@ -1221,19 +1227,19 @@ function About({ mobile }: { mobile: boolean }) {
             }}
           >
             <div data-fs-path="/about/name.txt" data-fs-type="file">
-              name: <span data-fs-text style={{ color: "var(--fg)" }}>ernesto cobos</span>
+              name: <span data-fs-text style={{ color: "var(--fg)" }}>{t.about.name}</span>
             </div>
             <div data-fs-path="/about/role.txt" data-fs-type="file">
-              role: <span data-fs-text style={{ color: "var(--fg)" }}>cloud architect</span>
+              role: <span data-fs-text style={{ color: "var(--fg)" }}>{t.about.role}</span>
             </div>
             <div data-fs-path="/about/location.txt" data-fs-type="file">
-              loc:  <span data-fs-text style={{ color: "var(--fg)" }}>mx · utc-6</span>
+              loc:  <span data-fs-text style={{ color: "var(--fg)" }}>{t.about.location}</span>
             </div>
             <div data-fs-path="/about/since.txt" data-fs-type="file">
-              since: <span data-fs-text style={{ color: "var(--fg)" }}>2017</span>
+              since: <span data-fs-text style={{ color: "var(--fg)" }}>{t.about.since}</span>
             </div>
             <div data-fs-path="/about/status.txt" data-fs-type="file">
-              status: <span data-fs-text style={{ color: "var(--cyan)" }}>● online</span>
+              status: <span data-fs-text style={{ color: "var(--cyan)" }}>{t.about.statusOnline}</span>
             </div>
           </div>
         </div>
@@ -1249,38 +1255,39 @@ function About({ mobile }: { mobile: boolean }) {
               letterSpacing: "var(--ls-heading)",
             }}
           >
-            <span data-fs-text>
-              La plataforma es el producto. Lo demás es código en busca de un host.
-            </span>
+            <span data-fs-text>{t.about.headline[0]}</span>
           </h2>
+          {t.about.bioParas.map((para, i) => (
+            <p
+              key={i}
+              data-fs-path={i === 0 ? "/about/bio.md" : undefined}
+              data-fs-type={i === 0 ? "file" : undefined}
+              style={{
+                color: "var(--muted)",
+                fontSize: mobile ? 15 : 17,
+                lineHeight: 1.65,
+                marginBottom: 16,
+              }}
+            >
+              <span data-fs-text={i === 0 ? "" : undefined}>{para}</span>
+            </p>
+          ))}
           <p
-            data-fs-path="/about/bio.md"
-            data-fs-type="file"
             style={{
               color: "var(--muted)",
               fontSize: mobile ? 15 : 17,
               lineHeight: 1.65,
-              marginBottom: 16,
             }}
           >
-            <span data-fs-text>
-              Casi una década moviendo sistemas críticos a entornos cloud-native.
-              Trato la infra como producto interno: SLOs, golden paths, DX
-              medible.
+            {t.about.bioContinuation.pre}
+            <span style={{ color: "var(--violet)" }}>
+              {t.about.bioContinuation.enkiflow}
             </span>
-          </p>
-          <p
-            style={{
-              color: "var(--muted)",
-              fontSize: mobile ? 15 : 17,
-              lineHeight: 1.65,
-            }}
-          >
-            Hoy: Kubernetes regulado, GitOps E2E, multi-cloud (AWS · GCP ·
-            Azure), AI-ready y FinOps. Construyo{" "}
-            <span style={{ color: "var(--violet)" }}>EnkiFlow</span> y{" "}
-            <span style={{ color: "var(--violet)" }}>GetDecant</span> — SaaS en
-            producción.
+            {t.about.bioContinuation.and}
+            <span style={{ color: "var(--violet)" }}>
+              {t.about.bioContinuation.getdecant}
+            </span>
+            {t.about.bioContinuation.post}
           </p>
         </div>
       </div>
@@ -1290,9 +1297,10 @@ function About({ mobile }: { mobile: boolean }) {
 
 /* ─── Stack ─────────────────────────────────────────────── */
 function Stack({ mobile }: { mobile: boolean }) {
+  const t = useT();
   return (
     <Section id="stack" fsPath="/stack" mobile={mobile} dark>
-      <SectionHeader n={2} t="stack" action="ls -la ./tools | wc -l → 38" />
+      <SectionHeader n={2} t={t.stack.sectionLabel} action={t.stack.action} />
       {mobile ? (
         // Mobile: keep the dense table — radial loses density below ~600px
         <div
@@ -1438,21 +1446,26 @@ const ARCH_EVENTS: Record<
 };
 
 function Infra({ mobile }: { mobile: boolean }) {
+  const dict = useT();
   const reduced = useReducedMotion();
-  const t = useTicker(!reduced);
+  const tick = useTicker(!reduced);
   const [archIdx, setArchIdx] = useState(0);
   const arch = ARCHITECTURES[archIdx];
   // Baselines come from the active architecture so a SaaS, a bank, an
   // analytics platform and an on-prem hybrid don't all read the same load.
-  const cpu = arch.cpu + Math.sin(t * 0.7) * 6;
-  const mem = arch.mem + Math.sin(t * 0.5 + 1) * 5;
+  const cpu = arch.cpu + Math.sin(tick * 0.7) * 6;
+  const mem = arch.mem + Math.sin(tick * 0.5 + 1) * 5;
   const rpsBase = arch.rps;
-  const rps = rpsBase + Math.floor(Math.sin(t * 1.1) * Math.max(60, rpsBase * 0.1));
+  const rps = rpsBase + Math.floor(Math.sin(tick * 1.1) * Math.max(60, rpsBase * 0.1));
   const events = ARCH_EVENTS[arch.id] || [];
 
   return (
     <Section id="infra" fsPath="/infra" mobile={mobile}>
-      <SectionHeader n={3} t="infrastructure" action="watch -n1 ./status" />
+      <SectionHeader
+        n={3}
+        t={dict.infra.sectionLabel}
+        action={dict.infra.action}
+      />
 
       {/* Tab strip — terminal-style, click to switch architecture */}
       <div
@@ -1605,12 +1618,14 @@ function Infra({ mobile }: { mobile: boolean }) {
 
 /* ─── Work ──────────────────────────────────────────────── */
 function Work({ mobile }: { mobile: boolean }) {
+  const locale = useLocale();
+  const t = useT();
   return (
     <Section id="work" fsPath="/work" mobile={mobile} dark>
       <SectionHeader
         n={4}
-        t="showcase · proyectos"
-        action={`./projects.list (${PROJECTS.length})`}
+        t={t.work.sectionLabel}
+        action={t.work.action(PROJECTS.length)}
       />
       <div style={{ marginBottom: mobile ? 32 : 48 }}>
         <h2
@@ -1622,8 +1637,9 @@ function Work({ mobile }: { mobile: boolean }) {
             marginBottom: 12,
           }}
         >
-          Lo que estoy <span style={{ color: "var(--cyan)" }}>construyendo</span>{" "}
-          ahora.
+          {t.work.headline[0]}
+          <span style={{ color: "var(--cyan)" }}>{t.work.headline[1]}</span>
+          {t.work.headline[2]}
         </h2>
         <p
           style={{
@@ -1632,8 +1648,7 @@ function Work({ mobile }: { mobile: boolean }) {
             maxWidth: 640,
           }}
         >
-          Dos SaaS en produccion y dos repos publicos que sostienen la
-          operacion. Cuatro frentes activos.
+          {t.work.blurb}
         </p>
       </div>
       <div
@@ -1680,7 +1695,7 @@ function Work({ mobile }: { mobile: boolean }) {
                   className="dot"
                   style={{ background: c, boxShadow: `0 0 6px ${glow}` }}
                 />
-                {p.tag}
+                {pick(p.tag, locale)}
               </div>
               <h3
                 style={{
@@ -1735,7 +1750,7 @@ function Work({ mobile }: { mobile: boolean }) {
                   flex: 1,
                 }}
               >
-                {p.blurb}
+                {pick(p.blurb, locale)}
               </p>
               <a
                 href={href}
@@ -1759,7 +1774,7 @@ function Work({ mobile }: { mobile: boolean }) {
                   letterSpacing: ".02em",
                 }}
               >
-                <span>{p.repo ? "Ver repositorio" : "Visitar sitio"}</span>
+                <span>{p.repo ? t.work.repo : t.work.visit}</span>
                 <span aria-hidden style={{ fontSize: 14 }}>→</span>
               </a>
             </div>
@@ -1772,9 +1787,23 @@ function Work({ mobile }: { mobile: boolean }) {
 
 /* ─── Experience ─────────────────────────────────────────── */
 function Experience({ mobile }: { mobile: boolean }) {
+  const locale = useLocale();
+  const t = useT();
+  // Pre-resolve bilingual fields so the dense git-log + the timeline
+  // visual both consume the same flat shape.
+  const entries = EXPERIENCE.map((e) => ({
+    y: pick(e.y, locale),
+    role: pick(e.role, locale),
+    co: pick(e.co, locale),
+    note: pick(e.note, locale),
+  }));
   return (
     <Section id="exp" fsPath="/experience" mobile={mobile}>
-      <SectionHeader n={5} t="experience" action="git log --oneline" />
+      <SectionHeader
+        n={5}
+        t={t.experience.sectionLabel}
+        action={t.experience.action}
+      />
       {mobile ? (
         // Mobile keeps the dense git-log style — timeline needs horizontal
         // real estate the radial doesn't have on small screens
@@ -1782,7 +1811,7 @@ function Experience({ mobile }: { mobile: boolean }) {
           className="mono"
           style={{ fontSize: "var(--text-meta)", lineHeight: 1.9 }}
         >
-          {EXPERIENCE.map((e, i) => (
+          {entries.map((e, i) => (
             <div
               key={i}
               style={{
@@ -1802,7 +1831,7 @@ function Experience({ mobile }: { mobile: boolean }) {
           ))}
         </div>
       ) : (
-        <ExperienceTimeline entries={EXPERIENCE} currentYear={2026} />
+        <ExperienceTimeline entries={entries} currentYear={2026} />
       )}
     </Section>
   );
@@ -1846,11 +1875,16 @@ function TrendCard({
   i,
   mobile,
 }: {
-  tr: { t: string; d: string };
+  /** `metaKey` is the stable ES name used as a lookup into TREND_META
+   * regardless of UI locale. `t` and `d` are already locale-resolved. */
+  tr: { metaKey: string; t: string; d: string };
   i: number;
   mobile: boolean;
 }) {
-  const meta = TREND_META[tr.t] ?? { accent: "cyan", status: "enabled" as const };
+  const t = useT();
+  const meta = TREND_META[tr.metaKey] ?? { accent: "cyan", status: "enabled" as const };
+  const statusLabel =
+    meta.status === "staged" ? t.trends.statusStaged : t.trends.statusEnabled;
   const accent = meta.accent === "violet" ? "var(--violet)" : "var(--cyan)";
   const accentGlow =
     meta.accent === "violet" ? "var(--violet-glow)" : "var(--cyan-glow)";
@@ -1860,13 +1894,15 @@ function TrendCard({
   const statusBg =
     meta.status === "staged" ? "rgba(245,158,11,.06)" : tintSoft;
 
-  // Deterministic mock numbers for the metrics row.
-  const rand = createRand(tr.t);
+  // Seed deterministic mock numbers off the stable ES key so the
+  // sparkline + tenant counts don't reshuffle when the user switches
+  // locale.
+  const rand = createRand(tr.metaKey);
   const rollout = Math.floor(10 + rand() * 80); // 10-90%
   const tenants = Math.floor(50 + rand() * 9950);
 
   // Adoption sparkline: 12 weekly samples in [0,1], plot in a 120×30 viewBox.
-  const series = adoptionSeries(tr.t, 12);
+  const series = adoptionSeries(tr.metaKey, 12);
   const W = 240;
   const H = 48;
   const pad = 4;
@@ -1914,7 +1950,8 @@ function TrendCard({
             letterSpacing: "var(--ls-tag)",
           }}
         >
-          flag_{(i + 1).toString().padStart(2, "0")}
+          {t.trends.flagPrefix}
+          {(i + 1).toString().padStart(2, "0")}
         </span>
         <span
           className="mono"
@@ -1944,7 +1981,7 @@ function TrendCard({
               }`,
             }}
           />
-          {meta.status}
+          {statusLabel}
         </span>
       </div>
 
@@ -2041,10 +2078,10 @@ function TrendCard({
           }}
         >
           <div>
-            rollout <span style={{ color: accent }}>{rollout}%</span>
+            {t.trends.rollout} <span style={{ color: accent }}>{rollout}%</span>
           </div>
           <div>
-            tenants{" "}
+            {t.trends.tenants}{" "}
             <span style={{ color: "var(--fg)" }}>
               {tenants.toLocaleString("en-US")}
             </span>
@@ -2056,9 +2093,15 @@ function TrendCard({
 }
 
 function Trends({ mobile }: { mobile: boolean }) {
+  const locale = useLocale();
+  const t = useT();
   return (
     <Section id="trends" fsPath="/trends" mobile={mobile} dark>
-      <SectionHeader n={6} t="2026 · feature flags" action="ls ./flags" />
+      <SectionHeader
+        n={6}
+        t={t.trends.sectionLabel}
+        action={t.trends.action}
+      />
       <div
         style={{
           display: "grid",
@@ -2067,7 +2110,16 @@ function Trends({ mobile }: { mobile: boolean }) {
         }}
       >
         {TRENDS.map((tr, i) => (
-          <TrendCard key={tr.t} tr={tr} i={i} mobile={mobile} />
+          <TrendCard
+            key={tr.t.es}
+            tr={{
+              metaKey: tr.t.es,
+              t: pick(tr.t, locale),
+              d: pick(tr.d, locale),
+            }}
+            i={i}
+            mobile={mobile}
+          />
         ))}
       </div>
     </Section>
@@ -2076,6 +2128,8 @@ function Trends({ mobile }: { mobile: boolean }) {
 
 /* ─── Blog ───────────────────────────────────────────────── */
 function Blog({ mobile, posts }: { mobile: boolean; posts: Post[] }) {
+  const t = useT();
+  const locale = useLocale();
   const [openSlug, setOpenSlug] = useState<string | null>(null);
 
   // Open from URL hash on mount and when hash changes (linkeable: #blog/<slug>)
@@ -2103,7 +2157,7 @@ function Blog({ mobile, posts }: { mobile: boolean; posts: Post[] }) {
 
   return (
     <Section id="blog" fsPath="/blog" mobile={mobile}>
-      <SectionHeader n={7} t="notes" action={`tail -n ${posts.length} ./blog`} />
+      <SectionHeader n={7} t={t.blog.sectionLabel} action={t.blog.action(posts.length)} />
       <div
         className="mono"
         style={{ fontSize: mobile ? 13 : 14, lineHeight: 1.8 }}
@@ -2215,7 +2269,7 @@ function Blog({ mobile, posts }: { mobile: boolean; posts: Post[] }) {
         }}
       >
         <a
-          href="/blog"
+          href={locale === "en" ? "/en/blog" : "/blog"}
           className="tap mono"
           style={{
             display: "inline-flex",
@@ -2232,12 +2286,12 @@ function Blog({ mobile, posts }: { mobile: boolean; posts: Post[] }) {
               "linear-gradient(180deg, var(--cyan-tint), transparent)",
           }}
         >
-          read more
+          {t.blog.teaserReadMore}
           <span aria-hidden style={{ fontSize: 14 }}>→</span>
           <span
             style={{ color: "var(--muted)", textTransform: "none", marginLeft: 6 }}
           >
-            ({posts.length} notas)
+            {t.blog.teaserNotasCount(posts.length)}
           </span>
         </a>
       </div>
@@ -2254,6 +2308,8 @@ const APPROACH_PHASE_MS = [1100, 1350, 1250, 1050];
 type PhaseStatus = "pending" | "running" | "done";
 
 function Approach({ mobile }: { mobile: boolean }) {
+  const locale = useLocale();
+  const t = useT();
   const reduceMotion = useReducedMotion();
   // -1 = idle, 0..3 = that index running, 4 = all done.
   // If the user prefers reduced motion, jump straight to "done" so the
@@ -2384,13 +2440,13 @@ function Approach({ mobile }: { mobile: boolean }) {
   };
 
   const allDone = phase >= 4;
-  const headerAction = allDone ? "↻ replay" : "man cobos";
+  const headerAction = allDone ? t.approach.actionReplay : t.approach.action;
 
   return (
     <Section id="approach" fsPath="/approach" mobile={mobile} dark>
       <SectionHeader
         n={8}
-        t="mi enfoque"
+        t={t.approach.sectionLabel}
         action={headerAction}
         onActionClick={allDone ? replay : undefined}
       />
@@ -2403,8 +2459,8 @@ function Approach({ mobile }: { mobile: boolean }) {
             lineHeight: 1.05,
           }}
         >
-          Cómo trabajo cuando entro en un{" "}
-          <span style={{ color: "var(--cyan)" }}>proyecto.</span>
+          {t.approach.headline[0]}
+          <span style={{ color: "var(--cyan)" }}>{t.approach.headline[1]}</span>
         </h2>
       </div>
       <div
@@ -2420,8 +2476,8 @@ function Approach({ mobile }: { mobile: boolean }) {
           <ApproachCard
             key={it.n}
             n={it.n}
-            t={it.t}
-            d={it.d}
+            t={pick(it.t, locale)}
+            d={pick(it.d, locale)}
             cmd={it.cmd}
             status={statusFor(i)}
             mobile={mobile}
@@ -2440,7 +2496,7 @@ function Approach({ mobile }: { mobile: boolean }) {
         }}
       >
         <span className="mono" style={{ fontSize: "var(--text-mono)", color: "var(--muted)" }}>
-          method:{" "}
+          {t.approach.methodLabel}{" "}
           <span style={{ color: "var(--cyan)" }}>
             <span
               aria-hidden
@@ -2461,13 +2517,13 @@ function Approach({ mobile }: { mobile: boolean }) {
                   : "none",
               }}
             />
-            iterative · evidence-first · slo-bound
+            {t.approach.methodValue}
           </span>
         </span>
         <span className="mono" style={{ fontSize: "var(--text-mono)", color: "var(--muted)" }}>
-          deliverables:{" "}
+          {t.approach.deliverablesLabel}{" "}
           <span style={{ color: "var(--fg)" }}>
-            arquitectura · IaC · runbooks · DX
+            {t.approach.deliverablesValue}
           </span>
         </span>
       </div>

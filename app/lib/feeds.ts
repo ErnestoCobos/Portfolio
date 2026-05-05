@@ -8,7 +8,7 @@
  * locale. The builders own all locale-specific strings (titles,
  * descriptions, language tags) and URL generation via `localePath`.
  */
-import { PROFILE, PROJECTS } from "../components/portfolio-data";
+import { PROFILE, PROJECTS, pick } from "../components/portfolio-data";
 import { postExcerpt } from "../components/ArticleBody";
 import { getAllPosts } from "./posts";
 import { getDictionary, localePath, type Locale } from "./i18n";
@@ -86,7 +86,9 @@ export function buildLlmsTxt(locale: Locale): string {
 
   lines.push("# Ernesto Cobos · cobos.io");
   lines.push("");
-  lines.push(`> ${PROFILE.role}. ${PROFILE.bio.replace(/\s+/g, " ").trim()}`);
+  lines.push(
+    `> ${PROFILE.role}. ${pick(PROFILE.bio, locale).replace(/\s+/g, " ").trim()}`
+  );
   lines.push("");
   lines.push(
     isEn
@@ -126,9 +128,9 @@ export function buildLlmsTxt(locale: Locale): string {
   lines.push(isEn ? "## Projects" : "## Proyectos");
   lines.push("");
   for (const proj of PROJECTS) {
-    lines.push(
-      `- [${proj.name}](${proj.href}): ${proj.tag}. ${proj.blurb.replace(/\s+/g, " ").trim()}`
-    );
+    const tag = pick(proj.tag, locale);
+    const blurb = pick(proj.blurb, locale).replace(/\s+/g, " ").trim();
+    lines.push(`- [${proj.name}](${proj.href}): ${tag}. ${blurb}`);
   }
   lines.push("");
 
