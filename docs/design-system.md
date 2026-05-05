@@ -116,6 +116,18 @@ Standard 8px scale. Use `--s1`..`--s8`. Off-scale values (4, 5, 6, 10, 14) stay 
 --r-chip     999px   ← pill chips, dots, category badges
 ```
 
+## Motion durations
+
+Three-step scale. Pick by what's transitioning, not by gut feel.
+
+```
+--motion-fast   0.15s   ← micro-interactions: hover color, focus ring
+--motion-base   0.30s   ← state changes: panel reveal, accordion, modal fade
+--motion-slow   0.60s   ← cinematic: hero entrance, full-screen overlay
+```
+
+All animation classes must respect `prefers-reduced-motion: reduce` — use `useReducedMotion()` in JS or wrap CSS keyframes in the existing media query block in `globals.css`.
+
 ## Approved primitives
 
 Don't reinvent visuals. These exist and have been load-tested:

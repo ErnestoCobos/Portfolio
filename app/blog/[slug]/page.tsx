@@ -124,7 +124,7 @@ export default async function BlogPostPage({
     headline: post.title,
     description: postExcerpt(post.body, 200),
     datePublished: post.date,
-    dateModified: post.date,
+    dateModified: post.dateModified ?? post.date,
     image: {
       "@type": "ImageObject",
       url: `https://cobos.io/blog/${post.slug}/opengraph-image`,

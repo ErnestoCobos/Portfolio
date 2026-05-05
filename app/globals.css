@@ -109,6 +109,15 @@
   /* ── Body text variants (split from --muted) ──────── */
   --body-soft:   rgba(248, 250, 252, 0.82);
   --body-softer: rgba(248, 250, 252, 0.55);
+
+  /* ── Motion durations ───────────────────────────────
+   * Three-step scale for transitions. Use `fast` for
+   * micro-interactions (hover color), `base` for state
+   * changes (panel reveal, accordion), and `slow` for
+   * cinematic moments (hero entrance, modal). */
+  --motion-fast: 0.15s;
+  --motion-base: 0.3s;
+  --motion-slow: 0.6s;
 }
 
 @theme inline {

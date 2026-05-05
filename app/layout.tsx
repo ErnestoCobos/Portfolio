@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Inter_Tight, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -65,6 +65,17 @@ export const metadata: Metadata = {
       follow: true,
     },
   },
+};
+
+// Next 16 splits `themeColor` and `viewport` out of `metadata` into a
+// dedicated `viewport` export. Tells iOS Safari + Android Chrome which
+// color to paint the URL bar / status bar with so the chrome blends
+// into the dark site instead of flashing white.
+export const viewport: Viewport = {
+  themeColor: "#0A0A0F",
+  colorScheme: "dark",
+  width: "device-width",
+  initialScale: 1,
 };
 
 /* Site-wide structured data — declares the author (Person) and the

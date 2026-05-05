@@ -1615,7 +1615,7 @@ function Work({ mobile }: { mobile: boolean }) {
       <div style={{ marginBottom: mobile ? 32 : 48 }}>
         <h2
           style={{
-            fontSize: mobile ? 28 : 44,
+            fontSize: mobile ? "var(--text-h2-section-m)" : "var(--text-h2-section)",
             fontWeight: 500,
             letterSpacing: "var(--ls-heading)",
             lineHeight: 1.1,
@@ -2397,7 +2397,7 @@ function Approach({ mobile }: { mobile: boolean }) {
       <div style={{ marginBottom: mobile ? 40 : 56, maxWidth: 720 }}>
         <h2
           style={{
-            fontSize: mobile ? 30 : 52,
+            fontSize: mobile ? "var(--text-h2-page-m)" : "var(--text-h2-page)",
             fontWeight: 500,
             letterSpacing: "var(--ls-display)",
             lineHeight: 1.05,
@@ -2592,7 +2592,7 @@ function ApproachCard({
 
       <h3
         style={{
-          fontSize: mobile ? 19 : 21,
+          fontSize: mobile ? "var(--text-h3-sm-m)" : "var(--text-h3-sm)",
           fontWeight: 500,
           letterSpacing: "var(--ls-tight)",
           marginBottom: 12,

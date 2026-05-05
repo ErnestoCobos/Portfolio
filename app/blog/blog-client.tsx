@@ -179,7 +179,7 @@ export default function BlogClient({ posts }: { posts: Post[] }) {
           </div>
           <h1
             style={{
-              fontSize: mobile ? 36 : 64,
+              fontSize: mobile ? "var(--text-h1-m)" : "var(--text-h1)",
               fontWeight: 600,
               letterSpacing: "-0.03em",
               lineHeight: 1.02,
@@ -194,7 +194,7 @@ export default function BlogClient({ posts }: { posts: Post[] }) {
             style={{
               marginTop: 18,
               color: "var(--body-soft)",
-              fontSize: mobile ? 16 : 18,
+              fontSize: mobile ? "var(--text-body-lg-m)" : "var(--text-body-lg)",
               maxWidth: 720,
               lineHeight: 1.55,
             }}

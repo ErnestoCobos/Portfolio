@@ -124,14 +124,27 @@ export type Post = {
   d: string;
   /** ISO date used for sorting and structured data (e.g. "2026-03-15"). */
   date: string;
+  /** Last-modified ISO timestamp from the git log of the markdown file.
+   * Populated by the `prebuild` script (`scripts/git-modified-dates.mjs`)
+   * via `content/blog/.modified-dates.json`. Falls back to `date` when
+   * the script hasn't run yet (dev) or the post has only one commit. */
+  dateModified?: string;
   /** Read time string (e.g. "5 min"). */
   r: string;
   category: PostCategory;
   /**
-   * Article body. Lines starting with `## ` render as h2, blank lines split
-   * paragraphs. Inline emphasis isn't supported — keep prose declarative.
-   */
+   * Article body. Renders via `marked` (GFM): supports `## ` h2,
+   * paragraphs, `**bold**`, `*italic*`, `[links](url)`, inline `code`,
+   * fenced code blocks and `![alt](path)` images. */
   body: string;
+  /** Optional cover image override. Path relative to /public — e.g.
+   * `/blog-covers/<slug>.jpg`. When set, the dedicated page renders
+   * this instead of the procedural BlogCover, and the OG image route
+   * uses it as the social-share preview. */
+  cover?: string;
+  /** Alt text for the cover image. Required for accessibility when
+   * `cover` is set; falls back to the post title if missing. */
+  coverAlt?: string;
   /** Legacy alias for `title`. Kept so older components reading `p.t`
    * continue to compile without a sweeping rename. */
   t: string;

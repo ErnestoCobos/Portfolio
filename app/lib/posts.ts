@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { cache } from "react";
 import type { Post, PostCategory } from "../components/portfolio-data";
@@ -6,6 +6,22 @@ import type { Post, PostCategory } from "../components/portfolio-data";
 export type { Post };
 
 const BLOG_DIR = path.join(process.cwd(), "content", "blog");
+const MODIFIED_DATES_FILE = path.join(BLOG_DIR, ".modified-dates.json");
+
+/** Read the prebuild-generated modified-dates JSON, if present. Returns
+ * an empty map if the file doesn't exist (e.g. running `next dev` for
+ * the first time before `pnpm run build` has ever run). The downstream
+ * loader treats missing entries as "no modification info" and falls
+ * back to the frontmatter `date`. Cached so we don't re-read the JSON
+ * on every getAllPosts() call. */
+const loadModifiedDates = cache((): Record<string, string> => {
+  if (!existsSync(MODIFIED_DATES_FILE)) return {};
+  try {
+    return JSON.parse(readFileSync(MODIFIED_DATES_FILE, "utf8"));
+  } catch {
+    return {};
+  }
+});
 
 /** Minimal YAML frontmatter parser. Handles `key: value`, optional quoting,
  * one level deep — no nested objects or arrays. Sufficient for our schema. */
@@ -41,7 +57,10 @@ const VALID_CATEGORIES: PostCategory[] = [
   "platform",
 ];
 
-function loadPostFromFile(filename: string): Post {
+function loadPostFromFile(
+  filename: string,
+  modifiedDates: Record<string, string>
+): Post {
   const slugFromFile = filename.replace(/\.md$/i, "");
   const fullPath = path.join(BLOG_DIR, filename);
   const raw = readFileSync(fullPath, "utf8");
@@ -53,6 +72,8 @@ function loadPostFromFile(filename: string): Post {
   const date = data.date;
   const r = data.r;
   const category = data.category as PostCategory;
+  const cover = data.cover || undefined;
+  const coverAlt = data.coverAlt || undefined;
 
   if (!title || !d || !date || !r || !category) {
     throw new Error(
@@ -65,15 +86,33 @@ function loadPostFromFile(filename: string): Post {
     );
   }
 
-  return { slug, title, t: title, d, date, r, category, body };
+  // dateModified comes from the prebuild git-log script. Falls back to
+  // the published date if the script hasn't run yet (dev) or the post
+  // hasn't been committed.
+  const dateModified = modifiedDates[slug] || date;
+
+  return {
+    slug,
+    title,
+    t: title,
+    d,
+    date,
+    dateModified,
+    r,
+    category,
+    body,
+    cover,
+    coverAlt,
+  };
 }
 
 /** Load all posts from content/blog/*.md, sorted by ISO date desc.
  * Cached per request via React `cache`. Re-reads on each new request in
  * dev so editing a markdown file is reflected without restart. */
 export const getAllPosts = cache((): Post[] => {
+  const modifiedDates = loadModifiedDates();
   const files = readdirSync(BLOG_DIR).filter((f) => f.endsWith(".md"));
-  const posts = files.map(loadPostFromFile);
+  const posts = files.map((f) => loadPostFromFile(f, modifiedDates));
   posts.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
   return posts;
 });
