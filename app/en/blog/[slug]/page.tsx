@@ -3,17 +3,17 @@ import { notFound } from "next/navigation";
 import {
   extractHeadings,
   postExcerpt,
-} from "../../components/ArticleBody";
-import { BlogArticle } from "../../components/blog/BlogArticle";
+} from "../../../components/ArticleBody";
+import { BlogArticle } from "../../../components/blog/BlogArticle";
 import {
   getAdjacentPosts,
   getAllPosts,
   getPost,
-} from "../../lib/posts";
-import { getDictionary } from "../../lib/i18n";
+} from "../../../lib/posts";
+import { getDictionary } from "../../../lib/i18n";
 
 const SITE = "https://cobos.io";
-const LOCALE = "es" as const;
+const LOCALE = "en" as const;
 
 export const dynamicParams = false;
 
@@ -35,13 +35,13 @@ export async function generateMetadata({
     return { title: `${t.blog.modal.header}::/blog · 404` };
   }
   const description = postExcerpt(post.body, 160);
-  const url = `${SITE}/blog/${post.slug}`;
-  const enUrl = `${SITE}/en/blog/${post.slug}`;
+  const url = `${SITE}/en/blog/${post.slug}`;
+  const esUrl = `${SITE}/blog/${post.slug}`;
   const ogImage = post.cover
     ? post.cover.startsWith("http")
       ? post.cover
       : `${SITE}${post.cover.startsWith("/") ? "" : "/"}${post.cover}`
-    : `${SITE}/blog/${post.slug}/opengraph-image`;
+    : `${SITE}/en/blog/${post.slug}/opengraph-image`;
   return {
     title: `${post.title} · cobos::/blog`,
     description,
@@ -57,13 +57,13 @@ export async function generateMetadata({
     alternates: {
       canonical: url,
       languages: {
-        "es-MX": url,
-        "en-US": enUrl,
-        "x-default": url,
+        "es-MX": esUrl,
+        "en-US": url,
+        "x-default": esUrl,
       },
       types: {
         "application/rss+xml": [
-          { url: `${SITE}/rss.xml`, title: "cobos::/blog · RSS" },
+          { url: `${SITE}/en/rss.xml`, title: "cobos::/blog · RSS (EN)" },
         ],
       },
     },
@@ -73,8 +73,8 @@ export async function generateMetadata({
       type: "article",
       url,
       siteName: "cobos.io",
-      locale: "es_MX",
-      alternateLocale: ["en_US"],
+      locale: "en_US",
+      alternateLocale: ["es_MX"],
       publishedTime: post.date,
       modifiedTime: post.dateModified ?? post.date,
       authors: ["Ernesto Cobos"],
@@ -98,7 +98,7 @@ export async function generateMetadata({
   };
 }
 
-export default async function BlogPostPage({
+export default async function BlogPostPageEn({
   params,
 }: {
   params: RouteParams;
@@ -109,9 +109,6 @@ export default async function BlogPostPage({
 
   const { prev, next } = getAdjacentPosts(post.slug, LOCALE);
 
-  // Up to 2 related posts: same category, exclude current. If none match,
-  // fall back to the next chronological siblings so the section never
-  // renders empty (visible only when at least 1 candidate exists).
   const all = getAllPosts(LOCALE);
   const sameCat = all.filter(
     (p) => p.category === post.category && p.slug !== post.slug
@@ -134,7 +131,7 @@ export default async function BlogPostPage({
         ? post.cover.startsWith("http")
           ? post.cover
           : `${SITE}${post.cover.startsWith("/") ? "" : "/"}${post.cover}`
-        : `${SITE}/blog/${post.slug}/opengraph-image`,
+        : `${SITE}/en/blog/${post.slug}/opengraph-image`,
       width: 1200,
       height: 630,
     },
@@ -151,19 +148,18 @@ export default async function BlogPostPage({
       url: SITE,
     },
     keywords: [post.category, "platform engineering", "devsecops"],
-    inLanguage: "es",
+    inLanguage: "en",
     mainEntityOfPage: {
       "@type": "WebPage",
-      "@id": `${SITE}/blog/${post.slug}`,
+      "@id": `${SITE}/en/blog/${post.slug}`,
     },
     wordCount: post.body.split(/\s+/).filter(Boolean).length,
     articleSection: post.category,
-    // Cross-locale alternates for AI/SEO crawlers.
     workTranslation: {
       "@type": "BlogPosting",
-      "@id": `${SITE}/en/blog/${post.slug}`,
-      inLanguage: "en",
-      url: `${SITE}/en/blog/${post.slug}`,
+      "@id": `${SITE}/blog/${post.slug}`,
+      inLanguage: "es",
+      url: `${SITE}/blog/${post.slug}`,
     },
   };
 
@@ -171,13 +167,18 @@ export default async function BlogPostPage({
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: SITE },
-      { "@type": "ListItem", position: 2, name: "Blog", item: `${SITE}/blog` },
+      { "@type": "ListItem", position: 1, name: "Home", item: `${SITE}/en` },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Blog",
+        item: `${SITE}/en/blog`,
+      },
       {
         "@type": "ListItem",
         position: 3,
         name: post.title,
-        item: `${SITE}/blog/${post.slug}`,
+        item: `${SITE}/en/blog/${post.slug}`,
       },
     ],
   };
