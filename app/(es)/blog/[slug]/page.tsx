@@ -3,14 +3,14 @@ import { notFound } from "next/navigation";
 import {
   extractHeadings,
   postExcerpt,
-} from "../../components/ArticleBody";
-import { BlogArticle } from "../../components/blog/BlogArticle";
+} from "../../../components/ArticleBody";
+import { BlogArticle } from "../../../components/blog/BlogArticle";
 import {
   getAdjacentPosts,
   getAllPosts,
   getPost,
-} from "../../lib/posts";
-import { getDictionary } from "../../lib/i18n";
+} from "../../../lib/posts";
+import { getDictionary } from "../../../lib/i18n";
 
 const SITE = "https://cobos.io";
 const LOCALE = "es" as const;

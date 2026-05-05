@@ -1,0 +1,90 @@
+import type { Metadata, Viewport } from "next";
+import "../globals.css";
+import {
+  RootBody,
+  RootHead,
+  buildWebsiteLd,
+  fontClassName,
+} from "../components/RootShell";
+
+const siteDescription =
+  "Legacy → cloud-native migrations, Kubernetes in regulated sectors, multi-cloud, DevSecOps and FinOps. I build platforms as a product.";
+
+export const metadata: Metadata = {
+  title: {
+    default: "Ernesto Cobos — Cloud Architect · Platform Engineer · DevSecOps",
+    template: "%s",
+  },
+  description: siteDescription,
+  metadataBase: new URL("https://cobos.io"),
+  authors: [{ name: "Ernesto Cobos", url: "https://cobos.io" }],
+  creator: "Ernesto Cobos",
+  keywords: [
+    "cloud architect",
+    "platform engineering",
+    "devsecops",
+    "kubernetes",
+    "gitops",
+    "finops",
+    "ernesto cobos",
+    "cobos.io",
+  ],
+  alternates: { canonical: "https://cobos.io/en" },
+  openGraph: {
+    type: "website",
+    siteName: "cobos.io",
+    locale: "en_US",
+    alternateLocale: ["es_MX"],
+    url: "https://cobos.io/en",
+    title: "Ernesto Cobos — Cloud Architect · Platform Engineer · DevSecOps",
+    description: siteDescription,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Ernesto Cobos — Cloud Architect · Platform Engineer · DevSecOps",
+    description: siteDescription,
+    creator: "@ErnestoCobos",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true },
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0A0A0F",
+  colorScheme: "dark",
+  width: "device-width",
+  initialScale: 1,
+};
+
+/**
+ * English-tree root layout. Lives at `app/en/...` (literal segment, so
+ * `/en/...` URLs). Hardcoded `lang="en"` — no `headers()` call, full
+ * SSG eligible.
+ *
+ * Sibling to `app/(es)/layout.tsx` (the route-group default tree). Two
+ * independent root layouts are allowed in Next when each owns a
+ * distinct branch of the file tree.
+ */
+export default function EnRootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en" className={fontClassName}>
+      <head>
+        <RootHead
+          rssTitle="cobos::/blog · field notes"
+          rssHref="https://cobos.io/en/rss.xml"
+          websiteLd={buildWebsiteLd("en")}
+        />
+      </head>
+      <body>
+        <RootBody skipLink="↓ skip to content">{children}</RootBody>
+      </body>
+    </html>
+  );
+}

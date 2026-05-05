@@ -1,4 +1,4 @@
-import { buildRss } from "../lib/feeds";
+import { buildRss } from "../../lib/feeds";
 
 export function GET() {
   return new Response(buildRss("es"), {
