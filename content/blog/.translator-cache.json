@@ -1,11 +1,11 @@
 {
   "finops-dashboard": {
-    "hash": "5230e0432dc99e74c981c70c286d81d461a2fda6ee07a23f9a5c539113b4db3b",
-    "model": "deepseek-v4-pro",
-    "translatedAt": "2026-05-05T16:15:41.908Z",
+    "hash": "3c1e6c20e60fb9196b4d427dbde58ffbf7ec15011b621cd1d3df393bf1a73101",
+    "model": "deepseek-v4-flash",
+    "translatedAt": "2026-05-06T07:59:03.549Z",
     "tokensUsed": {
-      "input": 2334,
-      "output": 4151
+      "input": 2348,
+      "output": 1454
     }
   },
   "gitops-regulados": {
@@ -18,21 +18,21 @@
     }
   },
   "internal-developer-platform": {
-    "hash": "a3e29e255b0004005bcdf68ea230df63dec62661aabd6112ac0a0ed7427dc9b4",
-    "model": "deepseek-v4-pro",
-    "translatedAt": "2026-05-05T16:19:57.388Z",
+    "hash": "e6968aff5eee5772e808141b888797e1f04fa08e43b79915b901b62ec9768ea9",
+    "model": "deepseek-v4-flash",
+    "translatedAt": "2026-05-06T07:59:37.582Z",
     "tokensUsed": {
-      "input": 2391,
-      "output": 3673
+      "input": 2405,
+      "output": 4149
     }
   },
   "monolito-a-eks": {
-    "hash": "f08110a320c6740d3f3f0b0ecdbdffabe9cbd7076ee86e0dffe9920925b783d6",
-    "model": "deepseek-v4-pro",
-    "translatedAt": "2026-05-05T16:21:59.920Z",
+    "hash": "4f93dbc8a8dcbf82873993ef5cf155934e70e14d7f8e53104f386a4b3f5222d2",
+    "model": "deepseek-v4-flash",
+    "translatedAt": "2026-05-06T07:59:34.683Z",
     "tokensUsed": {
-      "input": 2277,
-      "output": 4083
+      "input": 2288,
+      "output": 3706
     }
   }
 }
