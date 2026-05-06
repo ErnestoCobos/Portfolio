@@ -9,16 +9,23 @@ name: Sync from Notion
 #
 # What it does:
 #   1. Pull every Notion page where Status = "Ready to publish"
-#   2. Convert each page → content/blog/<slug>/en.md
-#   3. Run translate-posts.mjs to generate es.md (cached if no change)
-#   4. If anything changed, commit + push to main
-#   5. Flip the same Notion pages → Status = "Published"
+#   2. For each: download the Cover image (if any), resize via sharp,
+#      save under public/blog-covers/<slug>.jpg
+#   3. Compute read time from word count (~200 wpm)
+#   4. Generate alt text via gpt-4o-mini vision (only when there's a cover)
+#   5. Convert each page body → content/blog/<slug>/en.md
+#   6. Run translate-posts.mjs to generate es.md (cached if no change)
+#   7. If anything changed, commit + push to main
+#   8. Flip the same Notion pages → Status = "Published"
 #
 # Required GitHub repo secrets:
 #   NOTION_TOKEN          — Notion integration token (internal integration)
 #   NOTION_POSTS_DB       — Notion database ID (32-char hex from DB URL)
-#   AI_GATEWAY_API_KEY    — Vercel AI Gateway key (provision in Vercel
-#                            dashboard → AI Gateway → API Keys)
+#   AI_GATEWAY_API_KEY    — Vercel AI Gateway key. Used by BOTH steps:
+#                            (a) fetch-notion needs it for cover-alt text
+#                                generation via gpt-4o-mini vision
+#                            (b) translate-posts needs it for DeepSeek V4 Pro
+#                            Provision in Vercel dashboard → AI Gateway → API Keys
 
 on:
   schedule:
@@ -57,6 +64,9 @@ jobs:
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_POSTS_DB: ${{ secrets.NOTION_POSTS_DB }}
+          # fetch-notion uses this for cover-alt text generation via
+          # gpt-4o-mini vision. Same key as the translator step below.
+          AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
         run: node scripts/fetch-notion.mjs
 
       - name: Translate (EN → ES) for any new/changed posts
@@ -71,7 +81,9 @@ jobs:
         run: |
           git config user.name "Ernesto Cobos"
           git config user.email "ernesto@cobos.io"
-          git add content/blog/
+          # Add both content (en.md/es.md) and any newly downloaded
+          # cover images that fetch-notion saved under public/.
+          git add content/blog/ public/blog-covers/
           if git diff --cached --quiet; then
             echo "skipped=true" >> "$GITHUB_OUTPUT"
             echo "No changes after translation — nothing to commit."
