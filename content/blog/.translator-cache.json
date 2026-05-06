@@ -9,12 +9,12 @@
     }
   },
   "gitops-regulados": {
-    "hash": "e879c0d86f71783c75c76397f4117db021b9980c8df3f01b45082c43a2ca8ccf",
+    "hash": "8b3069f36b58ae4af8e10d2fbe13362b93c8b6bc4e9fbfb1eef1d5f36127e50e",
     "model": "deepseek-v4-pro",
-    "translatedAt": "2026-05-05T16:18:08.219Z",
+    "translatedAt": "2026-05-06T07:55:01.247Z",
     "tokensUsed": {
-      "input": 2213,
-      "output": 4882
+      "input": 2232,
+      "output": 4994
     }
   },
   "internal-developer-platform": {
