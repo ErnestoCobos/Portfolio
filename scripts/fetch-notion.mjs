@@ -205,8 +205,19 @@ async function main() {
   console.log(
     `[notion] querying database ${databaseId} for Status="Ready to publish"`
   );
-  const { results } = await notion.databases.query({
-    database_id: databaseId,
+  // @notionhq/client v5 split databases into containers + data sources.
+  // databases.query was removed; resolve the data source first and call
+  // dataSources.query with the same filter.
+  const db = await notion.databases.retrieve({ database_id: databaseId });
+  const dataSourceId = db.data_sources?.[0]?.id;
+  if (!dataSourceId) {
+    console.error(
+      `[notion] fatal: database ${databaseId} has no data sources`
+    );
+    process.exit(1);
+  }
+  const { results } = await notion.dataSources.query({
+    data_source_id: dataSourceId,
     filter: { property: "Status", select: { equals: "Ready to publish" } },
   });
   console.log(`[notion] found ${results.length} page(s) to publish`);
