@@ -29,20 +29,90 @@ cobos.io tiene 4 posts (ES + EN), audiencia técnica (cloud architects, platform
 
 ## Decision
 
-**Giscus** (GitHub Discussions como backend) en una primera fase, con un plan claro de migración a "Notion-backed custom" si la fricción de GitHub auth limita conversión.
+**Notion-backed custom comments con auto-publish + 4-layer filter.**
+
+Comments anónimos por default, almacenados en una nueva Notion data source `Comments`. Cada submission pasa por 4 capas de filtrado antes de aparecer en el sitio:
+
+1. **Cloudflare Turnstile** — bloquea bots automatizados (free, invisible)
+2. **Rate limit por IP** (Vercel KV) — max 5 comments/hora/IP
+3. **Heurística regex** — blocklist de keywords obvios + URL count + length
+4. **LLM classifier** vía Vercel AI Gateway (DeepSeek V4 Flash, ~$0.0001/call) — detecta spam/abuse/off-topic más sofisticado
+
+Si los 4 filtros pasan → `status: "approved"` → visible inmediatamente.
+Si alguno falla → `status: "spam"` → guardado en Notion para analytics, nunca visible.
+
+Moderación es **reactiva, no preventiva**: la app de Notion mobile (que el autor ya usa todo el día) recibe push notification por cada comment approved. Si algo se cuela el filtro, 1 swipe → archive el row → cache CDN expira (max 60s) → invisible.
 
 Rationale corto:
-- Zero backend code, zero DB, zero monthly fee
-- Notificaciones nativas via GitHub email + mobile push (ya las uso todo el día)
-- Markdown + threading + reactions vienen incluidos
-- Spam protection vía GitHub's existing systems
-- Login con GitHub es aceptable para audiencia tech
-- Implementation = ~2h: instalar `@giscus/react`, embeber en blog post page, configurar repo Discussions
-- **Si en 3 meses la tasa de comentarios es < 10/mes por fricción de auth**, migramos a Opción B (Notion-backed con anonymous allow). El switcheo es solo el componente cliente; el resto del código no cambia.
+- Reusa la infra de Notion ya provista (DB + integration + token + push notifs)
+- Anonymous-by-default → 100% audiencia puede comentar (no excluye no-GitHub-users)
+- Notion mobile push notifications nativas — no extra wiring
+- Data ownership total (rows en mi workspace, exportables anytime)
+- Visual aesthetic 100% custom (encaja con la estética terminal del sitio, sin pelear contra CSS de un iframe)
+- Bilingüe limpio: campo `Locale` per-row, comments mezclados o filtrados según prefiera
+- Migración out trivial: export Notion DB → JSON
+
+Pivot vs versión anterior del ADR (Giscus): la versión inicial recomendaba Giscus por time-to-ship (~2h vs ~6h Notion-backed). Tras review, las 4h extra se amortizan en 5-10% de visitantes anónimos que NO querían crear GitHub account, más data ownership, más alineación con el resto del stack ya construido.
+
+Implementation prompt completo en `docs/codex-prompts/003-blog-comments.md` (listo para Codex CLI).
 
 ## Options Considered
 
-### Option A — Giscus (GitHub Discussions) ← **PICK**
+### Option B — Notion-backed con auto-publish + 4-layer filter ← **PICK**
+
+Frontend: `<Comments postSlug={slug} locale={locale} />` con form (body required, name + email opcionales) + lista renderizada client-side. Honeypot field invisible para bots ingenuos.
+
+Backend: Edge/Node API routes en Next.js:
+- `POST /api/comments` — pipeline de 4 capas + escritura a Notion + retorno con edit-token JWT (5min TTL)
+- `GET /api/comments/list?slug=...` — query a Notion filtrada a `Status="approved"`, cache CDN 60s
+- `PATCH/DELETE /api/comments/[id]` — autorizado por edit-token, ventana 5min para que el autor edite/borre su propio comment
+
+Notificaciones: push nativa de Notion mobile cuando se crea page nueva en `Comments` data source. Sin email systems, sin Slack webhooks que mantener.
+
+Spam strategy: capas defensivas en orden de costo creciente.
+
+| Layer | Cost | Latency | Catches |
+|---|---|---|---|
+| Turnstile | $0 | ~50ms | Automated bots (~99%) |
+| Rate limit (Vercel KV) | $0 | ~10ms | Flooding humano y abuso de mismo origen |
+| Regex heuristic | $0 | <1ms | Spam obvio (viagra, casino, shorteners, multi-URL) |
+| LLM (DeepSeek V4 Flash via AI Gateway) | ~$0.0001/call | ~500-700ms | Spam sutil, abuse, off-topic |
+
+| Dimensión | Assessment |
+|---|---|
+| Complexity | Med — 3 API routes + 1 client component + 6 lib modules + 1 Notion DB |
+| Cost | $0 base + ~$1-3/mes en LLM calls al volumen previsto |
+| Scalability | OK — Notion API rate limit 3 req/s; cache CDN 60s amortiza GETs |
+| Ops burden | Bajo — moderation reactiva en Notion mobile (~minutos/día worst case) |
+| Notifications | **Native Notion push** (mobile + desktop) por cada approved comment |
+| Identity | Anonymous OK — name + email opcionales |
+| Anonymous comments | ✅ |
+| Markdown / threading | Markdown sí (marked + DOMPurify); threading flat en v1, parent_id field reservado para v2 |
+| Vendor lock-in | Bajo — comentarios son rows en mi Notion; export trivial |
+| Bilingüe handling | Per-locale via `Locale` field; comments compartidos entre `/blog/<slug>` y `/en/blog/<slug>` (mismo thread, idiomas mezclados) |
+
+**Pros:**
+- 100% audiencia puede comentar (sin GitHub login required)
+- Reusa infra de Notion ya construida (cero nuevo SaaS)
+- Notification path nativo (la app de Notion ya está en mi celular)
+- Data ownership 100%: rows en mi workspace
+- Match visual perfecto con estética del sitio (componente custom, no iframe)
+- Auto-publish = UX excelente para commenter (instant feedback)
+- Filtros defensivos en orden de costo creciente — solo el LLM cuesta plata, y solo si las capas baratas pasan
+- Edit window de 5min para autocorrección sin login
+- Hashed IPs (no raw IP persiste — privacy correcta)
+- Reactive moderation = vos no estás en el critical path
+
+**Cons:**
+- ~6-8h implementation effort (vs ~2h Giscus)
+- Spam sutil que pase los 4 filtros queda visible hasta que vos lo veas en mobile (~minutos worst case)
+- LLM calls añaden ~500ms de latencia al POST (aceptable)
+- Si Notion API tiene outage, comments no cargan (mitigable: stale-while-revalidate cache hit sigue sirviendo)
+- Mantenimiento del filtro regex: hay que actualizar blocklist ocasionalmente
+
+---
+
+### Option A — Giscus (GitHub Discussions) [previously the pick, now alternative]
 
 Embed iframe que apunta a una categoría de GitHub Discussions del repo `ErnestoCobos/Portfolio` (o un repo dedicado `cobosio-comments` si quiero separar el ruido del repo principal). Cada blog post mapea 1:1 a un Discussion thread (lazy-created en el primer comentario, mediante mapping por path).
 
@@ -72,46 +142,6 @@ Embed iframe que apunta a una categoría de GitHub Discussions del repo `Ernesto
 - No comments anónimos (algunos prefieren no revelar identidad)
 - iframe ≠ contenido del HTML — comments NO indexados por Google (no es objetivo de SEO)
 - Si decido sunset GitHub repo público, los comments se van con él (mitigación: mantenerlo público)
-
----
-
-### Option B — Notion-backed custom (anonymous allow)
-
-Frontend: `<Comments postSlug={slug} locale={locale} />` con form (nombre, email opcional, body markdown) + lista renderizada client-side via SWR.
-
-Backend: Vercel Edge Function (`app/api/comments/route.ts`):
-- `POST` → valida Cloudflare Turnstile, guarda comment en una NUEVA Notion data source `Comments` (slug, locale, name, email, body, createdAt, status='pending')
-- `GET ?slug=...&locale=...` → lee comments donde `status='approved'`
-
-Notificaciones: Notion mobile push nativa cuando se crea una page nueva en `Comments` data source. Yo modero desde Notion (cambio status a `approved` o `spam`). Workflow GHA opcional cada 5min para sync approved → ISR revalidation.
-
-| Dimensión | Assessment |
-|---|---|
-| Complexity | Med — 1 API route + 1 Notion DB + 1 client component + Turnstile |
-| Cost | $0 (Notion API 1k req/day free, Turnstile free, Vercel Edge Functions incluido en hobby) |
-| Scalability | OK — Notion API rate-limit a ~3 req/s, fine para mi tráfico |
-| Ops burden | Bajo — moderation en Notion mobile como ya hago con posts |
-| Notifications | **Native Notion push** (mobile + desktop) cuando llega un comment |
-| Identity | Anonymous OK (nombre + email opcional) |
-| Anonymous comments | ✅ |
-| Markdown / threading | Markdown sí, threading hay que construir (parent_id field) |
-| Vendor lock-in | Bajo — comentarios son rows en mi Notion; export trivial |
-| Bilingüe handling | Comments per-locale (campo `locale` en cada row) |
-
-**Pros:**
-- Anyone can comment — no GitHub login required
-- Notion as backend: usa infra que YA tengo, integración + token YA provistos
-- Notification path nativo (la app de Notion ya está en mi celular)
-- Moderation UX excellent (Notion's own UI)
-- Data ownership 100%: rows en mi workspace, exportables a CSV/Markdown anytime
-- Reusa el patrón de pipeline ya validado: Notion → consumed by Next.js
-
-**Cons:**
-- ~6h implementation effort (vs ~2h Giscus)
-- Spam: Cloudflare Turnstile maneja bots, pero spam humano queda — necesita la moderación manual
-- No threading sin trabajo extra (parent_id + recursive render)
-- Notion API rate limits: 3 req/s. Con burst de comments en un viral post podría hit el cap. Mitigación: queue en Vercel KV.
-- Sin OAuth = no se puede saber "este es ese tipo de Twitter" — feedback queda más anónimo
 
 ---
 
@@ -183,51 +213,73 @@ Si abriéramos Supabase, sería:
 
 ## Trade-off Analysis
 
-| Eje | Giscus (A) | Notion (B) | KV+Resend (C) |
+| Eje | Notion-backed (B) ← pick | Giscus (A) | KV+Resend (C) |
 |---|---|---|---|
-| Time to ship | **2h** | 6h | 8h+ |
-| Mantenimiento ongoing | **0h/mo** | 1h/mo (moderar) | 3h/mo (moderar + ops) |
-| Fricción para comentar | Alta (login GH) | **Baja** (form anon) | Baja |
-| Notification quality | **Native push GH** | **Native push Notion** | Email |
-| Data ownership | Medio (GitHub) | **Alto** (mi Notion) | **Alto** (mi KV) |
-| Migración out | Trivial | Trivial | Trivial |
-| Risk si vendor cambia precio | Cero (GitHub no va a cobrar Discussions) | Cero (Notion API estable) | Bajo |
+| Time to ship | 6-8h | **2h** | 8h+ |
+| Mantenimiento ongoing | ~30min/mo (delete obvious slips) | **0h/mo** | 3h/mo (build admin UI) |
+| Fricción para comentar | **Baja** (form anon) | Alta (login GH) | Baja |
+| Notification quality | **Native push Notion** | **Native push GH** | Email |
+| Data ownership | **Alto** (mi Notion) | Medio (GitHub) | **Alto** (mi KV) |
+| Visual aesthetic | **Custom (encaja)** | iframe GitHub-styled | Custom |
+| Migración out | Trivial (Notion → JSON export) | Trivial (GitHub Discussions API) | Trivial |
+| Risk si vendor cambia precio | Bajo (Notion API estable) | Cero (GitHub no va a cobrar) | Bajo |
 
-Decisivo: **time-to-ship + zero ops + notification calidad**. La fricción de GitHub login para audiencia técnica es aceptable hasta que se demuestre lo contrario. Si los datos muestran que hay comentadores potenciales que abandonan al ver "Sign in with GitHub", migramos a B en una tarde — y los Discussions existentes los exporto via API.
+Decisivo: **anonymous-by-default + reusa Notion infra + match aesthetic**. Las 4h extra vs Giscus se amortizan en (a) ~5-10% de visitantes anónimos que SÍ van a comentar, (b) data ownership real, (c) componente visual cohesivo con el sitio. El 4-layer filter cubre el ops gap que Giscus llenaba con GitHub auth.
 
 ## Consequences
 
 **Becomes easier:**
-- Tener canal de feedback en cada post sin construir backend
-- Recibir notificaciones de comments nuevos sin instrumentar email
-- Si decido abrir un repo separado `cobosio-comments` para no contaminar el repo principal, Giscus apunta ahí trivialmente
-- Moderation: GitHub Discussions tiene "lock thread", "delete", "mark as off-topic"
+- Anyone can comment — sin requisitos de cuenta externa
+- Notion mobile push notifications nativas en cada approved comment
+- Moderation reactiva con UX Notion mobile (1 swipe → archive row)
+- Component visual 100% custom (sin pelear contra CSS de iframe externo)
+- Bilingüe sano: campo `Locale` separa cuando hace falta
 
 **Becomes harder:**
-- Conversión de visitantes no-GitHub (~5% de la audiencia) — no van a comentar
-- Reusing comments si el día de mañana cobos.io migra fuera de GitHub-as-CMS — Discussions queda como historical archive en GitHub, no se mueve
-- SEO de comments: cero. Los comments en iframe NO son indexables. Para mi caso de uso (blog técnico, no Q&A site) no importa, pero documentado
+- Más código que mantener (vs zero código de Giscus): 3 API routes + 1 client component + 6 lib modules
+- Spam sutil que pase los 4 filtros queda visible hasta que vos lo veas (ventana de minutos)
+- Notion API rate limit (3 req/s): cubierto por cache CDN 60s + fail-open en LLM
+- Implementación toma 6-8h (vs 2h Giscus)
 
 **Lo que vamos a revisitar:**
-- Después de 3 meses live: si ratio comments/views < 1%, asumir fricción GitHub es bloqueante → migrar a B
-- Si lanzo features que requieran user auth (gated content, paid tiers, etc.), reconsiderar todo — Supabase vuelve a la mesa porque la auth + DB + realtime amortizan
+- Después de 3 meses: si ratio false-positive del LLM > 5%, ajustar prompt o reemplazar el clasificador
+- Si volumen aumenta a > 100 comments/día: agregar threading (parent_id ya reservado en schema)
+- Si Notion API hits rate limit consistente: introducir queue layer en Vercel KV
+- Si quiero realtime updates (live comments aparecen sin refresh): Server-Sent Events (no necesita WebSocket)
 
 ## Action Items
 
-1. [ ] Crear repo separado `ErnestoCobos/cobosio-comments` (o usar `Portfolio` direct) — separación opcional
-2. [ ] Habilitar GitHub Discussions en el repo elegido + crear category `Blog comments`
-3. [ ] Instalar Giscus app en el repo: https://github.com/apps/giscus
-4. [ ] Generar config en https://giscus.app — guardar `data-repo`, `data-repo-id`, `data-category`, `data-category-id`, `data-mapping=pathname`
-5. [ ] Crear `app/components/Comments.tsx` (client component) usando `@giscus/react`
-6. [ ] Embeber `<Comments slug={post.slug} locale={locale} />` al final de `app/(es)/blog/[slug]/page.tsx` y `app/en/blog/[slug]/page.tsx` (o donde sea que viva el blog post page)
-7. [ ] Theme toggle: Giscus tiene built-in `theme` prop — usar `transparent_dark` o un custom CSS file en `public/giscus-theme.css` que match el sitio
-8. [ ] Confirmar que mobile renders OK (iframe responsive)
-9. [ ] PR con label `feature` + screenshot del componente live
-10. [ ] Después de merge, suscribirse a all activity en el repo de Discussions para recibir notifs (Settings → Notifications → Watching)
+### Setup manual del usuario (one-time)
+
+1. [ ] En Notion, dentro de la page "Blog Posts" (la misma que aloja COBOS), crear nueva data source `Comments` con el schema de §3 del prompt en `docs/codex-prompts/003-blog-comments.md`
+2. [ ] Connections menu → agregar la integration `cobos.io site sync` a la nueva data source
+3. [ ] Cloudflare → crear Turnstile site (cobos.io + *.vercel.app, modo Managed) → guardar site key + secret
+4. [ ] Vercel project `portfolio` → Storage → Create KV (auto-injecta `KV_REST_API_URL` + `KV_REST_API_TOKEN`)
+5. [ ] Generar `COMMENT_EDIT_SECRET`: `openssl rand -hex 32`
+6. [ ] Vercel env vars (all environments): NOTION_COMMENTS_DB, NOTION_COMMENTS_DATA_SOURCE, NEXT_PUBLIC_TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY, COMMENT_EDIT_SECRET
+
+### Implementación (vía Codex)
+
+7. [ ] Hand `docs/codex-prompts/003-blog-comments.md` a Codex CLI
+8. [ ] Review el diff que produce — verificar 4 capas + IP hashing + edit window
+9. [ ] PR review + merge
+10. [ ] Probar en preview: submit 1 comment legit, 1 spam obvio (BUY VIAGRA NOW), 1 borderline → verificar status correcto en Notion
+11. [ ] Suscribirse a la data source `Comments` en Notion mobile (notifications)
 
 ## Appendix — Codex CLI implementation prompt
 
-Copy-paste lo siguiente a Codex CLI (`codex` o `claude` o lo que uses). Asume que el usuario corre Codex desde la raíz del repo `cobosio` (Next.js 16 App Router).
+El prompt completo y self-contained vive en [`docs/codex-prompts/003-blog-comments.md`](../codex-prompts/003-blog-comments.md). Implementa los 4 layers, los 3 API routes, el client component, sanitización con marked + DOMPurify, edit window con jose JWT, IP hashing, rate limit en Vercel KV, y los strings i18n para ES + EN.
+
+Listo para `codex` o `claude` CLI desde la raíz del repo:
+
+```
+cat docs/codex-prompts/003-blog-comments.md | pbcopy   # mac
+# luego pegar en tu CLI de elección
+```
+
+(Sigue abajo el prompt original del Giscus path, conservado por si querés un fallback rápido.)
+
+### Fallback alternativo — Giscus prompt (descartado, conservado for reference)
 
 ```
 You are working in the repo cobosio (Next.js 16, App Router, bilingual ES + EN with route groups, deployed on Vercel). Add a Giscus-based comments section to every blog post. Follow this spec exactly:
@@ -314,7 +366,10 @@ Stop. Show me the diff. Do not push or merge.
 
 ## Open questions / future work
 
-- **Comment notifications via mobile**: GitHub mobile already does this. If en algún momento quiero a Slack channel también, agregar un GitHub Action `on: discussion: types: [created]` que postee a Slack webhook (10 líneas YAML).
-- **Spam moderación bulk**: si el volumen sube, Discussions tiene "Block user" y "Lock conversation". No hay un dashboard de "approve all" — pero a la escala mía, fine.
-- **Comment search**: Giscus no indexa search en el sitio. Si quiero, puedo extraer comments via GitHub Discussions API + indexar en el sitemap. Backlog.
-- **Migración a Opción B (Notion-backed)**: condicional sobre métricas. Definir "trigger metric" precisa: e.g., "si en 3 meses rate de comments por view < 0.5%, migrar". Trackear via Vercel Analytics + GitHub Discussions count.
+- **Threading recursivo**: el schema reserva `Parent` field pero el render v1 es flat. Si los comments empiezan a tener replies frecuentes, agregar render recursivo + UI "reply" (~2h).
+- **Reactions** (👍 ❤️): no implementadas en v1. Si las quiero, agregar campo `Reactions` JSON a la data source + un endpoint POST para incrementar — sin auth (rate-limited por IP). 1-2h.
+- **Email notification al commenter cuando recibe reply**: opcional v2. Usaría el campo `Email` que ya capturamos (privado). Resend free tier 100 emails/día sobra. Solo si threading se activa.
+- **Auto-spam tuning**: si false-positive rate del LLM sube > 5%, ajustar el prompt de `runLLMCheck` o cambiar a `deepseek/deepseek-v4-pro` (más caro pero más preciso).
+- **Comment search en el sitio**: actualmente no hay full-text search de comments. Si llegan a ser muchos, agregar un endpoint GET con query param `q=`. Notion API soporta full-text search vía `notion-search`. Backlog.
+- **Trusted commenter promotion**: tras 1 comment approved, marcar el `IpHash` como "trusted" en KV → skip layers 3+4 en próximas submissions del mismo IP. Reduce latencia + costo. Backlog para v2.
+- **Migración a Opción A (Giscus)**: condicional inverso — si moderation reactiva consume > 30min/día por volumen de spam que se cuela, swap del componente cliente a Giscus. La data de Notion se queda como historical archive.
