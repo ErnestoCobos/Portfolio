@@ -9,6 +9,7 @@
 1. Cron frequency: every 30 min → **twice a day at 7am + 7pm Mexico CT** (13:00 / 01:00 UTC).
 2. Status state machine: `Published` is now **set by the bot**, not the user. User sets `Ready to publish`, bot publishes and flips status. Verifying `Status=Published` in Notion = proof the post is live.
 3. Drop `.notion-sync.json` change tracking — the `Ready to publish` status IS the change signal. To re-publish an existing post, flip its status back to `Ready to publish`.
+4. Translator provider: GitHub Models was evaluated and rejected — see "Translator provider — alternatives considered" section below. Stays on Vercel AI Gateway (DeepSeek V4 Pro).
 
 ## Context
 
@@ -127,6 +128,51 @@ User clicks a button in GHA when ready to publish. Same flow, no cron.
 Each page reads from Notion when requested, cached via Next ISR.
 
 **Rejected outright.** Breaks SSG, runtime depends on Notion being up, slower TTFB, harder to debug. The whole point of this proposal is to keep Vercel deploys fast and content static.
+
+## Translator provider — alternatives considered
+
+The workflow's translator step needs an LLM endpoint. Default in PR #8 is **Vercel AI Gateway** (`AI_GATEWAY_API_KEY` GitHub secret) routing to DeepSeek V4 Pro. The user asked whether **GitHub Models** (free tier, native `GITHUB_TOKEN` auth) could replace it to avoid managing one extra secret.
+
+### Per-post output token measurements
+
+Measured from a real DeepSeek V4 Pro run on the current 4-post corpus:
+
+| Post | Input tokens | Output tokens | Fits free GitHub Models 4K cap? |
+|---|---|---|---|
+| finops-dashboard | 2,334 | 4,151 | ❌ over |
+| gitops-regulados | 2,213 | 4,882 | ❌ over |
+| internal-developer-platform | 2,391 | 3,673 | ✅ |
+| monolito-a-eks | 2,277 | 4,083 | ❌ over |
+
+**3 of 4 existing posts already exceed the GitHub Models free tier 4K output cap.** Future posts will likely be similar size since the corpus is technical-prose with code blocks (median ~4K output expected).
+
+### Provider comparison
+
+| Aspect | Vercel AI Gateway (chosen) | GitHub Models (rejected) |
+|---|---|---|
+| Auth | Separate `AI_GATEWAY_API_KEY` GitHub secret | Native `GITHUB_TOKEN` (no extra secret) |
+| Default model | DeepSeek V4 Pro (newer) | DeepSeek V3 (older generation) |
+| Token caps | None at our usage | Free tier: 8K input / 4K output per request |
+| Rate limits | Generous; not a blocker | 10 RPM, 50-150 req/day, "subject to change without notice" |
+| Cost | ~$0.18/year (within $5/mo free credit) | $0 free tier; paid pricing not publicly documented |
+| Code changes needed | None (PR #8 already wired) | ~3-5h: chunk + restitch logic for over-cap posts, second provider config, fallback handling |
+
+### Why GitHub Models was rejected
+
+1. **3 of 4 posts truncate silently on free tier.** Without chunking logic, the translator would produce mangled `es.md` for most posts. With chunking, we'd own a non-trivial bug surface.
+2. **DeepSeek V3 vs V4 Pro is a real quality drop.** V4 Pro consistently produces more idiomatic technical Spanish in our test runs.
+3. **The "savings" don't materialize.** $0.18/year is already inside Vercel AI Gateway's $5/mo free credit. Switching providers saves zero dollars and adds engineering complexity.
+4. **Rate limits flagged as `"subject to change without notice"`** in the GitHub Models docs — fragile dependency for a publishing pipeline.
+
+### Why Vercel AI Gateway was chosen
+
+1. **Already implemented + tested.** Same gateway used by Vercel-deployed builds before this refactor; we know it works.
+2. **Zero token caps at our scale.** Posts translate end-to-end without splitting.
+3. **DeepSeek V4 Pro is a generation ahead** of what the alternative offers.
+4. **One extra secret is cheap** — GitHub repo secrets are a managed list; `AI_GATEWAY_API_KEY` joins `NOTION_TOKEN` and `NOTION_POSTS_DB` (both required regardless).
+5. **Cost is rounding error** — within the free credit allocation we already have on Vercel.
+
+The only scenario where revisiting this makes sense: the corpus grows >50 posts AND we hit Vercel AI Gateway pricing limits AND GitHub Models raises its free tier cap. Until then, locked in.
 
 ## Trade-off Analysis
 
