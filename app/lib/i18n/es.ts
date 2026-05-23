@@ -65,7 +65,7 @@ export const es = {
     sectionLabel: "about",
     action: "cat ./about.md",
     name: "ernesto cobos",
-    role: "cloud architect",
+    role: "cloud architect · devsecops",
     location: "mx · utc-6",
     since: "2017",
     statusOnline: "● online",
@@ -76,7 +76,7 @@ export const es = {
       "Casi una década moviendo sistemas críticos a entornos cloud-native. Trato la infra como producto interno: SLOs, golden paths, DX medible.",
     ],
     bioContinuation: {
-      pre: "Hoy: Kubernetes regulado, GitOps E2E, multi-cloud (AWS · GCP · Azure), AI-ready y FinOps. Construyo ",
+      pre: "Hoy: Kubernetes regulado, GitOps E2E, multi-cloud (AWS · GCP · Azure), DevSecOps, AI-ready y FinOps. Construyo ",
       enkiflow: "EnkiFlow",
       and: " y ",
       getdecant: "GetDecant",
@@ -122,6 +122,22 @@ export const es = {
     action: "git log --oneline",
     timelineNow: "NOW",
     tooltipLabel: (years: string, role: string) => `${years} · ${role}`,
+  },
+
+  certs: {
+    sectionLabel: "certifications · roadmap",
+    action: "ls ./certs --status",
+    headline: ["Pruebas del trabajo que ", "ya entrego", "."],
+    blurb:
+      "Certificaciones de industria mapeadas al trabajo de plataforma que hago a diario — Kubernetes, multi-cloud, IaC. Un roadmap, rastreado en abierto.",
+    statusEarned: "obtenida",
+    statusInProgress: "recertificando",
+    labelEarned: "obtenida",
+    labelTarget: "objetivo",
+    targetTbd: "por definir",
+    progressLabel: "prep",
+    progressQueued: "en cola",
+    verifyCta: "verificar credencial",
   },
 
   trends: {

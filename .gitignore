@@ -66,3 +66,7 @@ content/blog/.modified-dates.json
 # truth for that locale, takes precedence over the auto-generated one).
 # (intentionally NOT ignored — comment for clarity, no glob.)
 .env*.local
+.antigravitycli/
+.codex/
+.copilot/
+.claude/local/

@@ -9,6 +9,7 @@ import {
   getAdjacentPosts,
   getAllPosts,
   getPost,
+  getPostLocales,
 } from "../../../lib/posts";
 import { getDictionary } from "../../../lib/i18n";
 
@@ -37,6 +38,16 @@ export async function generateMetadata({
   const description = postExcerpt(post.body, 160);
   const url = `${SITE}/blog/${post.slug}`;
   const enUrl = `${SITE}/en/blog/${post.slug}`;
+  // Gate the cross-locale hreflang on actual translation availability.
+  // Emitting a `en-US` alternate for a post that exists only in ES sends
+  // Google a URL that returns 404 (because `dynamicParams = false`),
+  // which Search Console reports as a hreflang error and ignores both
+  // entries. `getPostLocales` reports which `content/blog/<slug>/{es,en}.md`
+  // files actually exist on disk.
+  const availableLocales = getPostLocales(post.slug);
+  const languages: Record<string, string> = { "es-MX": url };
+  if (availableLocales.includes("en")) languages["en-US"] = enUrl;
+  languages["x-default"] = url;
   const ogImage = post.cover
     ? post.cover.startsWith("http")
       ? post.cover
@@ -56,11 +67,7 @@ export async function generateMetadata({
     authors: [{ name: "Ernesto Cobos", url: SITE }],
     alternates: {
       canonical: url,
-      languages: {
-        "es-MX": url,
-        "en-US": enUrl,
-        "x-default": url,
-      },
+      languages,
       types: {
         "application/rss+xml": [
           { url: `${SITE}/rss.xml`, title: "cobos::/blog · RSS" },

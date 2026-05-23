@@ -169,6 +169,118 @@ export const EXPERIENCE: Experience[] = [
   },
 ];
 
+/**
+ * An industry certification — earned or on the roadmap. The `status` field
+ * drives the visual treatment in the Certifications section: green dot +
+ * verify link footer when `earned`, amber dot + prep progress bar when
+ * `in-progress`. Vendor is plain text (`cncf` / `aws` / `gcp`…) and carries
+ * NO color — keeping the structural cyan/violet palette clean (no AWS
+ * orange, no GCP blue leaks). Color is owned by status, not vendor.
+ *
+ * Bilingual fields use the `Bilingual` shape and resolve via
+ * `pick(field, locale)` exactly like Project / Experience / Trend.
+ */
+export type Certification = {
+  /** Stable slug — React keys, `data-fs-path` (`/certs/<slug>.md`). */
+  slug: string;
+  /** Exam code shown as a mono uppercase badge. e.g. "CKA", "SAP-C02". */
+  code: string;
+  name: Bilingual;
+  issuer: Bilingual;
+  /** Lowercase vendor family. Drives the neutral vendor chip only. */
+  vendor: "cncf" | "aws" | "gcp" | "azure" | "hashicorp";
+  /** earned → green; in-progress → amber. */
+  status: "earned" | "in-progress";
+  /** Earned date (e.g. "2025-03") OR target window (e.g. "2026 Q3").
+   *  Omit for an in-progress cert with no committed date — the card
+   *  renders the line as `target · TBD` so heights stay honest. */
+  when?: Bilingual;
+  /** 0–100 prep completion. Only meaningful when in-progress; earned is
+   *  treated as 100. Omit → bar renders "queued". */
+  progress?: number;
+  /** Public verification URL (Credly, AWS portal…). Optional. */
+  verifyUrl?: string;
+  /** One-line rationale in the site voice. Optional. */
+  note?: Bilingual;
+};
+
+export const CERTIFICATIONS: Certification[] = [
+  {
+    slug: "cka",
+    code: "CKA",
+    name: {
+      es: "Certified Kubernetes Administrator",
+      en: "Certified Kubernetes Administrator",
+    },
+    issuer: {
+      es: "Cloud Native Computing Foundation",
+      en: "Cloud Native Computing Foundation",
+    },
+    vendor: "cncf",
+    status: "in-progress",
+    when: { es: "2026 Q3", en: "2026 Q3" },
+    progress: 75,
+    note: {
+      es: "Operación de clusters en producción — respalda el trabajo de EKS regulado que ya entrego.",
+      en: "Production cluster operations — backs the regulated EKS work I already ship.",
+    },
+  },
+  {
+    slug: "cks",
+    code: "CKS",
+    name: {
+      es: "Certified Kubernetes Security Specialist",
+      en: "Certified Kubernetes Security Specialist",
+    },
+    issuer: {
+      es: "Cloud Native Computing Foundation",
+      en: "Cloud Native Computing Foundation",
+    },
+    vendor: "cncf",
+    status: "in-progress",
+    when: { es: "2026 Q4", en: "2026 Q4" },
+    progress: 40,
+    note: {
+      es: "Supply-chain, runtime, OPA/Falco — el ángulo DevSecOps, firmado.",
+      en: "Supply-chain, runtime, OPA/Falco — the DevSecOps angle, signed.",
+    },
+  },
+  {
+    slug: "aws-sap",
+    code: "SAP-C02",
+    name: {
+      es: "AWS Solutions Architect — Professional",
+      en: "AWS Solutions Architect — Professional",
+    },
+    issuer: { es: "Amazon Web Services", en: "Amazon Web Services" },
+    vendor: "aws",
+    status: "in-progress",
+    when: { es: "2026 Q3", en: "2026 Q3" },
+    progress: 60,
+    note: {
+      es: "Credencial nivel arquitecto para las migraciones legacy → EKS que lidero.",
+      en: "Architect-level credential for the legacy → EKS migrations I lead.",
+    },
+  },
+  {
+    slug: "gcp-pca",
+    code: "PCA",
+    name: {
+      es: "Professional Cloud Architect",
+      en: "Professional Cloud Architect",
+    },
+    issuer: { es: "Google Cloud", en: "Google Cloud" },
+    vendor: "gcp",
+    status: "in-progress",
+    when: { es: "2027 Q1", en: "2027 Q1" },
+    progress: 25,
+    note: {
+      es: "Paridad multi-cloud para el trabajo AWS+GCP en curso.",
+      en: "Multi-cloud parity for the AWS+GCP work in flight.",
+    },
+  },
+];
+
 export type Trend = { t: Bilingual; d: Bilingual };
 
 export const TRENDS: Trend[] = [
@@ -252,6 +364,7 @@ export const NAV = [
   { id: "infra", label: "Infra" },
   { id: "work", label: "Work" },
   { id: "exp", label: "Exp" },
+  { id: "certs", label: "Certs" },
   { id: "trends", label: "2026" },
   { id: "blog", label: "Blog" },
   { id: "approach", label: "Approach" },

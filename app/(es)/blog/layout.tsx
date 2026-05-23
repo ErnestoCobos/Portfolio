@@ -6,7 +6,14 @@ const description =
 export const metadata: Metadata = {
   title: "Notas · cobos::/blog",
   description,
-  alternates: { canonical: "https://cobos.io/blog" },
+  alternates: {
+    canonical: "https://cobos.io/blog",
+    languages: {
+      "es-MX": "https://cobos.io/blog",
+      "en-US": "https://cobos.io/en/blog",
+      "x-default": "https://cobos.io/blog",
+    },
+  },
   openGraph: {
     title: "cobos::/blog · notas de campo",
     description,

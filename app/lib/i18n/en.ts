@@ -65,7 +65,7 @@ export const en: Dictionary = {
     sectionLabel: "about",
     action: "cat ./about.md",
     name: "ernesto cobos",
-    role: "cloud architect",
+    role: "cloud architect · devsecops",
     location: "mx · utc-6",
     since: "2017",
     statusOnline: "● online",
@@ -76,7 +76,7 @@ export const en: Dictionary = {
       "Almost a decade moving critical systems to cloud-native environments. I treat infra as an internal product: SLOs, golden paths, measurable DX.",
     ],
     bioContinuation: {
-      pre: "Today: regulated Kubernetes, end-to-end GitOps, multi-cloud (AWS · GCP · Azure), AI-ready and FinOps. I build ",
+      pre: "Today: regulated Kubernetes, end-to-end GitOps, multi-cloud (AWS · GCP · Azure), DevSecOps, AI-ready and FinOps. I build ",
       enkiflow: "EnkiFlow",
       and: " and ",
       getdecant: "GetDecant",
@@ -120,6 +120,22 @@ export const en: Dictionary = {
     action: "git log --oneline",
     timelineNow: "NOW",
     tooltipLabel: (years: string, role: string) => `${years} · ${role}`,
+  },
+
+  certs: {
+    sectionLabel: "certifications · roadmap",
+    action: "ls ./certs --status",
+    headline: ["Proof for the work I ", "already ship", "."],
+    blurb:
+      "Industry certifications mapped to the platform work I do daily — Kubernetes, multi-cloud, IaC. A roadmap, tracked in the open.",
+    statusEarned: "earned",
+    statusInProgress: "recertifying",
+    labelEarned: "earned",
+    labelTarget: "target",
+    targetTbd: "TBD",
+    progressLabel: "prep",
+    progressQueued: "queued",
+    verifyCta: "verify credential",
   },
 
   trends: {

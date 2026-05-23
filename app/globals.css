@@ -124,7 +124,7 @@
   --color-background: var(--bg);
   --color-foreground: var(--fg);
   --font-sans: var(--font-inter);
-  --font-display: var(--font-inter-tight);
+  --font-display: var(--font-inter);
   --font-mono: var(--font-jetbrains-mono);
 }
 
@@ -146,7 +146,7 @@ h1,
 h2,
 h3,
 h4 {
-  font-family: var(--font-inter-tight), var(--font-inter), -apple-system, sans-serif;
+  font-family: var(--font-inter), -apple-system, sans-serif;
   font-weight: 600;
   letter-spacing: -0.025em;
   margin: 0;
@@ -402,6 +402,26 @@ textarea:focus-visible {
   border: 1px solid var(--hairline);
   border-radius: var(--r-card);
   backdrop-filter: blur(8px);
+}
+
+/* Certification card hover. Inline `style` can't express `:hover`, so the
+ * cert grid sets two CSS custom properties (`--cert-accent`, `--cert-glow`)
+ * inline per card — green for earned, amber for in-progress — and this
+ * rule reads them to draw a status-coloured ring + ambient glow on hover.
+ * The fallback values keep the rule safe if the inline vars are missing.
+ * The global `prefers-reduced-motion` reset (above) neutralises the
+ * transform/transition automatically. */
+.cert-card {
+  transition:
+    box-shadow var(--motion-base),
+    border-color var(--motion-base),
+    transform var(--motion-base);
+}
+.cert-card:hover {
+  box-shadow:
+    0 0 0 1px var(--cert-accent, var(--hairline-strong)),
+    0 0 28px var(--cert-glow, rgba(0, 0, 0, 0.35));
+  transform: translateY(-1px);
 }
 
 .sr-only {

@@ -124,8 +124,22 @@ export function LocaleSwitcher() {
           color: "var(--cyan)",
           fontWeight: 600,
           textShadow: "0 0 12px rgba(0,212,255,.35)",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
         }}
       >
+        {/* Leading glowing dot — the same `● online` motif used in the nav
+         *  status — makes the active locale unambiguous at a glance even
+         *  before the eye registers the colour difference. */}
+        <span
+          aria-hidden
+          className="dot"
+          style={{
+            background: "var(--cyan)",
+            boxShadow: "0 0 8px var(--cyan-glow)",
+          }}
+        />
         {locale}
       </span>
       <span

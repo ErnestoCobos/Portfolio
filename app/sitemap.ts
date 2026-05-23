@@ -15,8 +15,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const out: MetadataRoute.Sitemap = [];
 
   // Static surfaces: home + blog index per locale.
+  // Home URLs are normalised WITHOUT a trailing slash so they match the
+  // `alternates.canonical` declared in `app/(es)/page.tsx` and
+  // `app/en/page.tsx` byte-for-byte. A hreflang URL that differs by a
+  // single trailing slash from the canonical breaks the cluster.
+  const ES_HOME = SITE;
+  const EN_HOME = `${SITE}/en`;
   for (const locale of LOCALES) {
-    const homeUrl = `${SITE}${localePath(locale, "/")}`;
+    const homeUrl = locale === "es" ? ES_HOME : EN_HOME;
     const blogUrl = `${SITE}${localePath(locale, "/blog")}`;
     out.push({
       url: homeUrl,
@@ -25,9 +31,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: locale === "es" ? 1 : 0.95,
       alternates: {
         languages: {
-          "es-MX": `${SITE}${localePath("es", "/")}`,
-          "en-US": `${SITE}${localePath("en", "/")}`,
-          "x-default": `${SITE}${localePath("es", "/")}`,
+          "es-MX": ES_HOME,
+          "en-US": EN_HOME,
+          "x-default": ES_HOME,
         },
       },
     });

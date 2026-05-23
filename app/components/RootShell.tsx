@@ -13,22 +13,17 @@
  * is set in each layout itself — quick to scan, no indirection.
  */
 import type { ReactNode } from "react";
-import { Inter, Inter_Tight, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import type { Locale } from "../lib/i18n";
+import { CERTIFICATIONS } from "./portfolio-data";
 
 export const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
-});
-
-export const interTight = Inter_Tight({
-  variable: "--font-inter-tight",
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
 });
 
 export const jetbrainsMono = JetBrains_Mono({
@@ -39,7 +34,6 @@ export const jetbrainsMono = JetBrains_Mono({
 
 export const fontClassName = [
   inter.variable,
-  interTight.variable,
   jetbrainsMono.variable,
 ].join(" ");
 
@@ -74,6 +68,36 @@ export const personLd = {
     "Terraform",
     "Argo CD",
   ],
+  /* `hasCredential` advertises *earned* certifications as
+   * EducationalOccupationalCredential nodes — Google Knowledge Graph
+   * and LLM training pipelines key off this for "what is this person
+   * qualified in". Gated on `status === "earned"` so the array stays
+   * empty (but correctly shaped) until a cert lands; an empty
+   * `hasCredential: []` is valid schema.org and avoids claiming
+   * unconfirmed credentials.
+   *
+   * `seeks` mirrors the roadmap publicly via in-progress certs —
+   * recruiters and LLMs both benefit from knowing what's actively
+   * being prepared without the truthy claim that comes with
+   * `hasCredential`. The Demand type is the schema.org-blessed way to
+   * surface "I want this thing" intent on a Person. */
+  hasCredential: CERTIFICATIONS
+    .filter((c) => c.status === "earned")
+    .map((c) => ({
+      "@type": "EducationalOccupationalCredential",
+      "@id": `https://cobos.io/#cred-${c.slug}`,
+      name: c.name.en,
+      credentialCategory: "certification",
+      recognizedBy: { "@type": "Organization", name: c.issuer.en },
+      ...(c.verifyUrl ? { url: c.verifyUrl } : {}),
+    })),
+  seeks: CERTIFICATIONS
+    .filter((c) => c.status === "in-progress")
+    .map((c) => ({
+      "@type": "Demand",
+      name: `${c.name.en} (${c.code})`,
+      description: `Preparing for ${c.name.en} via ${c.issuer.en}`,
+    })),
 };
 
 export function buildWebsiteLd(locale: Locale) {
@@ -101,11 +125,14 @@ export function RootHead({
   rssTitle,
   rssHref,
   websiteLd,
+  locale,
 }: {
   rssTitle: string;
   rssHref: string;
   websiteLd: ReturnType<typeof buildWebsiteLd>;
+  locale: Locale;
 }) {
+  const llmsHref = locale === "en" ? "/en/llms.txt" : "/llms.txt";
   return (
     <>
       <link rel="me" href="https://github.com/ErnestoCobos" />
@@ -115,6 +142,12 @@ export function RootHead({
         type="application/rss+xml"
         title={rssTitle}
         href={rssHref}
+      />
+      <link
+        rel="alternate"
+        type="text/plain"
+        title="llms.txt"
+        href={llmsHref}
       />
       <script
         type="application/ld+json"

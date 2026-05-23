@@ -37,12 +37,21 @@ export const metadata: Metadata = {
     url: "https://cobos.io",
     title: "Ernesto Cobos — Cloud Architect · Platform Engineer · DevSecOps",
     description: siteDescription,
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "Ernesto Cobos — Cloud Architect · Platform Engineer · DevSecOps",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Ernesto Cobos — Cloud Architect · Platform Engineer · DevSecOps",
     description: siteDescription,
     creator: "@ErnestoCobos",
+    images: ["/opengraph-image"],
   },
   robots: {
     index: true,
@@ -83,6 +92,7 @@ export default function EsRootLayout({
           rssTitle="cobos::/blog · notas de campo"
           rssHref="https://cobos.io/rss.xml"
           websiteLd={buildWebsiteLd("es")}
+          locale="es"
         />
       </head>
       <body>

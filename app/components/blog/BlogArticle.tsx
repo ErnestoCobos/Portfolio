@@ -406,8 +406,7 @@ function AuthorBlock({ locale }: { locale: Locale }) {
           flexShrink: 0,
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src={PROFILE.avatarUrl}
           alt={PROFILE.name}
           width={40}

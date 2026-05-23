@@ -9,6 +9,7 @@ import {
   getAdjacentPosts,
   getAllPosts,
   getPost,
+  getPostLocales,
 } from "../../../lib/posts";
 import { getDictionary } from "../../../lib/i18n";
 
@@ -37,6 +38,18 @@ export async function generateMetadata({
   const description = postExcerpt(post.body, 160);
   const url = `${SITE}/en/blog/${post.slug}`;
   const esUrl = `${SITE}/blog/${post.slug}`;
+  // Gate the cross-locale hreflang on actual translation availability —
+  // see the mirror comment in app/(es)/blog/[slug]/page.tsx. The
+  // `x-default` falls back to EN when the ES translation is missing,
+  // since pointing it at a 404'd ES URL would invalidate the cluster.
+  const availableLocales = getPostLocales(post.slug);
+  const languages: Record<string, string> = { "en-US": url };
+  if (availableLocales.includes("es")) {
+    languages["es-MX"] = esUrl;
+    languages["x-default"] = esUrl;
+  } else {
+    languages["x-default"] = url;
+  }
   const ogImage = post.cover
     ? post.cover.startsWith("http")
       ? post.cover
@@ -56,11 +69,7 @@ export async function generateMetadata({
     authors: [{ name: "Ernesto Cobos", url: SITE }],
     alternates: {
       canonical: url,
-      languages: {
-        "es-MX": esUrl,
-        "en-US": url,
-        "x-default": esUrl,
-      },
+      languages,
       types: {
         "application/rss+xml": [
           { url: `${SITE}/en/rss.xml`, title: "cobos::/blog · RSS (EN)" },
