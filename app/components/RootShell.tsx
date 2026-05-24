@@ -52,7 +52,7 @@ export const personLd = {
   worksFor: { "@type": "Organization", name: "Ford" },
   sameAs: [
     "https://github.com/ErnestoCobos",
-    "https://linkedin.com/in/cobos",
+    "https://www.linkedin.com/in/ernestocobos/",
     "https://www.enkiflow.com",
     "https://www.getdecant.com",
   ],
@@ -136,7 +136,7 @@ export function RootHead({
   return (
     <>
       <link rel="me" href="https://github.com/ErnestoCobos" />
-      <link rel="me" href="https://linkedin.com/in/cobos" />
+      <link rel="me" href="https://www.linkedin.com/in/ernestocobos/" />
       <link
         rel="alternate"
         type="application/rss+xml"

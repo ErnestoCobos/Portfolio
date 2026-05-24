@@ -23,7 +23,7 @@ export const PROFILE = {
   loc: "México",
   email: "ernesto@cobos.io",
   github: "github.com/ErnestoCobos",
-  linkedin: "linkedin.com/in/cobos",
+  linkedin: "linkedin.com/in/ernestocobos",
   blog: "cobos.io",
   company: "@Ford",
   founded: "@enkiflow + @getdecant",
