@@ -84,6 +84,11 @@ export const es = {
     },
   },
 
+  impact: {
+    sectionLabel: "impact · en cifras",
+    action: "cat ./impact.md",
+  },
+
   stack: {
     sectionLabel: "stack",
     action: "ls -la ./tools | wc -l → 38",
@@ -240,12 +245,33 @@ export const es = {
     fieldBody: "BODY",
     fieldBodyPlaceholder: "contexto del reto, stack actual, timing…",
     sendCta: "./send",
+    sending: "enviando…",
+    sentOk: "● mensaje enviado",
+    sentFallback: "● abriendo cliente de correo…",
     connectionAlive: "● connection alive",
     consoleVersion: "cobos.io / v3.0 · console",
     linkEmail: "email",
     linkGithub: "github",
     linkLi: "li",
     linkBlog: "blog",
+    linkCv: "cv",
+  },
+
+  cv: {
+    metaTitle: "CV — Ernesto Cobos",
+    metaDescription:
+      "Currículum de Ernesto Cobos — Cloud Architect · Platform Engineer · DevSecOps. Experiencia, stack, certificaciones y proyectos.",
+    overline: "curriculum vitae",
+    cta: "Ver CV",
+    print: "Imprimir / Guardar PDF",
+    updated: "Actualizado",
+    summary: "Resumen",
+    experience: "Experiencia",
+    stack: "Stack",
+    certifications: "Certificaciones",
+    projects: "Proyectos",
+    certInProgress: "en curso",
+    backHome: "← volver a cobos.io",
   },
 
   notFound: {

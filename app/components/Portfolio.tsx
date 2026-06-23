@@ -17,6 +17,7 @@ import {
   CATEGORY_META,
   CERTIFICATIONS,
   EXPERIENCE,
+  IMPACT,
   NAV,
   PROFILE,
   PROJECTS,
@@ -143,7 +144,7 @@ function MobileMenu({
         position: "fixed",
         inset: 0,
         zIndex: 80,
-        background: "rgba(6,6,10,.96)",
+        background: "var(--panel-strong)",
         backdropFilter: "blur(18px) saturate(140%)",
         WebkitBackdropFilter: "blur(18px) saturate(140%)",
         display: "flex",
@@ -377,7 +378,7 @@ function Nav({ mobile }: { mobile: boolean }) {
           display: "flex",
           alignItems: "center",
           gap: mobile ? 8 : 14,
-          background: "rgba(6,6,10,.85)",
+          background: "var(--panel)",
           backdropFilter: "blur(14px)",
           WebkitBackdropFilter: "blur(14px)",
           borderTop: "1px solid var(--hairline-strong)",
@@ -711,7 +712,7 @@ function Hero({ mobile }: { mobile: boolean }) {
           border: "1px solid var(--hairline-strong)",
           borderRadius: 14,
           overflow: "hidden",
-          background: "rgba(6,6,10,.78)",
+          background: "var(--panel-glass)",
           backdropFilter: "blur(12px)",
           WebkitBackdropFilter: "blur(12px)",
           boxShadow: `0 30px 80px rgba(0,0,0,.5), 0 0 80px ${accent}1A`,
@@ -801,7 +802,10 @@ function Hero({ mobile }: { mobile: boolean }) {
                 style={{
                   fontSize: mobile ? 12 : 14,
                   lineHeight: 1.7,
-                  color: l.k === "cmd" ? accent : "var(--fg)",
+                  // var(--cyan) so the boot-log prompts darken to a legible
+                  // teal in light mode (the hex `accent` const stays for the
+                  // decorative gradients/glow that need hex-alpha concat).
+                  color: l.k === "cmd" ? "var(--cyan)" : "var(--fg)",
                   whiteSpace: "pre-wrap",
                 }}
               >
@@ -997,7 +1001,7 @@ function Hero({ mobile }: { mobile: boolean }) {
                       fontSize: "var(--text-mono)",
                       color: c,
                       padding: "4px 10px",
-                      background: "rgba(6,6,10,.82)",
+                      background: "var(--panel-mid)",
                       border: `1px solid ${c}${isActive ? "" : "55"}`,
                       borderRadius: "var(--r-tile)",
                       boxShadow: isActive
@@ -1038,7 +1042,7 @@ function Hero({ mobile }: { mobile: boolean }) {
                         fontSize: "var(--text-mono-xs)",
                         color: c,
                         padding: "4px 8px",
-                        background: "rgba(6,6,10,.82)",
+                        background: "var(--panel-mid)",
                         border: `1px solid ${c}55`,
                         borderRadius: 5,
                         boxShadow: `0 0 12px ${c}22`,
@@ -1100,7 +1104,7 @@ function Hero({ mobile }: { mobile: boolean }) {
             width: 32,
             height: 32,
             borderRadius: "999px",
-            background: "rgba(6,6,10,.85)",
+            background: "var(--panel)",
             border: `1px solid ${accent}55`,
             color: accent,
             display: "flex",
@@ -1211,7 +1215,7 @@ function Section({
       data-fs-type={fsPath ? "dir" : undefined}
       style={{
         padding: mobile ? "48px 16px" : "80px 48px",
-        background: dark ? "#08080C" : "transparent",
+        background: dark ? "var(--section-dark)" : "transparent",
         borderTop: "1px solid var(--hairline)",
         scrollMarginTop: 52,
       }}
@@ -1224,6 +1228,7 @@ function Section({
 /* ─── About ─────────────────────────────────────────────── */
 function About({ mobile }: { mobile: boolean }) {
   const t = useT();
+  const locale = useLocale();
   return (
     <Section id="about" fsPath="/about" mobile={mobile}>
       <SectionHeader
@@ -1342,9 +1347,109 @@ function About({ mobile }: { mobile: boolean }) {
             </span>
             {t.about.bioContinuation.post}
           </p>
+          <Link
+            href={locale === "en" ? "/en/cv" : "/cv"}
+            className="mono"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              marginTop: 24,
+              fontSize: "var(--text-mono)",
+              letterSpacing: "var(--ls-tag)",
+              textTransform: "uppercase",
+              color: "var(--cyan)",
+              border: "1px solid var(--border-cyan-soft)",
+              borderRadius: "var(--r-tile)",
+              padding: "8px 14px",
+              width: "fit-content",
+            }}
+          >
+            {t.cv.cta} <span aria-hidden>↗</span>
+          </Link>
         </div>
       </div>
     </Section>
+  );
+}
+
+/* ─── Impact strip ──────────────────────────────────────── */
+function ImpactStrip({ mobile }: { mobile: boolean }) {
+  const t = useT();
+  const locale = useLocale();
+  return (
+    <section
+      data-fs-path="/impact"
+      data-fs-type="dir"
+      aria-label={t.impact.sectionLabel}
+      style={{
+        padding: mobile ? "32px 16px" : "40px 48px",
+        background: "var(--section-dark)",
+        borderTop: "1px solid var(--hairline)",
+      }}
+    >
+      <div style={{ maxWidth: 1280, margin: "0 auto" }}>
+        <div
+          className="mono"
+          style={{
+            fontSize: "var(--text-mono)",
+            letterSpacing: "var(--ls-tag)",
+            textTransform: "uppercase",
+            color: "var(--meta)",
+            marginBottom: mobile ? 20 : 24,
+            display: "flex",
+            gap: 10,
+            alignItems: "center",
+          }}
+        >
+          <span style={{ color: "var(--cyan)" }}>$</span>
+          {t.impact.action}
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(4, 1fr)",
+            gap: mobile ? 20 : 32,
+          }}
+        >
+          {IMPACT.map((m, i) => {
+            const even = i % 2 === 0;
+            return (
+              <div
+                key={m.value}
+                style={{ display: "flex", flexDirection: "column", gap: 8 }}
+              >
+                <span
+                  style={{
+                    fontFamily: "var(--font-jetbrains-mono)",
+                    fontSize: mobile ? 40 : 56,
+                    fontWeight: 600,
+                    lineHeight: 1,
+                    letterSpacing: "var(--ls-heading)",
+                    color: even ? "var(--cyan)" : "var(--violet)",
+                    textShadow: `0 0 24px ${
+                      even ? "var(--cyan-glow)" : "var(--violet-glow)"
+                    }`,
+                  }}
+                >
+                  {m.value}
+                </span>
+                <span
+                  style={{
+                    fontSize: "var(--text-meta)",
+                    color: "var(--muted)",
+                    lineHeight: 1.4,
+                    maxWidth: 220,
+                  }}
+                >
+                  {pick(m.label, locale)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -3288,28 +3393,55 @@ function ContactForm() {
   const t = useT();
   const locale = useLocale();
   const formRef = useRef<HTMLFormElement>(null);
-  const [sent, setSent] = useState(false);
+  const [status, setStatus] = useState<
+    "idle" | "sending" | "sent" | "fallback"
+  >("idle");
 
   const subjectFallback =
     locale === "en" ? "Contact from cobos.io" : "Contacto desde cobos.io";
 
-  const submit = (e: FormEvent<HTMLFormElement>) => {
+  const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = formRef.current;
-    if (!form) return;
+    if (!form || status === "sending") return;
     const data = new FormData(form);
     const from = String(data.get("from") ?? "").trim();
     const email = String(data.get("email") ?? "").trim();
     const subject = String(data.get("subject") ?? "").trim();
     const body = String(data.get("body") ?? "").trim();
+    const botcheck = String(data.get("botcheck") ?? ""); // honeypot
 
+    // Build the mailto: fallback up front — used whenever the API isn't
+    // provisioned or a request fails, so the form never dead-ends.
     const subjectLine = subject || subjectFallback;
     const bodyText = `${body}\n\n— ${from || "—"}${email ? ` <${email}>` : ""}`;
-    const url = `mailto:${PROFILE.email}?subject=${encodeURIComponent(
+    const mailto = `mailto:${PROFILE.email}?subject=${encodeURIComponent(
       subjectLine
     )}&body=${encodeURIComponent(bodyText)}`;
-    setSent(true);
-    window.setTimeout(() => window.location.assign(url), 220);
+    const openMailClient = () => {
+      setStatus("fallback");
+      window.setTimeout(() => window.location.assign(mailto), 220);
+    };
+
+    setStatus("sending");
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ from, email, subject, body, botcheck }),
+      });
+      const json = (await res.json().catch(() => null)) as {
+        delivered?: boolean;
+      } | null;
+      if (res.ok && json?.delivered) {
+        setStatus("sent");
+        form.reset();
+      } else {
+        openMailClient();
+      }
+    } catch {
+      openMailClient();
+    }
   };
 
   return (
@@ -3320,7 +3452,7 @@ function ContactForm() {
         border: "1px solid var(--hairline-strong)",
         borderRadius: "var(--r-card-sm)",
         padding: 24,
-        background: "rgba(6,6,10,.72)",
+        background: "var(--panel-soft)",
         backdropFilter: "blur(12px) saturate(140%)",
         WebkitBackdropFilter: "blur(12px) saturate(140%)",
       }}
@@ -3339,13 +3471,34 @@ function ContactForm() {
         <span>
           <span style={{ color: "var(--cyan)" }}>›</span> {t.contact.formTitle.replace(/^›\s*/, "")}
         </span>
-        {sent && (
-          <span style={{ color: "var(--cyan)" }}>
-            ● mail client opened
-          </span>
-        )}
+        <span role="status" aria-live="polite" style={{ color: "var(--cyan)" }}>
+          {status === "idle"
+            ? ""
+            : status === "sending"
+              ? t.contact.sending
+              : status === "sent"
+                ? t.contact.sentOk
+                : t.contact.sentFallback}
+        </span>
       </div>
       <div style={{ display: "grid", gap: 12 }}>
+        {/* Honeypot — visually hidden, off-screen; bots fill it, humans don't.
+         *  Named "botcheck" (not "website"/"url") so password managers and
+         *  browser autofill don't populate it and trip a false positive. */}
+        <input
+          type="text"
+          name="botcheck"
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            left: "-9999px",
+            width: 1,
+            height: 1,
+            opacity: 0,
+          }}
+        />
         <Field
           name="from"
           label={t.contact.fieldFrom}
@@ -3373,12 +3526,15 @@ function ContactForm() {
         <button
           type="submit"
           className="btn-primary-violet"
+          disabled={status === "sending"}
           style={{
             alignSelf: "flex-start",
             fontFamily: "var(--font-jetbrains-mono)",
+            opacity: status === "sending" ? 0.6 : 1,
           }}
         >
-          {t.contact.sendCta} <span aria-hidden>→</span>
+          {status === "sending" ? t.contact.sending : t.contact.sendCta}{" "}
+          <span aria-hidden>→</span>
         </button>
       </div>
     </form>
@@ -3387,6 +3543,7 @@ function ContactForm() {
 
 function Contact({ mobile }: { mobile: boolean }) {
   const t = useT();
+  const locale = useLocale();
   const vw = useViewportWidth();
   const reduced = useReducedMotion();
   const topoW = mobile ? Math.min(vw, 600) : Math.min(vw - 96, 1440);
@@ -3517,6 +3674,16 @@ function Contact({ mobile }: { mobile: boolean }) {
                 {"    "}
                 <span style={{ color: "var(--cyan)" }}>cobos.io/blog</span>
               </div>
+              <div>
+                {t.contact.linkCv}
+                {"      "}
+                <Link
+                  href={locale === "en" ? "/en/cv" : "/cv"}
+                  style={{ color: "var(--cyan)" }}
+                >
+                  cobos.io/cv
+                </Link>
+              </div>
             </div>
           </div>
           <ContactForm />
@@ -3555,6 +3722,7 @@ export default function Portfolio({ posts }: { posts: Post[] }) {
       <Hero mobile={mobile} />
       <Nav mobile={mobile} />
       <About mobile={mobile} />
+      <ImpactStrip mobile={mobile} />
       <Stack mobile={mobile} />
       <Infra mobile={mobile} />
       <Work mobile={mobile} />

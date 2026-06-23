@@ -38,6 +38,10 @@ export function LocaleSwitcher() {
   // chosen a locale yet (no `locale` cookie). Returning users who
   // already picked don't see it — they know the chip is there.
   useEffect(() => {
+    // One-shot "render after mount" flag so SSR/hydration match cleanly —
+    // exactly the effect-init pattern react-hooks/set-state-in-effect
+    // over-flags. Intentional, runs once.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
 
     if (typeof document === "undefined") return;
@@ -94,7 +98,7 @@ export function LocaleSwitcher() {
         alignItems: "center",
         gap: 8,
         padding: "8px 12px",
-        background: "rgba(6,6,10,.78)",
+        background: "var(--panel-glass)",
         border: "1px solid var(--hairline-strong)",
         borderRadius: "var(--r-tile)",
         backdropFilter: "blur(14px) saturate(140%)",

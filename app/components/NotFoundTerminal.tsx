@@ -82,11 +82,16 @@ export function NotFoundTerminal({
   // so the static HTML stays cacheable; the typewriter animation kicks in
   // once we know the URL.
   useEffect(() => {
+    // Capture the requested URL on mount (SSR renders empty for cacheable
+    // HTML). Both are intentional one-shot effect-init writes that the
+    // react-hooks/set-state-in-effect rule over-flags.
+    /* eslint-disable react-hooks/set-state-in-effect */
     setPath(window.location.pathname);
     if (reduced) {
       // Skip animation entirely — render fully revealed state.
       setDone(true);
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [reduced]);
 
   // Memoize the lines array so its identity only changes when `path`
@@ -102,6 +107,8 @@ export function NotFoundTerminal({
 
     const current = lines[lineIdx];
     if (!current) {
+      // Terminal state once the typewriter exhausts every line — intentional.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDone(true);
       return;
     }

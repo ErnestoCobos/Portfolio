@@ -3,6 +3,9 @@ import { getAllPosts, getPost } from "../../lib/posts";
 import { CATEGORY_META } from "../../components/portfolio-data";
 
 export const runtime = "nodejs";
+// Posts are SSG (dynamicParams: false) — generate these once at build and
+// cache for a year instead of regenerating the PNG on every request.
+export const revalidate = 31536000;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export const alt = "Article on cobos::/blog";

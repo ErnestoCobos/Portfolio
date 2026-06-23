@@ -1,0 +1,46 @@
+name: CI
+
+# Quality gate: lint + typecheck + tests + build on every PR and on pushes
+# to main. Mirrors the toolchain pinned in sync-notion.yml (pnpm 10, Node 22).
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # prebuild (scripts/git-modified-dates.mjs) reads `git log` per post
+          # to stamp dateModified — it needs the full history, not a shallow clone.
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      # No secrets needed: translation (AI Gateway) runs in sync-notion, not here.
+      - name: Build
+        run: pnpm build

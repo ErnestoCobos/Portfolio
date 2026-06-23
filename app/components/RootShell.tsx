@@ -17,6 +17,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { LocaleSwitcher } from "./LocaleSwitcher";
+import { ThemeToggle } from "./ThemeToggle";
 import type { Locale } from "../lib/i18n";
 import { CERTIFICATIONS } from "./portfolio-data";
 
@@ -135,6 +136,15 @@ export function RootHead({
   const llmsHref = locale === "en" ? "/en/llms.txt" : "/llms.txt";
   return (
     <>
+      {/* No-flash theme init: apply the saved light theme before paint.
+       * Dark-first — we only opt in to light when the user explicitly chose
+       * it (no auto OS-preference follow), so the default brand stays dark. */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html:
+            "(function(){try{if(localStorage.getItem('theme')==='light'){document.documentElement.setAttribute('data-theme','light');}}catch(e){}})();",
+        }}
+      />
       <link rel="me" href="https://github.com/ErnestoCobos" />
       <link rel="me" href="https://www.linkedin.com/in/ernestocobos/" />
       <link
@@ -172,9 +182,11 @@ export function RootHead({
  */
 export function RootBody({
   skipLink,
+  themeLabel,
   children,
 }: {
   skipLink: string;
+  themeLabel: string;
   children: ReactNode;
 }) {
   return (
@@ -183,6 +195,7 @@ export function RootBody({
         {skipLink}
       </a>
       {children}
+      <ThemeToggle label={themeLabel} />
       <LocaleSwitcher />
       {/* Vercel Analytics: pageviews + custom events to project dashboard.
        * Speed Insights: real-user Core Web Vitals (LCP/CLS/INP) sampled

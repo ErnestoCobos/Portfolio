@@ -66,7 +66,7 @@ export const metadata: Metadata = {
 // into the dark site instead of flashing white.
 export const viewport: Viewport = {
   themeColor: "#0A0A0F",
-  colorScheme: "dark",
+  colorScheme: "dark light",
   width: "device-width",
   initialScale: 1,
 };
@@ -85,8 +85,11 @@ export default function EsRootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // suppressHydrationWarning: the no-flash theme script sets data-theme on
+  // <html> before hydration, so this one element legitimately differs from the
+  // server render. Suppression is scoped to <html>'s own attributes.
   return (
-    <html lang="es" className={fontClassName}>
+    <html lang="es" className={fontClassName} suppressHydrationWarning>
       <head>
         <RootHead
           rssTitle="cobos::/blog · notas de campo"
@@ -96,7 +99,9 @@ export default function EsRootLayout({
         />
       </head>
       <body>
-        <RootBody skipLink="↓ saltar al contenido">{children}</RootBody>
+        <RootBody skipLink="↓ saltar al contenido" themeLabel="Cambiar tema claro/oscuro">
+          {children}
+        </RootBody>
       </body>
     </html>
   );
