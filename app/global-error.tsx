@@ -103,6 +103,7 @@ export default function GlobalError({
             >
               ↻ retry
             </button>
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- a full reload is intentional in an error boundary: it resets the broken app tree rather than SPA-navigating into it */}
             <a
               href="/"
               style={{

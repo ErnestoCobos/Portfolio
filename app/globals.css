@@ -118,6 +118,71 @@
   --motion-fast: 0.15s;
   --motion-base: 0.3s;
   --motion-slow: 0.6s;
+
+  /* ── Frosted panel fills (theme-aware) ──────────────────
+   * Dark values match the literals they replace byte-for-byte so the
+   * dark theme is unchanged. The light theme (below) swaps them for
+   * white frosted surfaces. Used for nav bar, cards, the contact form,
+   * blog tiles — anything with backdrop-blur over the background. */
+  --panel-strong: rgba(6, 6, 10, 0.96);
+  --panel:        rgba(6, 6, 10, 0.85);
+  --panel-mid:    rgba(6, 6, 10, 0.82);
+  --panel-glass:  rgba(6, 6, 10, 0.78);
+  --panel-soft:   rgba(6, 6, 10, 0.72);
+  /* Solid dark section background (alternating sections, impact strip). */
+  --section-dark: #08080C;
+}
+
+/* ── Light theme ─────────────────────────────────────────
+ * Opt-in via data-theme="light" on <html> (set by the no-flash script in
+ * RootHead + the ThemeToggle). Only token VALUES change — every component
+ * reads var(--token), so the whole var-based UI flips here. Accents
+ * (cyan/violet/green/amber) are intentionally kept; they read as accents
+ * on light too. */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --fg: #0f172a;
+  --muted: #475569;
+  --meta: #475569;
+
+  --hairline: rgba(15, 23, 42, 0.10);
+  --hairline-strong: rgba(15, 23, 42, 0.16);
+
+  --surface-overlay: rgba(15, 23, 42, 0.02);
+  --surface-soft:    rgba(15, 23, 42, 0.035);
+  --surface-elev:    rgba(15, 23, 42, 0.05);
+
+  --backdrop-deep:  rgba(248, 250, 252, 0.96);
+  --backdrop-light: rgba(255, 255, 255, 0.82);
+  --backdrop-mid:   rgba(255, 255, 255, 0.70);
+
+  --body-soft:   rgba(15, 23, 42, 0.82);
+  --body-softer: rgba(15, 23, 42, 0.55);
+
+  --panel-strong: rgba(255, 255, 255, 0.96);
+  --panel:        rgba(255, 255, 255, 0.88);
+  --panel-mid:    rgba(255, 255, 255, 0.85);
+  --panel-glass:  rgba(255, 255, 255, 0.82);
+  --panel-soft:   rgba(255, 255, 255, 0.80);
+  --section-dark: #eef2f7;
+
+  /* Darken the neon accents in light mode. As TEXT, #00D4FF / #7C3AED fail
+   * WCAG AA on light surfaces (e.g. the impact-strip numbers, the contact
+   * email). These deeper variants pass AA for text and still read clearly as
+   * cyan/violet for borders, dots, and the primary buttons. The decorative
+   * --cyan-glow / --*-tint tokens are intentionally left neon. */
+  --cyan: #0e7490;
+  --violet: #6d28d9;
+}
+
+/* The cyan primary CTA pairs a dark label (#001018) with a --cyan background.
+ * In light mode --cyan darkens to #0e7490, dropping #001018 to ~3.6:1 (fails
+ * AA for the 15px/600 label). Flip the label to white: #fff on #0e7490 ≈ 5:1. */
+:root[data-theme="light"] .btn-primary {
+  color: #ffffff;
 }
 
 @theme inline {

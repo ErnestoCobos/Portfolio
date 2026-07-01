@@ -84,6 +84,11 @@ export const en: Dictionary = {
     },
   },
 
+  impact: {
+    sectionLabel: "impact · by the numbers",
+    action: "cat ./impact.md",
+  },
+
   stack: {
     sectionLabel: "stack",
     action: "ls -la ./tools | wc -l → 38",
@@ -235,12 +240,33 @@ export const en: Dictionary = {
     fieldBody: "BODY",
     fieldBodyPlaceholder: "context, current stack, timing…",
     sendCta: "./send",
+    sending: "sending…",
+    sentOk: "● message sent",
+    sentFallback: "● opening mail client…",
     connectionAlive: "● connection alive",
     consoleVersion: "cobos.io / v3.0 · console",
     linkEmail: "email",
     linkGithub: "github",
     linkLi: "li",
     linkBlog: "blog",
+    linkCv: "cv",
+  },
+
+  cv: {
+    metaTitle: "CV — Ernesto Cobos",
+    metaDescription:
+      "Ernesto Cobos' résumé — Cloud Architect · Platform Engineer · DevSecOps. Experience, stack, certifications, and projects.",
+    overline: "curriculum vitae",
+    cta: "View CV",
+    print: "Print / Save as PDF",
+    updated: "Updated",
+    summary: "Summary",
+    experience: "Experience",
+    stack: "Stack",
+    certifications: "Certifications",
+    projects: "Projects",
+    certInProgress: "in progress",
+    backHome: "← back to cobos.io",
   },
 
   notFound: {

@@ -63,7 +63,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#0A0A0F",
-  colorScheme: "dark",
+  colorScheme: "dark light",
   width: "device-width",
   initialScale: 1,
 };
@@ -82,8 +82,11 @@ export default function EnRootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // suppressHydrationWarning: the no-flash theme script sets data-theme on
+  // <html> before hydration, so this one element legitimately differs from the
+  // server render. Suppression is scoped to <html>'s own attributes.
   return (
-    <html lang="en" className={fontClassName}>
+    <html lang="en" className={fontClassName} suppressHydrationWarning>
       <head>
         <RootHead
           rssTitle="cobos::/blog · field notes"
@@ -93,7 +96,9 @@ export default function EnRootLayout({
         />
       </head>
       <body>
-        <RootBody skipLink="↓ skip to content">{children}</RootBody>
+        <RootBody skipLink="↓ skip to content" themeLabel="Toggle light/dark theme">
+          {children}
+        </RootBody>
       </body>
     </html>
   );

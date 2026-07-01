@@ -93,7 +93,7 @@ export default function BlogClient({ posts }: { posts: Post[] }) {
           alignItems: "center",
           justifyContent: "space-between",
           gap: 12,
-          background: "rgba(10,10,15,.78)",
+          background: "var(--panel-glass)",
           backdropFilter: "blur(14px) saturate(140%)",
           WebkitBackdropFilter: "blur(14px) saturate(140%)",
         }}
@@ -223,8 +223,8 @@ export default function BlogClient({ posts }: { posts: Post[] }) {
               gap: 10,
             }}
           >
-            <span style={{ color: "var(--cyan)" }}>$</span> grep -l "category:"
-            ./blog/*.md | sort -u
+            <span style={{ color: "var(--cyan)" }}>$</span>
+            {' grep -l "category:" ./blog/*.md | sort -u'}
           </div>
           <div
             style={{

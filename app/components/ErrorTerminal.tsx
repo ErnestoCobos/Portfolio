@@ -86,6 +86,8 @@ export function ErrorTerminal({
 
   useEffect(() => {
     if (reduced) {
+      // Reduced-motion path: render the terminal fully revealed, no typewriter.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDone(true);
       return;
     }

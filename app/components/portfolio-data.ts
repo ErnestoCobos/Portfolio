@@ -340,6 +340,44 @@ export const TRENDS: Trend[] = [
   },
 ];
 
+export type ImpactMetric = {
+  /** Headline figure, rendered large. A string so units/symbols (%, +, ×)
+   *  render exactly as written. */
+  value: string;
+  /** What the figure measures. */
+  label: Bilingual;
+};
+
+/**
+ * "By the numbers" — quantified outcomes for the home-page impact strip.
+ * Every figure here is derived from facts already on the site (years since
+ * 2016, the AWS·GCP·Azure stack, the four shipped products) or from a claim
+ * already published in the blog (the 38% FinOps result — see the
+ * finops-dashboard post). VERIFY / adjust before leaning on these publicly:
+ * this is the one spot the portfolio asserts hard numbers.
+ */
+export const IMPACT: ImpactMetric[] = [
+  {
+    value: "9+",
+    label: { es: "años en cloud-native", en: "years in cloud-native" },
+  },
+  {
+    value: "3",
+    label: {
+      es: "nubes en producción · AWS·GCP·Azure",
+      en: "clouds in production · AWS·GCP·Azure",
+    },
+  },
+  {
+    value: "38%",
+    label: { es: "coste cloud reducido · FinOps", en: "cloud cost cut · FinOps" },
+  },
+  {
+    value: "4",
+    label: { es: "productos SaaS·OSS en vivo", en: "live SaaS·OSS products" },
+  },
+];
+
 export type PostCategory = "gitops" | "migrations" | "finops" | "platform";
 
 export const CATEGORY_META: Record<
