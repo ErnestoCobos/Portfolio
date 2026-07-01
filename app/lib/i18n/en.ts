@@ -110,7 +110,7 @@ export const en: Dictionary = {
     action: (n: number) => `./projects.list (${n})`,
     headline: ["What I'm ", "building", " right now."],
     blurb:
-      "Two SaaS in production and two open-source repos that hold the operation together. Four active fronts.",
+      "Two SaaS in production, one open-source MCP server, and two repos that hold the operation together. Five active fronts.",
     visit: "Visit site",
     repo: "View repo",
   },

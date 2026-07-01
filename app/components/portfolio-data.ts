@@ -80,6 +80,18 @@ export const PROJECTS: Project[] = [
     accent: "violet",
   },
   {
+    slug: "apple-mail-mcp",
+    name: "apple-mail-mcp",
+    url: "apple-mail-mcp.cobos.io",
+    href: "https://apple-mail-mcp.cobos.io",
+    tag: { es: "OSS · Apple Mail MCP", en: "OSS · Apple Mail MCP" },
+    blurb: {
+      es: "Servidor MCP unificado para Apple Mail: búsqueda on-disk en milisegundos (FTS5 sobre un buzón real de 210k mensajes) más escrituras completas por AppleScript, unidas por un Message-ID canónico y protegidas por una capa de seguridad con dry-run, undo y confirmación explícita. 31 tools MCP para tu agente.",
+      en: "Unified MCP server for Apple Mail: millisecond on-disk search (FTS5 over a real 210k-message mailbox) plus complete AppleScript writes, bridged by a canonical Message-ID and gated by one safety layer with dry-run, undo, and explicit confirm. 31 MCP tools for your AI agent.",
+    },
+    accent: "cyan",
+  },
+  {
     slug: "infrastructure",
     name: "Infrastructure",
     url: "github.com/ErnestoCobos/Infrastructure",
