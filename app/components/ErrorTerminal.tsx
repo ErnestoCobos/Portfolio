@@ -75,7 +75,6 @@ export function ErrorTerminal({
   const reduced = useReducedMotion();
   const [lineIdx, setLineIdx] = useState(0);
   const [charIdx, setCharIdx] = useState(0);
-  const [done, setDone] = useState(reduced);
 
   // Lines memoized on the error identity so the typewriter doesn't reset
   // every render (or every retry attempt that still shows the same error).
@@ -84,17 +83,17 @@ export function ErrorTerminal({
     [error.message, error.digest]
   );
 
+  // `done` is derived, not stored: reduced-motion users skip the typewriter
+  // outright; otherwise it's done once the last line is fully typed.
+  const lastLine = lines.length - 1;
+  const done =
+    reduced ||
+    (lineIdx >= lastLine && charIdx >= (lines[lastLine]?.text.length ?? 0));
+
   useEffect(() => {
-    if (reduced) {
-      setDone(true);
-      return;
-    }
     if (done) return;
     const current = lines[lineIdx];
-    if (!current) {
-      setDone(true);
-      return;
-    }
+    if (!current) return;
     if (charIdx < current.text.length) {
       const t = window.setTimeout(
         () => setCharIdx((c) => c + 1),
@@ -102,17 +101,13 @@ export function ErrorTerminal({
       );
       return () => window.clearTimeout(t);
     }
-    if (lineIdx >= lines.length - 1) {
-      setDone(true);
-      return;
-    }
     const pause = (lines[lineIdx + 1]?.delay ?? 0) + LINE_PAUSE;
     const t = window.setTimeout(() => {
       setLineIdx((i) => i + 1);
       setCharIdx(0);
     }, pause);
     return () => window.clearTimeout(t);
-  }, [reduced, done, charIdx, lineIdx, lines]);
+  }, [done, charIdx, lineIdx, lines]);
 
   return (
     <div

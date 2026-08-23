@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { getDictionary, type Locale } from "../lib/i18n";
 
 /**
@@ -30,16 +30,21 @@ import { getDictionary, type Locale } from "../lib/i18n";
  */
 export function LocaleSwitcher() {
   const pathname = usePathname();
-  const [mounted, setMounted] = useState(false);
+  // Hydration-safe "mounted" flag without setState-in-effect: the subscribe
+  // callback never fires, so the client snapshot stays `true` after mount
+  // while SSR renders `false`. (React-endorsed replacement for the classic
+  // useEffect(() => setMounted(true), []) pattern.)
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
   const [pulse, setPulse] = useState(false);
 
-  // Render the chip only after mount so SSR + hydration match cleanly.
-  // Also: fire a one-shot discovery pulse for visitors who haven't
-  // chosen a locale yet (no `locale` cookie). Returning users who
-  // already picked don't see it — they know the chip is there.
+  // Fire a one-shot discovery pulse for visitors who haven't chosen a
+  // locale yet (no `locale` cookie). Returning users who already picked
+  // don't see it — they know the chip is there.
   useEffect(() => {
-    setMounted(true);
-
     if (typeof document === "undefined") return;
     const hasCookie = /(?:^|;\s*)locale=/.test(document.cookie);
     if (hasCookie) return;

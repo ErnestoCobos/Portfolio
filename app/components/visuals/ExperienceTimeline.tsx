@@ -40,7 +40,6 @@ function parseRange(y: string, currentYear: number): [number, number] {
 }
 
 const VIEW_W = 1200;
-const VIEW_H = 280;
 const PAD_X = 60;
 const PAD_TOP = 50;
 const PAD_BOT = 50;
@@ -217,32 +216,54 @@ export function ExperienceTimeline({
               {r.to < currentYear && (
                 <circle cx={x2} cy={y + h / 2} r={2} fill={COLOR[a]} />
               )}
-              {/* Inline label inside the bar (or overflowed to the right
-                  if the bar is too narrow) */}
-              {w >= 220 ? (
-                <text
-                  x={x1 + 10}
-                  y={y + h / 2 + 4}
-                  fontFamily="var(--font-jetbrains-mono)"
-                  fontSize="11"
-                  fill="var(--fg)"
-                >
-                  {r.role}
-                  <tspan fill={COLOR[a]} dx="6">
-                    @{r.co.toLowerCase().split(" ")[0].replace(",", "")}
-                  </tspan>
-                </text>
-              ) : (
-                <text
-                  x={x2 + 8}
-                  y={y + h / 2 + 4}
-                  fontFamily="var(--font-jetbrains-mono)"
-                  fontSize="11"
-                  fill="var(--fg)"
-                >
-                  {r.role}
-                </text>
-              )}
+              {/* Inline label inside the bar when it fits; otherwise next to
+                  the bar — to the right, or flipped to the left when the bar
+                  ends at the NOW edge and the label would clip the viewBox. */}
+              {(() => {
+                const labelW = r.role.length * 7; // ~11px JetBrains Mono
+                const overflowsRight = x2 + 8 + labelW > VIEW_W - 4;
+                if (w >= 220) {
+                  return (
+                    <text
+                      x={x1 + 10}
+                      y={y + h / 2 + 4}
+                      fontFamily="var(--font-jetbrains-mono)"
+                      fontSize="11"
+                      fill="var(--fg)"
+                    >
+                      {r.role}
+                      <tspan fill={COLOR[a]} dx="6">
+                        @{r.co.toLowerCase().split(" ")[0].replace(",", "")}
+                      </tspan>
+                    </text>
+                  );
+                }
+                if (overflowsRight) {
+                  return (
+                    <text
+                      x={x1 - 8}
+                      y={y + h / 2 + 4}
+                      textAnchor="end"
+                      fontFamily="var(--font-jetbrains-mono)"
+                      fontSize="11"
+                      fill="var(--fg)"
+                    >
+                      {r.role}
+                    </text>
+                  );
+                }
+                return (
+                  <text
+                    x={x2 + 8}
+                    y={y + h / 2 + 4}
+                    fontFamily="var(--font-jetbrains-mono)"
+                    fontSize="11"
+                    fill="var(--fg)"
+                  >
+                    {r.role}
+                  </text>
+                );
+              })()}
             </g>
           );
         })}

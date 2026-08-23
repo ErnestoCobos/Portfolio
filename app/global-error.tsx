@@ -103,6 +103,10 @@ export default function GlobalError({
             >
               ↻ retry
             </button>
+            {/* Plain <a> on purpose: global-error replaces the root layout,
+             * so the client router may be the thing that crashed. A full
+             * document navigation is the reliable way back home. */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a
               href="/"
               style={{

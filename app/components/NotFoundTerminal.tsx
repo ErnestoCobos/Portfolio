@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useReducedMotion } from "./portfolio-visuals";
 import { createRand } from "./seeded-rand";
@@ -73,21 +73,17 @@ export function NotFoundTerminal({
   suggestions: Suggestion[];
 }) {
   const reduced = useReducedMotion();
-  const [path, setPath] = useState("");
+  // Read the requested path via useSyncExternalStore: SSR + hydration use
+  // the server snapshot ("") so the static HTML stays cacheable and matches;
+  // after mount the client snapshot returns the real pathname. Avoids the
+  // setState-in-effect pattern entirely.
+  const path = useSyncExternalStore(
+    () => () => {},
+    () => window.location.pathname,
+    () => ""
+  );
   const [lineIdx, setLineIdx] = useState(0);
   const [charIdx, setCharIdx] = useState(0);
-  const [done, setDone] = useState(false);
-
-  // Capture the requested path on the client. SSR renders with empty path
-  // so the static HTML stays cacheable; the typewriter animation kicks in
-  // once we know the URL.
-  useEffect(() => {
-    setPath(window.location.pathname);
-    if (reduced) {
-      // Skip animation entirely — render fully revealed state.
-      setDone(true);
-    }
-  }, [reduced]);
 
   // Memoize the lines array so its identity only changes when `path`
   // changes — otherwise the typewriter effect would re-run every tick
@@ -95,16 +91,22 @@ export function NotFoundTerminal({
   // setTimeout schedules and breaking the animation).
   const lines = useMemo(() => buildLines(path), [path]);
 
+  // `done` is derived, not stored: reduced-motion renders the fully
+  // revealed state; otherwise it's done once the last line is fully typed.
+  const lastLine = lines.length - 1;
+  const done =
+    reduced ||
+    (path !== "" &&
+      lineIdx >= lastLine &&
+      charIdx >= (lines[lastLine]?.text.length ?? 0));
+
   // Typewriter loop: tick char-by-char, pause between lines, mark done at end.
   useEffect(() => {
-    if (reduced || done) return;
+    if (done) return;
     if (path === "") return; // wait for path capture
 
     const current = lines[lineIdx];
-    if (!current) {
-      setDone(true);
-      return;
-    }
+    if (!current) return;
     if (charIdx < current.text.length) {
       const t = window.setTimeout(
         () => setCharIdx((c) => c + 1),
@@ -112,17 +114,13 @@ export function NotFoundTerminal({
       );
       return () => window.clearTimeout(t);
     }
-    if (lineIdx >= lines.length - 1) {
-      setDone(true);
-      return;
-    }
     const pause = (lines[lineIdx + 1]?.delay ?? 0) + LINE_PAUSE;
     const t = window.setTimeout(() => {
       setLineIdx((i) => i + 1);
       setCharIdx(0);
     }, pause);
     return () => window.clearTimeout(t);
-  }, [reduced, done, charIdx, lineIdx, path, lines]);
+  }, [done, charIdx, lineIdx, path, lines]);
 
   return (
     <div

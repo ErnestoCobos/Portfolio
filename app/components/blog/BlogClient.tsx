@@ -223,8 +223,8 @@ export default function BlogClient({ posts }: { posts: Post[] }) {
               gap: 10,
             }}
           >
-            <span style={{ color: "var(--cyan)" }}>$</span> grep -l "category:"
-            ./blog/*.md | sort -u
+            <span style={{ color: "var(--cyan)" }}>$</span> grep -l
+            &quot;category:&quot; ./blog/*.md | sort -u
           </div>
           <div
             style={{
