@@ -2,6 +2,7 @@ import { SpaceCanvas } from "./SpaceCanvas";
 import { SessionTimer } from "./SessionTimer";
 import { StartClock } from "./StartClock";
 import { StartSearch } from "./StartSearch";
+import { getSpaceData } from "./spaceData";
 
 /** Re-check remote statuses at most once a minute (ISR), so the page stays
  * fast and cheap while the dots stay honest. */
@@ -151,7 +152,10 @@ const SOL = Math.floor(
 );
 
 export default async function StartPage() {
-  const statuses = await Promise.all(STATUS_TARGETS.map(checkStatus));
+  const [statuses, space] = await Promise.all([
+    Promise.all(STATUS_TARGETS.map(checkStatus)),
+    getSpaceData(),
+  ]);
   const allUp = statuses.every((s) => s.ok);
 
   return (
@@ -165,7 +169,7 @@ export default async function StartPage() {
         overflow: "hidden",
       }}
     >
-      <SpaceCanvas />
+      <SpaceCanvas wind={space.solarWind} kp={space.kp} issLat={space.iss?.lat ?? null} />
 
       {/* ── Header strip ─────────────────────────────────────── */}
       <header
@@ -309,9 +313,13 @@ export default async function StartPage() {
               lineHeight: 1.8,
             }}
           >
-            Δv 0.00 km/s · inclinación 51.6° · enlace nominal
+            Δv {space.iss ? space.iss.velKms.toFixed(2) : "7.66"} km/s ·
+            inclinación 51.6° · enlace nominal
             <br />
-            gargantua sys · third manif. · cobos-1 en estación
+            {space.iss
+              ? `iss ${space.iss.lat.toFixed(1)}°, ${space.iss.lon.toFixed(1)}°`
+              : "iss señal perdida"}{" "}
+            · {space.people} humanos en el espacio
           </div>
         </Panel>
 
@@ -377,7 +385,9 @@ export default async function StartPage() {
               color: "var(--meta)",
             }}
           >
-            sondeo cada 60s · head→get fallback · edge iad1
+            viento solar {space.solarWind} km/s · kp {space.kp.toFixed(1)}
+            <br />
+            noaa swpc · wheretheiss.at · open-notify
           </div>
         </Panel>
       </div>

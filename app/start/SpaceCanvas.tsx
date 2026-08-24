@@ -5,8 +5,8 @@ import { useEffect, useRef } from "react";
 /**
  * SpaceCanvas — full-viewport cinematic background for start.cobos.io.
  *
- * One canvas, one rAF loop, two layers:
- *   1. Parallax starfield — 3 depth layers drifting slowly left, each star
+ * One canvas, one rAF loop, four layers:
+ *   1. Parallax starfield — 3 depth layers drifting left, each star
  *      twinkling on its own phase.
  *   2. "Gargantua" — a black hole rendered the Interstellar way: edge-on
  *      accretion disk (bright amber, dashed strokes rotating via
@@ -19,8 +19,22 @@ import { useEffect, useRef } from "react";
  *     radial-gradient glows.
  *   - prefers-reduced-motion → renders a single static frame, no loop.
  *   - Pauses when the tab is hidden (visibilitychange).
+ *
+ * Real telemetry props (server-fetched, with sane fallbacks):
+ *   - wind: solar wind speed (km/s) → disk spin + starfield drift
+ *   - kp: geomagnetic K-index (0–9) → glow/lens intensity
+ *   - issLat: real ISS latitude → a small satellite crossing the top
+ *     of the sky, altitude band follows latitude.
  */
-export function SpaceCanvas() {
+export function SpaceCanvas({
+  wind = 420,
+  kp = 2,
+  issLat = null,
+}: {
+  wind?: number;
+  kp?: number;
+  issLat?: number | null;
+}) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -220,8 +234,10 @@ export function SpaceCanvas() {
       ctx.fillRect(0, 0, w, h);
 
       // ── Starfield (parallax drift + twinkle) ──────────────────
+      // Drift speed follows the real solar wind: calm sun → slow stars.
+      const drift = 0.028 + wind * 0.00007;
       for (const s of stars) {
-        s.x -= s.z * 0.05;
+        s.x -= s.z * drift;
         if (s.x < -2) s.x = w + 2;
         const tw = 0.5 + 0.5 * Math.sin(t * (0.5 + s.z * 1.2) + s.phase);
         ctx.globalAlpha = tw * (0.25 + s.z * 0.75);
@@ -238,12 +254,15 @@ export function SpaceCanvas() {
       const R = Math.max(54, Math.min(w, h) * 0.13); // horizon radius
       const diskRx = R * 2.9;
       const diskTilt = 0.16; // edge-on flattening
-      const spin = t * 38; // dash offset — disk rotation
+      const spin = t * (16 + wind * 0.055); // dash offset — disk rotation
+                                            // driven by real solar wind
 
-      // Ambient glow around the whole system
+      // Ambient glow around the whole system — Kp index (geomagnetic
+      // activity) makes the whole scene storm-brighter.
+      const kpGlow = Math.min(0.1 + kp * 0.016, 0.26);
       const glow = ctx.createRadialGradient(cx, cy, R * 0.4, cx, cy, R * 6);
-      glow.addColorStop(0, "rgba(255,158,64,.16)");
-      glow.addColorStop(0.35, "rgba(255,120,40,.06)");
+      glow.addColorStop(0, `rgba(255,158,64,${kpGlow})`);
+      glow.addColorStop(0.35, `rgba(255,120,40,${kpGlow * 0.4})`);
       glow.addColorStop(1, "rgba(0,0,0,0)");
       ctx.fillStyle = glow;
       ctx.fillRect(0, 0, w, h);
@@ -277,7 +296,7 @@ export function SpaceCanvas() {
       lensGrad.addColorStop(1, "rgba(255,214,150,.95)");
       ctx.strokeStyle = lensGrad;
       ctx.setLineDash([]);
-      ctx.globalAlpha = 0.95;
+      ctx.globalAlpha = Math.min(0.8 + kp * 0.03, 1); // storm-bright arcs
       ctx.lineWidth = 5;
       ellipseArc(cx, cy, R * 1.34, 1, Math.PI * 1.15, Math.PI * 1.85); // top
       ctx.stroke();
@@ -324,6 +343,40 @@ export function SpaceCanvas() {
         ctx.stroke();
       }
       ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+
+      // ── ISS — la estación real cruzando el cielo ──────────────
+      // Crosses the top band every ~50s; its altitude band follows the
+      // real latitude (±51.6°) reported by wheretheiss.at.
+      const issCross = 50; // seconds per screen crossing (visual)
+      const ix = ((t * (w + 240)) / issCross) % (w + 240) - 120;
+      const latN =
+        issLat == null
+          ? Math.sin(t * 0.08) // offline fallback: gentle wander
+          : Math.max(-1, Math.min(1, issLat / 51.6));
+      const iy = h * 0.085 + latN * h * 0.045;
+      const iu = Math.max(0.6, Math.min(1, w / 1100)); // scale unit
+
+      // faint trail
+      ctx.strokeStyle = "rgba(147,197,253,.25)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(ix - 46 * iu, iy + 3 * iu);
+      ctx.lineTo(ix - 8 * iu, iy);
+      ctx.stroke();
+
+      // hull + solar panels
+      ctx.fillStyle = "rgba(230,238,255,.95)";
+      ctx.fillRect(ix - 2.4 * iu, iy - 1.6 * iu, 4.8 * iu, 3.2 * iu);
+      ctx.fillStyle = "rgba(91,147,227,.85)"; // blue panels
+      ctx.fillRect(ix - 9 * iu, iy - 1 * iu, 5.4 * iu, 2 * iu);
+      ctx.fillRect(ix + 3.6 * iu, iy - 1 * iu, 5.4 * iu, 2 * iu);
+      // beacon blink
+      const blink = 0.4 + 0.6 * (Math.sin(t * 6) > 0.4 ? 1 : 0.15);
+      ctx.fillStyle = `rgba(255,120,120,${blink})`;
+      ctx.beginPath();
+      ctx.arc(ix + 3 * iu, iy - 2.4 * iu, 1.1 * iu, 0, Math.PI * 2);
+      ctx.fill();
       ctx.globalAlpha = 1;
 
       // ── La tripulación jugando abajo ──────────────────────────
@@ -377,7 +430,9 @@ export function SpaceCanvas() {
       window.removeEventListener("resize", resize);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, []);
+    // Telemetry props refresh at most once per ISR window; when they do,
+    // the effect re-runs and the loop restarts with fresh values.
+  }, [issLat, kp, wind]);
 
   return (
     <canvas
