@@ -18,11 +18,11 @@
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "marked": "^18.0.4",
-    "next": "16.2.6",
+    "next": "16.3.2",
     "notion-to-md": "^3.1.9",
     "react": "19.2.6",
     "react-dom": "19.2.6",
-    "sharp": "^0.34.5"
+    "sharp": "^0.35.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.0",
@@ -31,13 +31,18 @@
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
-    "eslint-config-next": "16.2.6",
+    "eslint-config-next": "16.3.2",
     "tailwindcss": "^4.3.0",
     "typescript": "^5"
   },
   "pnpm": {
     "overrides": {
-      "postcss": "^8.5.10"
+      "postcss": "^8.5.23",
+      "js-yaml": "^4.3.1",
+      "nanoid": "^3.3.18",
+      "@babel/core": "^7.29.1",
+      "brace-expansion@1": "^1.1.18",
+      "brace-expansion@5": "^5.0.9"
     }
   }
 }
