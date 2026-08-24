@@ -40,10 +40,19 @@ export const en: Dictionary = {
       other === "en" ? "Switch to English" : "Switch to Spanish",
   },
 
+  proof: {
+    aria: "cobos.io in numbers",
+    years: "years building",
+    projects: "active projects",
+    tools: "stack tools",
+    certs: "certs on roadmap",
+  },
+
   hero: {
     terminalTitle: "~/cobos.io  —  zsh  —  120×40",
     terminalTitleMobile: "~/cobos.io",
     sessionLabel: "session",
+    sessionAria: (s: number) => `Session active for ${s} seconds`,
     versionLine: "› rendering portfolio · v3.0",
     h1Pre: "cobos::cloud_architect",
     h1Sep: "+",
@@ -51,6 +60,7 @@ export const en: Dictionary = {
     subhead:
       "Legacy → cloud-native migrations, Kubernetes in regulated sectors, multi-cloud, DevSecOps and FinOps. I build platforms as a product.",
     cta: "./view-work.sh",
+    ctaContact: "./contact",
     statusBar: {
       env: "eks-prod · eu-west-1",
       argo: "argo cd: synced",
@@ -235,6 +245,8 @@ export const en: Dictionary = {
     fieldBody: "BODY",
     fieldBodyPlaceholder: "context, current stack, timing…",
     sendCta: "./send",
+    copyEmail: "copy email",
+    copied: "copied ✓",
     connectionAlive: "● connection alive",
     consoleVersion: "cobos.io / v3.0 · console",
     linkEmail: "email",

@@ -116,6 +116,17 @@ export function buildWebsiteLd(locale: Locale) {
   };
 }
 
+/* Pre-paint boot scripts — must run before first paint (no FOUC):
+ *  1. `js` class: gates every scroll-reveal hiding rule. Without JS the
+ *     page renders fully visible; with JS, [data-reveal] elements start
+ *     hidden and animate in on scroll.
+ *  2. `intro-boot`: one-shot cinematic veil, once per session, never
+ *     under prefers-reduced-motion, and only on the portfolio roots —
+ *     landing on /blog must not burn the session flag for an intro the
+ *     blog doesn't even render. The <IntroVeil/> component drops the
+ *     class when the animation ends. */
+const PREPAINT_BOOT_SCRIPT = `try{document.documentElement.classList.add("js");var p=location.pathname;if((p==="/"||p==="/en")&&!sessionStorage.getItem("intro-seen")&&!matchMedia("(prefers-reduced-motion: reduce)").matches){sessionStorage.setItem("intro-seen","1");document.documentElement.classList.add("intro-boot")}}catch(e){}`;
+
 /**
  * Renders the contents of a `<head>` for the per-locale root layout.
  * Place inside `<head>...</head>`. Locale-specific RSS link is passed
@@ -135,6 +146,7 @@ export function RootHead({
   const llmsHref = locale === "en" ? "/en/llms.txt" : "/llms.txt";
   return (
     <>
+      <script dangerouslySetInnerHTML={{ __html: PREPAINT_BOOT_SCRIPT }} />
       <link rel="me" href="https://github.com/ErnestoCobos" />
       <link rel="me" href="https://www.linkedin.com/in/ernestocobos/" />
       <link

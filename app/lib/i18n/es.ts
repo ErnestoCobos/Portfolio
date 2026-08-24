@@ -40,10 +40,19 @@ export const es = {
       other === "en" ? "Cambiar a inglés" : "Cambiar a español",
   },
 
+  proof: {
+    aria: "cobos.io en números",
+    years: "años construyendo",
+    projects: "proyectos activos",
+    tools: "tools en el stack",
+    certs: "certs en roadmap",
+  },
+
   hero: {
     terminalTitle: "~/cobos.io  —  zsh  —  120×40",
     terminalTitleMobile: "~/cobos.io",
     sessionLabel: "session",
+    sessionAria: (s: number) => `Sesión activa hace ${s} segundos`,
     versionLine: "› rendering portfolio · v3.0",
     h1Pre: "cobos::cloud_architect",
     h1Sep: "+",
@@ -51,6 +60,7 @@ export const es = {
     subhead:
       "Migraciones legacy → cloud-native, Kubernetes en sectores regulados, multi-cloud, DevSecOps y FinOps. Construyo plataformas como producto.",
     cta: "./view-work.sh",
+    ctaContact: "./contact",
     statusBar: {
       env: "eks-prod · eu-west-1",
       argo: "argo cd: synced",
@@ -240,6 +250,8 @@ export const es = {
     fieldBody: "BODY",
     fieldBodyPlaceholder: "contexto del reto, stack actual, timing…",
     sendCta: "./send",
+    copyEmail: "copiar email",
+    copied: "copiado ✓",
     connectionAlive: "● connection alive",
     consoleVersion: "cobos.io / v3.0 · console",
     linkEmail: "email",

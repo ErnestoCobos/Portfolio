@@ -33,6 +33,9 @@ import { createRand } from "./seeded-rand";
 import { StackRadial } from "./visuals/StackRadial";
 import { ExperienceTimeline } from "./visuals/ExperienceTimeline";
 import { ARCHITECTURES } from "./architectures";
+import { CountUp } from "./cinematic/CountUp";
+import { DecodeText } from "./cinematic/DecodeText";
+import { Reveal } from "./cinematic/Reveal";
 import {
   ArchDiagram,
   CloudTopology,
@@ -65,10 +68,21 @@ function useIsMobile(breakpoint = 768) {
 function useViewportWidth(fallback = 1440) {
   const [w, setW] = useState(fallback);
   useEffect(() => {
-    const sync = () => setW(window.innerWidth);
+    // rAF-coalesced: resize storms collapse to one setState per frame.
+    let raf = 0;
+    const sync = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        setW(window.innerWidth);
+      });
+    };
     sync();
-    window.addEventListener("resize", sync);
-    return () => window.removeEventListener("resize", sync);
+    window.addEventListener("resize", sync, { passive: true });
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      window.removeEventListener("resize", sync);
+    };
   }, []);
   return w;
 }
@@ -348,6 +362,55 @@ function MobileMenu({
   );
 }
 
+/** Reading-progress hairline pinned to the bottom edge of the nav dock.
+ * Writes scaleX directly to the node from a rAF-coalesced passive scroll
+ * listener — zero React re-renders while scrolling. */
+function ScrollProgress() {
+  const barRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let ticking = false;
+    const update = () => {
+      ticking = false;
+      const el = barRef.current;
+      if (!el) return;
+      const h = document.documentElement;
+      const max = h.scrollHeight - h.clientHeight;
+      el.style.transform = `scaleX(${max > 0 ? h.scrollTop / max : 0})`;
+    };
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(update);
+      }
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
+  return (
+    <div
+      ref={barRef}
+      aria-hidden
+      style={{
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: -1,
+        height: 2,
+        background: "linear-gradient(90deg, var(--cyan), var(--violet))",
+        transformOrigin: "0 50%",
+        transform: "scaleX(0)",
+        zIndex: 1,
+        pointerEvents: "none",
+      }}
+    />
+  );
+}
+
 /**
  * tmux-style status dock: fixed at the bottom of the viewport, ~36px tall,
  * always visible. Left segment shows the active section as a path indicator
@@ -578,6 +641,7 @@ function Nav({ mobile }: { mobile: boolean }) {
             </span>
           </button>
         )}
+        <ScrollProgress />
       </div>
       {mobile && menuOpen && (
         <MobileMenu active={active} onClose={() => setMenuOpen(false)} />
@@ -595,46 +659,75 @@ function fmtSession(seconds: number): string {
   return `${m}m ${s.toString().padStart(2, "0")}s`;
 }
 
-/* ─── Hero (terminal chrome + animated boot log + iso lattice) ── */
-function Hero({ mobile }: { mobile: boolean }) {
-  const dict = useT();
-  const mounted = useMounted();
-  const reduced = useReducedMotion();
-  const tickerT = useTicker(!reduced);
-  const t = mounted ? tickerT : 0;
-  const vw = useViewportWidth();
-  const accent = "#00D4FF";
-  const violet = "#7C3AED";
-  const prompt = "$";
+/* ─── Hero time-islands ──────────────────────────────────── */
+/** The hero used to own ONE 60fps ticker for everything (boot log, session
+ * clock, orbiting pills, connector lines), re-rendering the entire section
+ * — headline, terminal chrome, SVG lattice — every frame, forever. These
+ * islands invert that: each time-driven concern owns its own clock, lives
+ * in its own tiny subtree, and STOPS when its job is done:
+ *   - BootLog    → rAF only while typing; cancels itself on completion.
+ *   - SessionClock → setInterval @ 10Hz; re-renders one <span>.
+ *   - OrbitSystem  → zero JS per frame; pure CSS rotation + highlight cycle.
+ */
 
-  const LINES = [
-    { k: "cmd" as const, v: `${prompt} whoami` },
-    {
-      k: "out" as const,
-      v: "ernesto.cobos · cloud_architect+platform_engineer+devsecops",
-    },
-    { k: "cmd" as const, v: `${prompt} uptime` },
-    {
-      k: "out" as const,
-      v: "9 years, 4 months · current sprint:  enkiflow.com (saas · prod)",
-    },
-    { k: "cmd" as const, v: `${prompt} ls ./expertise` },
-    {
-      k: "out" as const,
-      v: "aws/  gcp/  azure/  k8s/  argo/  vault/  opa/  terraform/  istio/",
-    },
-    { k: "cmd" as const, v: `${prompt} echo $POSITION` },
-    {
-      k: "out" as const,
-      v: "one of the cloud architects you actually want answering at 3am.",
-    },
-    { k: "cmd" as const, v: `${prompt} ` },
-  ];
-  const total = LINES.reduce((a, l) => a + l.v.length, 0);
-  const progress = Math.min(total, t * 55);
-  let used = 0;
+const BOOT_LINES = (prompt: string) => [
+  { k: "cmd" as const, v: `${prompt} whoami` },
+  {
+    k: "out" as const,
+    v: "ernesto.cobos · cloud_architect+platform_engineer+devsecops",
+  },
+  { k: "cmd" as const, v: `${prompt} uptime` },
+  {
+    k: "out" as const,
+    v: "9 years, 4 months · current sprint:  enkiflow.com (saas · prod)",
+  },
+  { k: "cmd" as const, v: `${prompt} ls ./expertise` },
+  {
+    k: "out" as const,
+    v: "aws/  gcp/  azure/  k8s/  argo/  vault/  opa/  terraform/  istio/",
+  },
+  { k: "cmd" as const, v: `${prompt} echo $POSITION` },
+  {
+    k: "out" as const,
+    v: "one of the cloud architects you actually want answering at 3am.",
+  },
+  { k: "cmd" as const, v: `${prompt} ` },
+];
+
+function BootLog({ mobile }: { mobile: boolean }) {
+  const reduced = useReducedMotion();
+  // 0 everywhere on the first paint (server AND hydration pass — keeps
+  // them identical); reduced-motion users are snapped to the finished
+  // log post-mount instead.
+  const [progress, setProgress] = useState(0);
+  const lines = BOOT_LINES("$");
+  const total = lines.reduce((a, l) => a + l.v.length, 0);
+
+  useEffect(() => {
+    if (reduced) {
+      // One-shot reduceMotion → finished-log snap, not a cascade (same
+      // pattern as the Approach pipeline's reduce-motion handling).
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- documented one-shot snap
+      setProgress(Infinity);
+      return;
+    }
+    let raf = 0;
+    const t0 = performance.now();
+    const loop = (now: number) => {
+      const p = Math.min(total, ((now - t0) / 1000) * 55);
+      setProgress(p);
+      if (p < total) {
+        raf = requestAnimationFrame(loop);
+      }
+      // else: done — rAF never re-armed, component goes permanently quiet.
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [reduced, total]);
+
   const typed: { k: "cmd" | "out"; v: string }[] = [];
-  for (const l of LINES) {
+  let used = 0;
+  for (const l of lines) {
     const remaining = progress - used;
     if (remaining <= 0) break;
     typed.push({
@@ -643,14 +736,201 @@ function Hero({ mobile }: { mobile: boolean }) {
     });
     used += l.v.length;
   }
-  const showCursor = Math.floor(t * 2) % 2 === 0;
+
+  return (
+    <>
+      {typed.map((l, i) => (
+        <div
+          key={i}
+          className="mono"
+          style={{
+            fontSize: mobile ? 12 : 14,
+            lineHeight: 1.7,
+            color: l.k === "cmd" ? "#00D4FF" : "var(--fg)",
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          {l.v}
+          {i === typed.length - 1 && <span className="hero-caret" aria-hidden />}
+        </div>
+      ))}
+    </>
+  );
+}
+
+function SessionClock() {
+  const t = useT();
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    const started = Date.now();
+    const iv = window.setInterval(() => {
+      setSeconds(Math.floor((Date.now() - started) / 100) / 10);
+    }, 100);
+    return () => window.clearInterval(iv);
+  }, []);
+  return (
+    <span
+      className="mono"
+      style={{
+        fontSize: 12,
+        color: "var(--meta)",
+        marginLeft: "auto",
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        flexShrink: 0,
+      }}
+      aria-label={t.hero.sessionAria(Math.floor(seconds))}
+    >
+      <span className="dot green" aria-hidden /> {t.hero.sessionLabel} ·{" "}
+      {fmtSession(seconds)}
+    </span>
+  );
+}
+
+const ORBIT_LABELS = ["EKS", "GKE", "AKS", "Argo CD", "Vault", "OPA"];
+/** Ellipse geometry — drawn as a circle of radius RX, squashed to RY by
+ * `.orbit-scale { transform: scaleY(var(--orbit-squash)) }`. Must match
+ * the original JS-orbit proportions (rx 165 / ry 100). */
+const ORBIT_STAGE = 340;
+const ORBIT_RX = 165;
+const ORBIT_SQUASH = 100 / 165;
+
+/**
+ * CSS-only orbital system. A spinning layer rotates the whole assembly
+ * (connector SVG + six pill anchors) while nested counter-rotation keeps
+ * every label upright through the scaleY squash that turns the circle
+ * into the original ellipse. The "active" highlight cycles via a shared
+ * 12s keyframe timeline staggered per slot — all animation work happens
+ * on the compositor; React renders this exactly once.
+ */
+function OrbitSystem() {
+  const accent = "#00D4FF";
+  const violet = "#7C3AED";
+  const cxy = ORBIT_STAGE / 2;
+  return (
+    <div
+      aria-hidden
+      style={{
+        position: "absolute",
+        inset: 0,
+        display: "grid",
+        placeItems: "center",
+        pointerEvents: "none",
+        zIndex: 1,
+      }}
+    >
+      <div
+        className="orbit-scale"
+        style={{
+          width: ORBIT_STAGE,
+          height: ORBIT_STAGE,
+          ["--orbit-squash" as string]: ORBIT_SQUASH,
+        }}
+      >
+        <div className="orbit-spin">
+          {/* Connector lines — static geometry, drawn once. The spin layer
+              rotates them; the slot-cycle keyframes brighten each line in
+              its 2s window. */}
+          <svg
+            width={ORBIT_STAGE}
+            height={ORBIT_STAGE}
+            viewBox={`0 0 ${ORBIT_STAGE} ${ORBIT_STAGE}`}
+            style={{ position: "absolute", inset: 0 }}
+          >
+            {ORBIT_LABELS.map((_, i) => {
+              const a = (i * Math.PI * 2) / 6 - Math.PI / 2;
+              const x = cxy + Math.cos(a) * ORBIT_RX;
+              const y = cxy + Math.sin(a) * ORBIT_RX;
+              const c = i % 2 === 0 ? accent : violet;
+              return (
+                <line
+                  key={i}
+                  className="orbit-line"
+                  style={{ ["--slot" as string]: i, color: c }}
+                  x1={cxy}
+                  y1={cxy}
+                  x2={x}
+                  y2={y}
+                  stroke={c}
+                />
+              );
+            })}
+          </svg>
+          {ORBIT_LABELS.map((label, i) => {
+            const ang = (i * 360) / 6;
+            const c = i % 2 === 0 ? accent : violet;
+            return (
+              <div
+                key={label}
+                className="orbit-node orbit-pos"
+                style={{
+                  ["--ang" as string]: `${ang}deg`,
+                  ["--r" as string]: `${ORBIT_RX}px`,
+                  left: cxy,
+                  top: cxy,
+                }}
+              >
+                <div className="orbit-node orbit-anti">
+                  <div
+                    className="orbit-node"
+                    style={{ transform: `rotate(-${ang}deg)` }}
+                  >
+                    <div className="orbit-node orbit-descale">
+                      <span
+                        className="orbit-pill mono"
+                        style={{
+                          ["--slot" as string]: i,
+                          color: c,
+                          borderColor: `${c}55`,
+                        }}
+                      >
+                        {label}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Hero (terminal chrome + animated boot log + iso lattice) ── */
+function Hero({ mobile }: { mobile: boolean }) {
+  const dict = useT();
+  const mounted = useMounted();
+  const reduced = useReducedMotion();
+  const vw = useViewportWidth();
+  const accent = "#00D4FF";
+  const violet = "#7C3AED";
   const topoW = mobile ? Math.min(vw, 600) : Math.min(vw - 96, 1440);
   const topoH = mobile ? 720 : 1000;
+
+  // Mouse parallax — writes --px/--py on the section node; layers consume
+  // them via calc() transforms. Zero React state, desktop + motion only.
+  const sectionRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (mobile || reduced) return;
+    const el = sectionRef.current;
+    if (!el) return;
+    const onMove = (e: MouseEvent) => {
+      const r = el.getBoundingClientRect();
+      el.style.setProperty("--px", ((e.clientX - r.left) / r.width - 0.5).toFixed(3));
+      el.style.setProperty("--py", ((e.clientY - r.top) / r.height - 0.5).toFixed(3));
+    };
+    el.addEventListener("mousemove", onMove, { passive: true });
+    return () => el.removeEventListener("mousemove", onMove);
+  }, [mobile, reduced]);
 
   return (
     // Hero is intentionally <100vh so the next section's header peeks ~60px
     // below the fold — turns scrolling from a decision into a consequence.
     <section
+      ref={sectionRef}
       style={{
         padding: mobile ? "20px 16px 32px" : "24px 48px 56px",
         height: mobile ? "auto" : "calc(85vh - 36px)",
@@ -671,13 +951,17 @@ function Hero({ mobile }: { mobile: boolean }) {
         }}
       >
         <div
+          className="aurora"
           style={{
             position: "absolute",
-            inset: 0,
+            inset: "-8%",
             background: `radial-gradient(ellipse at 70% 15%, ${accent}24, transparent 55%), radial-gradient(ellipse at 15% 85%, ${violet}26, transparent 55%)`,
           }}
         />
-        <div style={{ position: "absolute", inset: 0, opacity: 0.5 }}>
+        <div
+          className="hero-parallax-bg"
+          style={{ position: "absolute", inset: 0, opacity: 0.5 }}
+        >
           <CloudTopology
             width={topoW}
             height={topoH}
@@ -768,21 +1052,7 @@ function Hero({ mobile }: { mobile: boolean }) {
           >
             {mobile ? dict.hero.terminalTitleMobile : dict.hero.terminalTitle}
           </span>
-          <span
-            className="mono"
-            style={{
-              fontSize: 12,
-              color: "var(--meta)",
-              marginLeft: "auto",
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              flexShrink: 0,
-            }}
-            aria-label={`Sesión activa hace ${Math.floor(t)} segundos`}
-          >
-            <span className="dot green" aria-hidden /> {dict.hero.sessionLabel} · {fmtSession(t)}
-          </span>
+          <SessionClock />
         </div>
 
         <div
@@ -792,36 +1062,7 @@ function Hero({ mobile }: { mobile: boolean }) {
             minHeight: mobile ? 160 : 200,
           }}
         >
-          {typed.map((l, i) => {
-            const isLast = i === typed.length - 1;
-            return (
-              <div
-                key={i}
-                className="mono"
-                style={{
-                  fontSize: mobile ? 12 : 14,
-                  lineHeight: 1.7,
-                  color: l.k === "cmd" ? accent : "var(--fg)",
-                  whiteSpace: "pre-wrap",
-                }}
-              >
-                {l.v}
-                {isLast && (
-                  <span
-                    style={{
-                      display: "inline-block",
-                      width: ".55em",
-                      height: "1em",
-                      verticalAlign: "-2px",
-                      background: accent,
-                      marginLeft: 2,
-                      opacity: showCursor ? 1 : 0,
-                    }}
-                  />
-                )}
-              </div>
-            );
-          })}
+          <BootLog mobile={mobile} />
         </div>
 
         <div
@@ -891,6 +1132,9 @@ function Hero({ mobile }: { mobile: boolean }) {
               <a href="#work" className="btn-primary">
                 {dict.hero.cta}
               </a>
+              <a href="#contact" className="btn-secondary mono" style={{ fontFamily: "var(--font-jetbrains-mono)" }}>
+                {dict.hero.ctaContact}
+              </a>
             </div>
           </div>
 
@@ -904,6 +1148,7 @@ function Hero({ mobile }: { mobile: boolean }) {
             }}
           >
             <div
+              className="hero-parallax-bg"
               style={{
                 position: "absolute",
                 inset: mobile ? -20 : -32,
@@ -912,6 +1157,7 @@ function Hero({ mobile }: { mobile: boolean }) {
               }}
             />
             <div
+              className="hero-parallax-cube"
               style={{
                 position: "absolute",
                 inset: 0,
@@ -924,96 +1170,9 @@ function Hero({ mobile }: { mobile: boolean }) {
                 <IsoCloud size={mobile ? 200 : 320} animate={!reduced} />
               )}
             </div>
-            {/* Connector lines from cube center to each orbiting pill. The
-             * "active" index cycles every 2s, drawing a bright stroke + glow
-             * to that pill while others stay as faint hairlines. */}
-            {mounted && !mobile && (() => {
-              const PILL_LABELS = ["EKS", "GKE", "AKS", "Argo CD", "Vault", "OPA"];
-              const active = Math.floor(t * 0.5) % PILL_LABELS.length;
-              return (
-                <svg
-                  aria-hidden
-                  viewBox="-200 -150 400 300"
-                  preserveAspectRatio="xMidYMid meet"
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    width: "100%",
-                    height: "100%",
-                    pointerEvents: "none",
-                    zIndex: 1,
-                  }}
-                >
-                  {PILL_LABELS.map((_, i) => {
-                    const a = t * 0.32 + i * ((Math.PI * 2) / 6);
-                    const x = Math.cos(a) * 165;
-                    const y = Math.sin(a) * 100;
-                    const isActive = i === active;
-                    const c = i % 2 === 0 ? accent : violet;
-                    return (
-                      <g key={i}>
-                        <line
-                          x1={0}
-                          y1={0}
-                          x2={x}
-                          y2={y}
-                          stroke={isActive ? c : "rgba(168,181,199,.18)"}
-                          strokeWidth={isActive ? 1.4 : 0.6}
-                          strokeDasharray={isActive ? "none" : "2 4"}
-                          opacity={isActive ? 1 : 0.65}
-                          style={{
-                            filter: isActive
-                              ? `drop-shadow(0 0 6px ${c})`
-                              : "none",
-                            transition: "opacity .3s",
-                          }}
-                        />
-                      </g>
-                    );
-                  })}
-                </svg>
-              );
-            })()}
-            {mounted &&
-              ["EKS", "GKE", "AKS", "Argo CD", "Vault", "OPA"].map((l, i) => {
-                if (mobile) {
-                  return null;
-                }
-                const a = t * 0.32 + i * ((Math.PI * 2) / 6);
-                const dx = (Math.cos(a) * 165).toFixed(2);
-                const dy = (Math.sin(a) * 100).toFixed(2);
-                const c = i % 2 === 0 ? accent : violet;
-                const active = Math.floor(t * 0.5) % 6;
-                const isActive = i === active;
-                return (
-                  <div
-                    key={l}
-                    className="mono"
-                    style={{
-                      position: "absolute",
-                      left: "50%",
-                      top: "50%",
-                      transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`,
-                      fontSize: "var(--text-mono)",
-                      color: c,
-                      padding: "4px 10px",
-                      background: "rgba(6,6,10,.82)",
-                      border: `1px solid ${c}${isActive ? "" : "55"}`,
-                      borderRadius: "var(--r-tile)",
-                      boxShadow: isActive
-                        ? `0 0 0 1px ${c}, 0 0 18px ${c}66`
-                        : `0 0 12px ${c}33`,
-                      pointerEvents: "none",
-                      zIndex: 2,
-                      letterSpacing: "var(--ls-meta)",
-                      whiteSpace: "nowrap",
-                      transition: "box-shadow .3s, border-color .3s",
-                    }}
-                  >
-                    {l}
-                  </div>
-                );
-              })}
+            {/* Orbital pills + connector lines — pure CSS rotation (see
+             *  OrbitSystem). Desktop only; phones get the static chip row. */}
+            {!mobile && <OrbitSystem />}
             {mobile && mounted && (
               <div
                 style={{
@@ -1130,6 +1289,17 @@ function Hero({ mobile }: { mobile: boolean }) {
 }
 
 /* ─── shared section primitives ─────────────────────────── */
+/** Cursor-tracking spotlight: writes --mx/--my directly to the element so
+ * the ::after gradient follows the pointer with zero React re-renders.
+ * The CSS side is hover-gated (@media (hover:hover)) so touch devices
+ * never paint it. */
+function spotlightMove(e: React.MouseEvent<HTMLElement>) {
+  const el = e.currentTarget;
+  const r = el.getBoundingClientRect();
+  el.style.setProperty("--mx", `${e.clientX - r.left}px`);
+  el.style.setProperty("--my", `${e.clientY - r.top}px`);
+}
+
 function SectionHeader({
   n,
   t,
@@ -1141,19 +1311,22 @@ function SectionHeader({
   action?: string;
   onActionClick?: () => void;
 }) {
+  // Every section header reveals + decodes as it scrolls into view —
+  // one integration point covers all ten sections.
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "baseline",
-        justifyContent: "space-between",
-        gap: 16,
-        marginBottom: 32,
-        paddingBottom: 16,
-        borderBottom: "1px solid var(--hairline)",
-        flexWrap: "wrap",
-      }}
-    >
+    <Reveal>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 16,
+          marginBottom: 32,
+          paddingBottom: 16,
+          borderBottom: "1px solid var(--hairline)",
+          flexWrap: "wrap",
+        }}
+      >
       <div
         className="mono"
         style={{
@@ -1162,7 +1335,8 @@ function SectionHeader({
           letterSpacing: "var(--ls-tag)",
         }}
       >
-        <span style={{ color: "var(--muted)" }}>0{n}</span> &nbsp;·&nbsp; {t}
+        <span style={{ color: "var(--muted)" }}>0{n}</span> &nbsp;·&nbsp;{" "}
+        <DecodeText text={t} />
       </div>
       {action &&
         (onActionClick ? (
@@ -1187,7 +1361,8 @@ function SectionHeader({
             {action}
           </div>
         ))}
-    </div>
+      </div>
+    </Reveal>
   );
 }
 
@@ -1238,7 +1413,7 @@ function About({ mobile }: { mobile: boolean }) {
           gap: mobile ? 24 : 64,
         }}
       >
-        <div>
+        <Reveal>
           <a
             href={`https://${PROFILE.github}`}
             target="_blank"
@@ -1295,8 +1470,8 @@ function About({ mobile }: { mobile: boolean }) {
               status: <span data-fs-text style={{ color: "var(--cyan)" }}>{t.about.statusOnline}</span>
             </div>
           </div>
-        </div>
-        <div>
+        </Reveal>
+        <Reveal delayMs={120}>
           <h2
             data-fs-path="/about/headline.md"
             data-fs-type="file"
@@ -1342,7 +1517,7 @@ function About({ mobile }: { mobile: boolean }) {
             </span>
             {t.about.bioContinuation.post}
           </p>
-        </div>
+        </Reveal>
       </div>
     </Section>
   );
@@ -1501,7 +1676,9 @@ const ARCH_EVENTS: Record<
 function Infra({ mobile }: { mobile: boolean }) {
   const dict = useT();
   const reduced = useReducedMotion();
-  const tick = useTicker(!reduced);
+  // Gauge wobble is a slow sine — 4 updates/sec reads identically to 60
+  // and cuts this section's re-render cost by ~93%.
+  const tick = useTicker(!reduced, 4);
   const [archIdx, setArchIdx] = useState(0);
   const arch = ARCHITECTURES[archIdx];
   // Baselines come from the active architecture so a SaaS, a bank, an
@@ -1671,7 +1848,6 @@ function Infra({ mobile }: { mobile: boolean }) {
 
 /* ─── Work ──────────────────────────────────────────────── */
 function Work({ mobile }: { mobile: boolean }) {
-  const locale = useLocale();
   const t = useT();
   return (
     <Section id="work" fsPath="/work" mobile={mobile} dark>
@@ -1711,28 +1887,48 @@ function Work({ mobile }: { mobile: boolean }) {
           gap: 16,
         }}
       >
-        {PROJECTS.map((p) => {
-          const c = p.accent === "violet" ? "var(--violet)" : "var(--cyan)";
-          const glow =
-            p.accent === "violet"
-              ? "rgba(124,58,237,.6)"
-              : "rgba(0,212,255,.6)";
-          const href = p.href ?? `https://${p.url}`;
-          return (
-            <div
-              key={p.slug}
-              data-fs-path={`/work/${p.slug}.md`}
-              data-fs-type="file"
-              style={{
-                border: "1px solid var(--hairline-strong)",
-                borderRadius: "var(--r-card-sm)",
-                padding: 24,
-                background: "var(--surface-overlay)",
-                display: "flex",
-                flexDirection: "column",
-                minHeight: mobile ? "auto" : 360,
-              }}
-            >
+        {PROJECTS.map((p, pi) => (
+          <WorkCard key={p.slug} p={p} pi={pi} mobile={mobile} />
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+/** One Work card. Owns its reveal timing so hooks stay at component top
+ * level (no hooks inside .map callbacks). */
+function WorkCard({
+  p,
+  pi,
+  mobile,
+}: {
+  p: (typeof PROJECTS)[number];
+  pi: number;
+  mobile: boolean;
+}) {
+  const locale = useLocale();
+  const t = useT();
+  const c = p.accent === "violet" ? "var(--violet)" : "var(--cyan)";
+  const glow =
+    p.accent === "violet" ? "rgba(124,58,237,.6)" : "rgba(0,212,255,.6)";
+  const href = p.href ?? `https://${p.url}`;
+  return (
+    <Reveal fill delayMs={pi * 80}>
+      <div
+        data-fs-path={`/work/${p.slug}.md`}
+        data-fs-type="file"
+        onMouseMove={spotlightMove}
+        className="spotlight"
+        style={{
+          border: "1px solid var(--hairline-strong)",
+          borderRadius: "var(--r-card-sm)",
+          padding: 24,
+          background: "var(--surface-overlay)",
+          display: "flex",
+          flexDirection: "column",
+          minHeight: mobile ? "auto" : 360,
+        }}
+      >
               <div
                 className="mono"
                 style={{
@@ -1830,11 +2026,8 @@ function Work({ mobile }: { mobile: boolean }) {
                 <span>{p.repo ? t.work.repo : t.work.visit}</span>
                 <span aria-hidden style={{ fontSize: 14 }}>→</span>
               </a>
-            </div>
-          );
-        })}
       </div>
-    </Section>
+    </Reveal>
   );
 }
 
@@ -1913,7 +2106,7 @@ type CertCardData = {
   note: string | null;
 };
 
-function CertificationCard({ c }: { c: CertCardData }) {
+function CertificationCard({ c, ci }: { c: CertCardData; ci: number }) {
   const t = useT();
   const earned = c.status === "earned";
   const statusColor = earned ? "var(--green)" : "var(--amber)";
@@ -1932,16 +2125,18 @@ function CertificationCard({ c }: { c: CertCardData }) {
   const showProgressLabel = c.progress > 0;
 
   return (
-    <div
-      className="cert-card"
-      data-fs-path={`/certs/${c.slug}.md`}
-      data-fs-type="file"
-      style={
-        {
-          // Status accent: a single coloured top border + a faint top-down
-          // tint over --surface-overlay. The two CSS custom properties
-          // drive the .cert-card:hover rule in globals.css.
-          border: "1px solid var(--hairline-strong)",
+    <Reveal fill delayMs={(ci % 3) * 80}>
+      <div
+        className="cert-card spotlight"
+        onMouseMove={spotlightMove}
+        data-fs-path={`/certs/${c.slug}.md`}
+        data-fs-type="file"
+        style={
+          {
+            // Status accent: a single coloured top border + a faint top-down
+            // tint over --surface-overlay. The two CSS custom properties
+            // drive the .cert-card:hover rule in globals.css.
+            border: "1px solid var(--hairline-strong)",
           borderTop: `1px solid ${statusColor}`,
           borderRadius: "var(--r-card-sm)",
           padding: 24,
@@ -1951,7 +2146,7 @@ function CertificationCard({ c }: { c: CertCardData }) {
           minHeight: 220,
           "--cert-accent": statusColor,
           "--cert-glow": statusGlow,
-        } as CSSProperties
+          } as CSSProperties
       }
     >
       {/* Status row — dot+word on the left, cyan exam-code badge on the right */}
@@ -2149,7 +2344,8 @@ function CertificationCard({ c }: { c: CertCardData }) {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </Reveal>
   );
 }
 
@@ -2321,8 +2517,8 @@ function Certifications({ mobile }: { mobile: boolean }) {
             gap: 16,
           }}
         >
-          {items.map((c) => (
-            <CertificationCard key={c.slug} c={c} />
+          {items.map((c, ci) => (
+            <CertificationCard key={c.slug} c={c} ci={ci} />
           ))}
         </div>
       )}
@@ -2415,18 +2611,21 @@ function TrendCard({
     ` L ${W - pad},${H - pad} Z`;
 
   return (
-    <div
-      style={{
-        border: "1px solid var(--hairline)",
-        borderTop: `1px solid ${accent}`,
-        borderRadius: "var(--r-card-sm)",
-        padding: mobile ? 16 : 20,
-        background: `linear-gradient(180deg, ${tintSoft}, transparent 40%)`,
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-      }}
-    >
+    <Reveal fill delayMs={(i % 2) * 80}>
+      <div
+        onMouseMove={spotlightMove}
+        className="spotlight"
+        style={{
+          border: "1px solid var(--hairline)",
+          borderTop: `1px solid ${accent}`,
+          borderRadius: "var(--r-card-sm)",
+          padding: mobile ? 16 : 20,
+          background: `linear-gradient(180deg, ${tintSoft}, transparent 40%)`,
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+        }}
+      >
       {/* Top row: flag id + status pill */}
       <div
         style={{
@@ -2581,7 +2780,8 @@ function TrendCard({
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </Reveal>
   );
 }
 
@@ -3385,6 +3585,44 @@ function ContactForm() {
   );
 }
 
+/** Clipboard fallback for the mailto form — one tap copies the address,
+ * with a transient inline confirmation. Swallows clipboard rejections
+ * (permissions / non-secure contexts) silently; mailto remains the
+ * primary path. */
+function CopyEmailButton() {
+  const t = useT();
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      className="tap mono"
+      onClick={() => {
+        navigator.clipboard?.writeText(PROFILE.email).then(
+          () => {
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 1600);
+          },
+          () => {}
+        );
+      }}
+      aria-label={t.contact.copyEmail}
+      style={{
+        marginLeft: 10,
+        padding: "2px 8px",
+        fontSize: "var(--text-mono-xs)",
+        letterSpacing: "var(--ls-tag)",
+        textTransform: "uppercase",
+        color: copied ? "var(--green)" : "var(--muted)",
+        border: "1px solid var(--hairline)",
+        borderRadius: "var(--r-tile)",
+        background: "var(--surface-overlay)",
+      }}
+    >
+      {copied ? t.contact.copied : t.contact.copyEmail}
+    </button>
+  );
+}
+
 function Contact({ mobile }: { mobile: boolean }) {
   const t = useT();
   const vw = useViewportWidth();
@@ -3502,6 +3740,7 @@ function Contact({ mobile }: { mobile: boolean }) {
               <div>
                 {t.contact.linkEmail}{"   "}
                 <span style={{ color: "var(--cyan)" }}>{PROFILE.email}</span>
+                <CopyEmailButton />
               </div>
               <div>
                 {t.contact.linkGithub}{"  "}
@@ -3539,20 +3778,118 @@ function Contact({ mobile }: { mobile: boolean }) {
         >
           <span style={{ color: "var(--cyan)" }}>{t.contact.connectionAlive}</span>
           <span>{t.contact.consoleVersion}</span>
-          <span>$ exit 0 · © 2026 ernesto cobos</span>
+          <span>
+            $ exit 0 · © {new Date().getFullYear()} ernesto cobos
+          </span>
         </div>
       </div>
     </section>
   );
 }
 
+/* ─── Social proof strip ─────────────────────────────────── */
+/** Slim metrics band between hero and nav. It doubles as the "next
+ * section peek" under the fold-breaking hero — real numbers from
+ * portfolio-data, counted up when scrolled into view. */
+function ProofStrip({ mobile }: { mobile: boolean }) {
+  const t = useT();
+  const sinceYear = parseInt(t.about.since, 10) || 2017;
+  const stats = [
+    { v: Math.max(1, new Date().getFullYear() - sinceYear), label: t.proof.years, suffix: "+" },
+    { v: PROJECTS.length, label: t.proof.projects },
+    { v: STACK.reduce((a, g) => a + g.items.length, 0), label: t.proof.tools },
+    { v: CERTIFICATIONS.length, label: t.proof.certs },
+  ];
+  return (
+    <section
+      aria-label={t.proof.aria}
+      style={{
+        borderTop: "1px solid var(--hairline)",
+        borderBottom: "1px solid var(--hairline)",
+        background: "#08080C",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 1280,
+          margin: "0 auto",
+          display: "grid",
+          gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(4, 1fr)",
+        }}
+      >
+        {stats.map((s, i) => (
+          <div
+            key={s.label}
+            style={{
+              padding: mobile ? "18px 16px" : "22px 32px",
+              borderLeft: i % (mobile ? 2 : 4) !== 0 ? "1px solid var(--hairline)" : "none",
+              borderTop: mobile && i >= 2 ? "1px solid var(--hairline)" : "none",
+            }}
+          >
+            <div
+              className="mono"
+              style={{
+                fontSize: mobile ? 24 : 30,
+                fontWeight: 500,
+                color: "var(--cyan)",
+                letterSpacing: "-0.02em",
+                lineHeight: 1,
+                marginBottom: 6,
+              }}
+            >
+              <CountUp value={s.v} />
+              {s.suffix && <span style={{ color: "var(--violet)" }}>{s.suffix}</span>}
+            </div>
+            <div
+              className="mono"
+              style={{
+                fontSize: "var(--text-mono-xs)",
+                color: "var(--muted)",
+                textTransform: "uppercase",
+                letterSpacing: "var(--ls-tag)",
+              }}
+            >
+              {s.label}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ─── Intro veil (one-shot cinematic boot) ───────────────── */
+/** Port of /start's StartIntro. A pre-paint script in RootHead adds
+ * `intro-boot` to <html> once per session (skipped entirely under
+ * reduced motion); this renders the black veil and drops the class on
+ * animationend so hover/fixed behavior returns to normal. No class →
+ * component is inert and invisible. */
+function IntroVeil() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const root = document.documentElement;
+    if (!root.classList.contains("intro-boot")) return;
+    const el = ref.current;
+    const finish = () => root.classList.remove("intro-boot");
+    el?.addEventListener("animationend", finish, { once: true });
+    const safety = window.setTimeout(finish, 2400);
+    return () => {
+      el?.removeEventListener("animationend", finish);
+      window.clearTimeout(safety);
+    };
+  }, []);
+  return <div ref={ref} aria-hidden className="intro-veil" />;
+}
+
 /* ─── Root ───────────────────────────────────────────────── */
 export default function Portfolio({ posts }: { posts: Post[] }) {
   const mobile = useIsMobile();
   return (
-    <div className="cobos-art">
+    <div className="cobos-art" id="main-scene">
       <span id="top" aria-hidden style={{ position: "absolute" }} />
+      <IntroVeil />
       <Hero mobile={mobile} />
+      <ProofStrip mobile={mobile} />
       <Nav mobile={mobile} />
       <About mobile={mobile} />
       <Stack mobile={mobile} />
@@ -3564,6 +3901,7 @@ export default function Portfolio({ posts }: { posts: Post[] }) {
       <Blog mobile={mobile} posts={posts} />
       <Approach mobile={mobile} />
       <Contact mobile={mobile} />
+      <div className="film-grain" aria-hidden />
       {LiveTerminal && <LiveTerminal />}
     </div>
   );

@@ -3,19 +3,31 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { Architecture } from "./architectures";
 
-export function useTicker(enabled: boolean = true) {
+/**
+ * rAF ticker driving slow ambient motion (waves, pulses, gauge wobble).
+ * `fps` caps the setState rate — these visuals are gentle sines, so
+ * 20–24fps is indistinguishable from 60 while cutting React reconciliation
+ * to a fraction of the work. Callers that truly need frame-precision
+ * (nothing left does) can pass 60.
+ */
+export function useTicker(enabled: boolean = true, fps: number = 60) {
   const [t, setT] = useState(0);
   useEffect(() => {
     if (!enabled) return;
     let raf = 0;
+    let last = 0;
+    const minDelta = 1000 / Math.max(1, Math.min(fps, 60));
     const start = performance.now();
     const loop = (now: number) => {
-      setT((now - start) / 1000);
+      if (now - last >= minDelta) {
+        last = now;
+        setT((now - start) / 1000);
+      }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [enabled]);
+  }, [enabled, fps]);
   return enabled ? t : 0;
 }
 
@@ -151,7 +163,7 @@ export function IsoCloud({
   size?: number;
   animate?: boolean;
 }) {
-  const t = useTicker(animate);
+  const t = useTicker(animate, 24); // slow wave — 24fps is plenty
   const cells: { x: number; z: number; h: number; op: number }[] = [];
   const W = 6;
   for (let z = 0; z < W; z++) {
@@ -220,7 +232,7 @@ export function ArchDiagram({
   compact?: boolean;
   animate?: boolean;
 }) {
-  const t = useTicker(animate);
+  const t = useTicker(animate, 20); // slow pulses — no need for 60fps diffs of the whole SVG
   const W = compact ? 360 : 920;
   const H = compact ? 260 : 560;
   const pulse = 0.5 + 0.5 * Math.sin(t * 2.4);
