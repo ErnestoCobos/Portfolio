@@ -25,6 +25,18 @@ import { NextRequest, NextResponse } from "next/server";
  */
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  const host = req.headers.get("host") ?? "";
+
+  // start.cobos.io → /start subtree. Host-based rewrite (not redirect) so
+  // the URL stays clean. Matched paths on that host serve the start page;
+  // on the main host this branch never fires. Local testing: /start works
+  // directly on localhost without any host trickery.
+  if (host.startsWith("start.")) {
+    const url = req.nextUrl.clone();
+    url.pathname = pathname === "/" ? "/start" : `/start${pathname}`;
+    return NextResponse.rewrite(url);
+  }
+
   const cookieLocale = req.cookies.get("locale")?.value;
 
   if (pathname === "/" && cookieLocale === "en") {
@@ -41,8 +53,10 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  // Only run on the two paths that can be cookie-redirected. Skipping
-  // every other request means proxy adds zero latency to /blog,
+  // Only run on the paths that need logic: the two locale-redirect paths,
+  // plus every start-host entry point (the start page is a single screen,
+  // so "/" covers it; "/start" stays reachable directly for local dev).
+  // Skipping everything else means proxy adds zero latency to /blog,
   // /en/blog, RSS, sitemap, etc.
-  matcher: ["/", "/en"],
+  matcher: ["/", "/en", "/start"],
 };

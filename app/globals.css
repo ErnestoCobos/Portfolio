@@ -667,3 +667,12 @@ textarea:focus-visible {
     animation: none !important;
   }
 }
+
+/* ─── start.cobos.io ───────────────────────────────────────── */
+/* The "⏎ google" hint crowds the search line on narrow screens —
+ * drop it below 640px; the input placeholder already says enough. */
+@media (max-width: 640px) {
+  .start-hint {
+    display: none;
+  }
+}
