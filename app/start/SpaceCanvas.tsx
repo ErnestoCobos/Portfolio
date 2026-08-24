@@ -6,30 +6,52 @@ import { useEffect, useRef } from "react";
  * SpaceCanvas — full-viewport cinematic background for start.cobos.io.
  *
  * One canvas, one rAF loop, layers:
- *   1. Parallax starfield — 3 depth layers drifting left, each star
- *      twinkling on its own phase.
- *   2. Nebulae — two vast soft color clouds (cool indigo + warm ember)
- *      that breathe slowly, giving the void depth.
- *   3. Shooting stars — rare, fast meteors streaking across the upper
- *      sky. A cinematic surprise, not noise.
- *   4. "Gargantua" — a black hole rendered the Interstellar way: edge-on
- *      accretion disk (bright amber, dashed strokes rotating via
- *      lineDashOffset), the far side of the disk lensed into arcs above and
- *      below the horizon, black event horizon, and a thin photon ring.
+ *   1. Milky Way — a faint diagonal galactic band behind everything.
+ *   2. Nebulae — two vast soft color clouds that breathe slowly.
+ *   3. Parallax starfield — 3 depth layers with temperature-graded colors
+ *      (blue-white dwarfs → warm giants), drifting and twinkling.
+ *   4. Shooting stars — rare, fast meteors across the upper sky.
+ *   5. "Gargantua" — rendered the Interstellar way: volumetric accretion
+ *      disk built from additive plasma layers, Doppler beaming (the
+ *      approaching side burns white-amber, the receding side sinks to
+ *      deep red), multi-frequency turbulence flicker, lensed arcs over
+ *      and under the horizon, black event horizon, photon ring, and a
+ *      subtle anamorphic lens flare streaking through the frame.
+ *   6. ISS — the real station crossing the top of the sky.
+ *   7. La tripulación — quiet silhouettes at the bottom, backlit by the
+ *      disk's amber rim light; a lone firefly drifts among them.
+ *
+ * Camera: pointer position drives a smoothed parallax (lerped each
+ * frame); when idle (or on touch devices) the camera drifts on a slow
+ * Lissajous path — a ship's travelling shot. Depth is encoded by how
+ * much each layer shifts: far stars barely move, Gargantua sweeps most.
  *
  * Performance + a11y notes:
- *   - DPR-aware, capped at 2x. Gradients rebuilt per frame are cheap enough
- *     at one canvas; shadowBlur is avoided (it's the slow path) in favor of
- *     radial-gradient glows.
- *   - prefers-reduced-motion → renders a single static frame, no loop.
+ *   - DPR-aware, capped at 2x. No shadowBlur anywhere; glow comes from
+ *     radial gradients and additive compositing ("lighter"), which reset
+ *     per block.
+ *   - prefers-reduced-motion → renders a single static frame, no loop,
+ *     no parallax.
  *   - Pauses when the tab is hidden (visibilitychange).
  *
  * Real telemetry props (server-fetched, with sane fallbacks):
  *   - wind: solar wind speed (km/s) → disk spin + starfield drift
- *   - kp: geomagnetic K-index (0–9) → glow/lens intensity
- *   - issLat: real ISS latitude → a small satellite crossing the top
- *     of the sky, altitude band follows latitude.
+ *   - kp: geomagnetic K-index (0–9) → glow/flare intensity
+ *   - issLat: real ISS latitude → altitude band of the crossing satellite
  */
+
+/** Volumetric disk profile — radii/widths in units of R (event horizon),
+ * base alpha per layer. Inner layers are hotter and brighter. */
+const DISK_LAYERS = [
+  { r: 2.92, w: 0.3, a: 0.085 },
+  { r: 2.68, w: 0.26, a: 0.14 },
+  { r: 2.42, w: 0.22, a: 0.22 },
+  { r: 2.16, w: 0.185, a: 0.32 },
+  { r: 1.9, w: 0.145, a: 0.44 },
+  { r: 1.66, w: 0.105, a: 0.58 },
+  { r: 1.44, w: 0.07, a: 0.72 },
+] as const;
+
 export function SpaceCanvas({
   wind = 420,
   kp = 2,
@@ -56,28 +78,39 @@ export function SpaceCanvas({
     let dpr = 1;
     let t = Math.random() * 100; // desync dash phase across reloads
 
-    type Star = { x: number; y: number; z: number; r: number; phase: number };
+    // ── Camera parallax ─────────────────────────────────────────
+    // Target from the pointer (-1..1), smoothed every frame. `lastInput`
+    // timestamps the last pointer move; after ~4s idle (or on touch-only
+    // devices that never fire it) the camera wanders on its own.
+    let mx = 0;
+    let my = 0;
+    let px = 0;
+    let py = 0;
+    let lastInput = -10;
+    const onPointer = (e: MouseEvent) => {
+      mx = (e.clientX / window.innerWidth) * 2 - 1;
+      my = (e.clientY / window.innerHeight) * 2 - 1;
+      lastInput = t;
+    };
+    window.addEventListener("mousemove", onPointer);
+
+    type Star = { x: number; y: number; z: number; r: number; phase: number; col: string };
     let stars: Star[] = [];
 
     // ── Nebulae ──────────────────────────────────────────────────
-    // Two slow, vast color clouds that give the void depth — a cool
-    // indigo drift to the left of Gargantua and a warm ember wash to
-    // the right. Recomputed only on resize; opacity breathes in draw().
     type Nebula = { x: number; y: number; rx: number; ry: number; hue: string };
     let nebulae: Nebula[] = [];
 
     // ── Shooting stars ────────────────────────────────────────────
-    // Occasional meteors streak across the upper sky. Rare and short-
-    // lived so they stay a cinematic surprise, not noise.
     type Meteor = {
       x: number;
       y: number;
       vx: number;
       vy: number;
-      life: number; // 0..1, fades as it flies
+      life: number;
       len: number;
     };
-    let meteors: Meteor[] = [];
+    const meteors: Meteor[] = [];
 
     const resize = () => {
       dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -87,14 +120,21 @@ export function SpaceCanvas({
       canvas.height = Math.round(h * dpr);
       canvas.style.width = `${w}px`;
       canvas.style.height = `${h}px`;
-      const count = Math.round((w * h) / 6500); // density scales with viewport
-      stars = Array.from({ length: count }, () => ({
-        x: Math.random() * w,
-        y: Math.random() * h,
-        z: 0.25 + Math.random() * 0.75,
-        r: 0.4 + Math.random() * 1.2,
-        phase: Math.random() * Math.PI * 2,
-      }));
+      const count = Math.round((w * h) / 6500);
+      stars = Array.from({ length: count }, () => {
+        const z = 0.25 + Math.random() * 0.75;
+        // Temperature-graded color: far dwarfs burn blue-white, near
+        // giants glow amber — like a real color-magnitude diagram.
+        const col = z > 0.8 ? "#ffe2b8" : z > 0.55 ? "#f4f2ee" : "#cfe0ff";
+        return {
+          x: Math.random() * w,
+          y: Math.random() * h,
+          z,
+          r: 0.4 + Math.random() * 1.2,
+          phase: Math.random() * Math.PI * 2,
+          col,
+        };
+      });
       nebulae = [
         {
           x: w * 0.26,
@@ -106,8 +146,8 @@ export function SpaceCanvas({
         {
           x: w * 0.78,
           y: h * 0.22,
-          rx: Math.max(w, h) * 0.30,
-          ry: Math.max(w, h) * 0.20,
+          rx: Math.max(w, h) * 0.3,
+          ry: Math.max(w, h) * 0.2,
           hue: "200,110,90",
         },
       ];
@@ -117,7 +157,6 @@ export function SpaceCanvas({
 
     /** Spawn a meteor occasionally — descends left-to-right, fast. */
     const maybeSpawnMeteor = () => {
-      // ~1 in 240 frames on average → roughly one every few seconds.
       if (Math.random() > 0.0042 || meteors.length > 2) return;
       const startX = Math.random() * w * 0.7;
       meteors.push({
@@ -143,11 +182,17 @@ export function SpaceCanvas({
       ctx.ellipse(cx, cy, rx, rx * tilt, 0, a0, a1);
     };
 
+    /** Multi-frequency turbulence — sum of slow sines reads as churning
+     * plasma; random per-frame noise would just look like a glitch. */
+    const flicker = (i: number) =>
+      0.82 +
+      0.1 * Math.sin(t * 2.1 + i * 1.7) +
+      0.08 * Math.sin(t * 4.3 + i * 2.9);
+
     // ── La tripulación ──────────────────────────────────────────
-    // Xolo mediano café, sphynx gris azulado y chihuahua blanco —
-    // side-profile sprites with breed-accurate proportions, muted
-    // palette and calm idle motion (breathing, tail sway, ear twitch).
-    // They only hop when the little star drifts close — quiet crew.
+    // Silhouettes first: muted, darker palette so they read as shapes
+    // against the void, backlit by a faint amber rim from the disk.
+    // Calm idle only — breath, tail sway, ear twitch. No hops.
     type PetSpec = {
       dx: number; // slot: -1 left, 0 center, 1 right
       size: number; // torso length unit
@@ -158,48 +203,62 @@ export function SpaceCanvas({
       earH: number; // ear height factor
       tail: "low" | "whip" | "sickle";
       phase: number;
-      jump: number;
     };
     const pets: PetSpec[] = [
-      // xolo — mediano, café, piernas largas y elegantes
-      { dx: -1, size: 34, legRatio: 0.38, body: "#7d5c42", shade: "#644832", earIn: "#a5795f", earH: 1.1, tail: "low", phase: 0.0, jump: 6 },
-      // chihuahua — blanco, chiquito, orejas enormes
-      { dx: 0, size: 22, legRatio: 0.32, body: "#ded9cd", shade: "#c3bcae", earIn: "#d9aca3", earH: 1.5, tail: "sickle", phase: 1.9, jump: 12 },
-      // sphynx — gris azulado oscuro, esbelto
-      { dx: 1, size: 30, legRatio: 0.34, body: "#68768c", shade: "#55617a", earIn: "#9d7d88", earH: 1.2, tail: "whip", phase: 3.6, jump: 5 },
+      // xolo — mediano, café oscuro, piernas largas
+      { dx: -1, size: 24, legRatio: 0.38, body: "#463527", shade: "#372a1f", earIn: "#57432f", earH: 1.1, tail: "low", phase: 0.0 },
+      // chihuahua — claro apagado, chiquito, orejas enormes
+      { dx: 0, size: 16, legRatio: 0.32, body: "#8f887a", shade: "#766f63", earIn: "#6d5d55", earH: 1.5, tail: "sickle", phase: 1.9 },
+      // sphynx — gris azulado profundo, esbelto
+      { dx: 1, size: 21, legRatio: 0.34, body: "#3b4556", shade: "#303947", earIn: "#4c3f46", earH: 1.2, tail: "whip", phase: 3.6 },
     ];
+
+    /** Torso silhouette as a reusable path (filled dark, stroked as rim). */
+    const torsoPath = (
+      x: number,
+      dir: number,
+      bodyY: number,
+      bodyH: number,
+      L: number,
+      breath: number
+    ) => {
+      ctx.beginPath();
+      ctx.moveTo(x - dir * L * 0.44, bodyY - bodyH * 0.55);
+      ctx.quadraticCurveTo(x - dir * L * 0.1, bodyY - bodyH * 1.02 * breath, x + dir * L * 0.38, bodyY - bodyH * 0.72);
+      ctx.quadraticCurveTo(x + dir * L * 0.5, bodyY - bodyH * 0.35, x + dir * L * 0.34, bodyY + bodyH * 0.02);
+      ctx.quadraticCurveTo(x, bodyY + bodyH * 0.24 * breath, x - dir * L * 0.36, bodyY);
+      ctx.quadraticCurveTo(x - dir * L * 0.5, bodyY - bodyH * 0.2, x - dir * L * 0.44, bodyY - bodyH * 0.55);
+      ctx.closePath();
+    };
 
     const drawPet = (
       p: PetSpec,
       groundY: number,
       spacing: number,
       ps: number,
-      ballX: number
+      flyX: number
     ) => {
       const L = p.size * ps;
       const x = w / 2 + p.dx * spacing;
-      const dir = ballX >= x ? 1 : -1; // face the star
+      const dir = flyX >= x ? 1 : -1; // gently track the firefly
       const legH = L * p.legRatio;
-      const bodyH = L * 0.34; // torso depth
-      // hops only when the star is nearby — calm idle otherwise
-      const near = Math.abs(ballX - x) < spacing * 0.55;
-      const hop = near ? Math.abs(Math.sin(t * 1.7 + p.phase)) * p.jump * ps : 0;
-      const gy = groundY - hop; // foot line
-      const bodyY = gy - legH; // belly line
+      const bodyH = L * 0.34;
+      const gy = groundY;
+      const bodyY = gy - legH;
       const breath = 1 + Math.sin(t * 1.9 + p.phase) * 0.02;
 
       // soft ground shadow
-      ctx.globalAlpha = 0.18 * (1 - hop / 30);
+      ctx.globalAlpha = 0.16;
       ctx.fillStyle = "#000";
       ctx.beginPath();
       ctx.ellipse(x, groundY + 1.5 * ps, L * 0.5, L * 0.07, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.globalAlpha = 0.92;
+      ctx.globalAlpha = 0.94;
 
-      // legs — two-segment quadratic, far pair darker, slight gait
+      // legs — two-segment quadratic, far pair darker, subtle weight shift
       const shoulderX = x + dir * L * 0.32;
       const hipX = x - dir * L * 0.3;
-      const gait = hop > 0 ? Math.sin(t * 5 + p.phase) * L * 0.06 : 0;
+      const shift = Math.sin(t * 0.8 + p.phase) * L * 0.012;
       const leg = (rootX: number, footDx: number, color: string) => {
         ctx.strokeStyle = color;
         ctx.lineWidth = L * 0.06;
@@ -209,7 +268,7 @@ export function SpaceCanvas({
         ctx.quadraticCurveTo(
           rootX + footDx * 0.4 + dir * L * 0.02,
           bodyY + legH * 0.55,
-          rootX + footDx + gait,
+          rootX + footDx + shift,
           gy
         );
         ctx.stroke();
@@ -244,16 +303,16 @@ export function SpaceCanvas({
       }
       ctx.stroke();
 
-      // torso — one closed silhouette: rump → back → chest → belly
+      // torso — filled silhouette…
       ctx.fillStyle = p.body;
-      ctx.beginPath();
-      ctx.moveTo(x - dir * L * 0.44, bodyY - bodyH * 0.55);
-      ctx.quadraticCurveTo(x - dir * L * 0.1, bodyY - bodyH * 1.02 * breath, x + dir * L * 0.38, bodyY - bodyH * 0.72);
-      ctx.quadraticCurveTo(x + dir * L * 0.5, bodyY - bodyH * 0.35, x + dir * L * 0.34, bodyY + bodyH * 0.02);
-      ctx.quadraticCurveTo(x, bodyY + bodyH * 0.24 * breath, x - dir * L * 0.36, bodyY);
-      ctx.quadraticCurveTo(x - dir * L * 0.5, bodyY - bodyH * 0.2, x - dir * L * 0.44, bodyY - bodyH * 0.55);
-      ctx.closePath();
+      torsoPath(x, dir, bodyY, bodyH, L, breath);
       ctx.fill();
+
+      // …backlit by the disk: faint amber rim along the outline
+      ctx.strokeStyle = "rgba(255,178,102,.14)";
+      ctx.lineWidth = 1;
+      torsoPath(x, dir, bodyY, bodyH, L, breath);
+      ctx.stroke();
 
       // near legs over the torso
       leg(hipX + L * 0.02, L * 0.02, p.body); // near hind
@@ -322,6 +381,16 @@ export function SpaceCanvas({
 
     const draw = () => {
       t += 0.016;
+
+      // ── Camera smoothing ───────────────────────────────────────
+      // Pointer target while active; slow Lissajous wander when idle —
+      // the travelling shot of a ship that never fully stops.
+      const idle = reduced || t - lastInput > 4;
+      const targetX = idle ? Math.sin(t * 0.05) * 0.35 : mx;
+      const targetY = idle ? Math.cos(t * 0.037) * 0.22 : my;
+      px += (targetX - px) * 0.04;
+      py += (targetY - py) * 0.04;
+
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, w, h);
 
@@ -336,21 +405,36 @@ export function SpaceCanvas({
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, w, h);
 
+      // ── Milky Way ─────────────────────────────────────────────
+      // A rotated, squashed radial gradient reads as a galactic band
+      // without costing more than one fill. Barely there — depth cue.
+      ctx.save();
+      ctx.translate(w * 0.5 - px * 3, h * 0.42 - py * 2);
+      ctx.rotate(-0.32);
+      ctx.scale(1, 0.3);
+      const mw = ctx.createRadialGradient(0, 0, 0, 0, 0, Math.max(w, h) * 0.75);
+      mw.addColorStop(0, "rgba(178,192,232,.05)");
+      mw.addColorStop(0.42, "rgba(150,165,215,.034)");
+      mw.addColorStop(0.72, "rgba(212,172,140,.02)");
+      mw.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = mw;
+      ctx.fillRect(-w * 1.5, -h * 1.5, w * 3, h * 3);
+      ctx.restore();
+
       // ── Nebulae ───────────────────────────────────────────────
-      // Vast soft color clouds that give the void depth. Opacity
-      // breathes slowly so they feel alive, not pasted-on. Storm Kp
-      // nudges them slightly brighter to match the disk's mood.
       const nebBreath = 0.5 + 0.5 * Math.sin(t * 0.12);
       const nebKp = Math.min(kp * 0.004, 0.03);
       for (const n of nebulae) {
-        const g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.rx);
+        const nx = n.x - px * 7;
+        const ny = n.y - py * 4;
+        const g = ctx.createRadialGradient(nx, ny, 0, nx, ny, n.rx);
         const a = (0.05 + nebBreath * 0.035 + nebKp).toFixed(3);
         g.addColorStop(0, `rgba(${n.hue},${a})`);
         g.addColorStop(0.6, `rgba(${n.hue},${(Number(a) * 0.3).toFixed(3)})`);
         g.addColorStop(1, `rgba(${n.hue},0)`);
         ctx.fillStyle = g;
         ctx.save();
-        ctx.translate(n.x, n.y);
+        ctx.translate(nx, ny);
         ctx.scale(1, n.ry / n.rx);
         ctx.beginPath();
         ctx.arc(0, 0, n.rx, 0, Math.PI * 2);
@@ -383,24 +467,27 @@ export function SpaceCanvas({
         ctx.stroke();
       }
 
-      // ── Starfield (parallax drift + twinkle) ──────────────────
-      // Drift speed follows the real solar wind: calm sun → slow stars.
+      // ── Starfield (parallax drift + twinkle + temperature) ────
       const drift = 0.028 + wind * 0.00007;
       for (const s of stars) {
         s.x -= s.z * drift;
         if (s.x < -2) s.x = w + 2;
+        // Depth-encoded parallax: near stars sweep wider than far ones.
+        const f = 4 + s.z * s.z * 10;
+        const sx = s.x - px * f;
+        const sy = s.y - py * f * 0.6;
         const tw = 0.5 + 0.5 * Math.sin(t * (0.5 + s.z * 1.2) + s.phase);
         ctx.globalAlpha = tw * (0.25 + s.z * 0.75);
-        ctx.fillStyle = s.z > 0.82 ? "#e6eeff" : "#93a5c9";
+        ctx.fillStyle = s.col;
         ctx.beginPath();
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.arc(sx, sy, s.r, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.globalAlpha = 1;
 
       // ── Gargantua ─────────────────────────────────────────────
-      const cx = w / 2;
-      const cy = h * (w < 640 ? 0.24 : 0.3);
+      const cx = w / 2 - px * 16;
+      const cy = h * (w < 640 ? 0.24 : 0.3) - py * 10;
       const R = Math.max(54, Math.min(w, h) * 0.13); // horizon radius
       const diskRx = R * 2.9;
       const diskTilt = 0.16; // edge-on flattening
@@ -419,34 +506,51 @@ export function SpaceCanvas({
 
       ctx.lineCap = "round";
 
-      // 1) FAR side of the disk (top half of the flat ellipse) — behind
-      //    the horizon. Dim red-orange, rotating with the disk. Only the
-      //    widest stroke is dashed (subtle plasma texture); inner strokes
-      //    stay solid so the disk reads as a continuous glow, not pills.
+      // Doppler beaming — plasma orbiting at relativistic speed beams
+      // brighter where it approaches (left), dimmer where it recedes
+      // (right). Encoded once as linear gradients across the disk.
+      const nearGrad = ctx.createLinearGradient(cx - diskRx, cy, cx + diskRx, cy);
+      nearGrad.addColorStop(0, "rgba(255,240,214,1)");
+      nearGrad.addColorStop(0.22, "rgba(255,196,110,1)");
+      nearGrad.addColorStop(0.55, "rgba(255,150,64,1)");
+      nearGrad.addColorStop(0.8, "rgba(212,84,36,1)");
+      nearGrad.addColorStop(1, "rgba(150,52,26,1)");
       const farGrad = ctx.createLinearGradient(cx - diskRx, cy, cx + diskRx, cy);
-      farGrad.addColorStop(0, "rgba(120,40,20,.55)");
-      farGrad.addColorStop(0.5, "rgba(255,120,50,.8)");
-      farGrad.addColorStop(1, "rgba(120,40,20,.55)");
+      farGrad.addColorStop(0, "rgba(255,190,130,1)");
+      farGrad.addColorStop(0.4, "rgba(255,130,60,.85)");
+      farGrad.addColorStop(0.75, "rgba(190,70,35,.7)");
+      farGrad.addColorStop(1, "rgba(120,40,22,.6)");
+
+      ctx.globalCompositeOperation = "lighter";
+
+      // 1) FAR side of the disk (top half of the flat ellipse) — behind
+      //    the horizon. Dimmed, reddened half of the volumetric stack.
       ctx.strokeStyle = farGrad;
-      for (const [lw, alpha, dashed] of [[16, 0.35, true], [9, 0.6, false], [4, 0.9, false]] as const) {
-        ctx.globalAlpha = alpha;
-        ctx.lineWidth = lw;
-        ctx.setLineDash(dashed ? [64, 44] : []);
-        ctx.lineDashOffset = -spin;
-        ellipseArc(cx, cy, diskRx, diskTilt, Math.PI, Math.PI * 2);
+      for (let i = 0; i < DISK_LAYERS.length; i++) {
+        const l = DISK_LAYERS[i];
+        ctx.globalAlpha = l.a * 0.5 * flicker(i + 3);
+        ctx.lineWidth = l.w * R;
+        ellipseArc(cx, cy, l.r * R, diskTilt, Math.PI, Math.PI * 2);
         ctx.stroke();
       }
+      // one dashed highlight keeps the orbital motion readable
+      ctx.globalAlpha = 0.28;
+      ctx.lineWidth = R * 0.045;
+      ctx.setLineDash([60, 46]);
+      ctx.lineDashOffset = spin;
+      ellipseArc(cx, cy, R * 2.3, diskTilt, Math.PI, Math.PI * 2);
+      ctx.stroke();
       ctx.setLineDash([]);
 
-      // 2) Lensed arcs — the disk's far side bent over/under the horizon.
-      //    Two tight arcs hugging the sphere, brighter than the disk itself.
-      const lensGrad = ctx.createLinearGradient(cx, cy - R * 1.6, cx, cy + R * 1.6);
-      lensGrad.addColorStop(0, "rgba(255,214,150,.95)");
-      lensGrad.addColorStop(0.5, "rgba(255,150,60,.75)");
-      lensGrad.addColorStop(1, "rgba(255,214,150,.95)");
+      // 2) Lensed arcs — the disk's far side bent over/under the horizon,
+      //    with the same Doppler asymmetry.
+      const lensGrad = ctx.createLinearGradient(cx - R * 1.34, cy, cx + R * 1.34, cy);
+      lensGrad.addColorStop(0, "rgba(255,236,200,.95)");
+      lensGrad.addColorStop(0.5, "rgba(255,170,80,.7)");
+      lensGrad.addColorStop(1, "rgba(220,110,50,.55)");
       ctx.strokeStyle = lensGrad;
       ctx.setLineDash([]);
-      ctx.globalAlpha = Math.min(0.8 + kp * 0.03, 1); // storm-bright arcs
+      ctx.globalAlpha = Math.min(0.8 + kp * 0.03, 1);
       ctx.lineWidth = 5;
       ellipseArc(cx, cy, R * 1.34, 1, Math.PI * 1.15, Math.PI * 1.85); // top
       ctx.stroke();
@@ -455,8 +559,9 @@ export function SpaceCanvas({
       ellipseArc(cx, cy, R * 1.34, 1, Math.PI * 0.15, Math.PI * 0.85); // bottom
       ctx.stroke();
 
-      // 3) Event horizon — pure black, eats the center of everything drawn
-      //    behind it.
+      ctx.globalCompositeOperation = "source-over";
+
+      // 3) Event horizon — pure black, eats everything drawn behind it.
       ctx.globalAlpha = 1;
       ctx.setLineDash([]);
       ctx.fillStyle = "#000";
@@ -476,35 +581,57 @@ export function SpaceCanvas({
       ctx.arc(cx, cy, R * 1.05, 0, Math.PI * 2);
       ctx.stroke();
 
-      // 5) NEAR side of the disk (bottom half) — in front, hottest.
-      const nearGrad = ctx.createLinearGradient(cx - diskRx, cy, cx + diskRx, cy);
-      nearGrad.addColorStop(0, "rgba(150,50,20,.9)");
-      nearGrad.addColorStop(0.35, "rgba(255,190,90,1)");
-      nearGrad.addColorStop(0.5, "rgba(255,240,200,1)");
-      nearGrad.addColorStop(0.65, "rgba(255,190,90,1)");
-      nearGrad.addColorStop(1, "rgba(150,50,20,.9)");
+      // 5) NEAR side of the disk (bottom half) — in front, hottest, full
+      //    Doppler contrast, additive so layers fuse into plasma.
+      ctx.globalCompositeOperation = "lighter";
       ctx.strokeStyle = nearGrad;
-      for (const [lw, alpha, dashed] of [[18, 0.4, true], [10, 0.75, false], [4, 1, false]] as const) {
-        ctx.globalAlpha = alpha;
-        ctx.lineWidth = lw;
-        ctx.setLineDash(dashed ? [64, 44] : []);
-        ctx.lineDashOffset = -spin;
-        ellipseArc(cx, cy, diskRx, diskTilt, 0, Math.PI);
+      for (let i = 0; i < DISK_LAYERS.length; i++) {
+        const l = DISK_LAYERS[i];
+        ctx.globalAlpha = l.a * flicker(i);
+        ctx.lineWidth = l.w * R;
+        ellipseArc(cx, cy, l.r * R, diskTilt, 0, Math.PI);
         ctx.stroke();
       }
+      // dashed orbital highlight on the near side too
+      ctx.globalAlpha = 0.5;
+      ctx.strokeStyle = "rgba(255,220,160,.9)";
+      ctx.lineWidth = R * 0.035;
+      ctx.setLineDash([60, 46]);
+      ctx.lineDashOffset = -spin;
+      ellipseArc(cx, cy, R * 2.05, diskTilt, 0, Math.PI);
+      ctx.stroke();
       ctx.setLineDash([]);
+      ctx.globalCompositeOperation = "source-over";
       ctx.globalAlpha = 1;
 
+      // 6) Anamorphic flare — a horizontal blue-amber streak bleeding
+      //    through the frame, scaling with geomagnetic activity.
+      const fa = Math.min(0.06 + kpGlow * 0.35, 0.17);
+      const fx0 = cx - w * 0.42;
+      const fg = ctx.createLinearGradient(fx0, cy, cx + w * 0.42, cy);
+      fg.addColorStop(0, "rgba(91,227,216,0)");
+      fg.addColorStop(0.38, `rgba(120,190,205,${fa})`);
+      fg.addColorStop(0.5, `rgba(255,214,170,${Math.min(fa * 1.6, 0.28)})`);
+      fg.addColorStop(0.62, `rgba(120,190,205,${fa})`);
+      fg.addColorStop(1, "rgba(91,227,216,0)");
+      ctx.globalCompositeOperation = "lighter";
+      ctx.fillStyle = fg;
+      ctx.fillRect(fx0, cy - 1, w * 0.84, 2); // core line
+      ctx.globalAlpha = 0.4;
+      ctx.fillRect(fx0, cy - 5, w * 0.84, 10); // soft halo
+      ctx.globalAlpha = 0.18;
+      ctx.fillRect(fx0, cy - 13, w * 0.84, 26); // wide bloom
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+
       // ── ISS — la estación real cruzando el cielo ──────────────
-      // Crosses the top band every ~50s; its altitude band follows the
-      // real latitude (±51.6°) reported by wheretheiss.at.
       const issCross = 50; // seconds per screen crossing (visual)
-      const ix = ((t * (w + 240)) / issCross) % (w + 240) - 120;
+      const ix = (((t * (w + 240)) / issCross) % (w + 240)) - 120 - px * 5;
       const latN =
         issLat == null
           ? Math.sin(t * 0.08) // offline fallback: gentle wander
           : Math.max(-1, Math.min(1, issLat / 51.6));
-      const iy = h * 0.085 + latN * h * 0.045;
+      const iy = h * 0.085 + latN * h * 0.045 - py * 3;
       const iu = Math.max(0.6, Math.min(1, w / 1100)); // scale unit
 
       // faint trail
@@ -529,28 +656,31 @@ export function SpaceCanvas({
       ctx.fill();
       ctx.globalAlpha = 1;
 
-      // ── La tripulación — quiet idle at the bottom ─────────────
+      // ── La tripulación — quiet silhouettes at the bottom ──────
       const ps = Math.max(0.55, Math.min(1.05, Math.min(w, h) / 720));
       const groundY = h - Math.max(30, 34 * ps);
-      const spacing = Math.min(120 * ps, w * 0.21);
-      const ballX = w / 2 + Math.sin(t * 0.9) * spacing * 0.72;
-      const ballHop = Math.abs(Math.sin(t * 1.7 + 0.9)) * 18 * ps;
-      const ballY = groundY - 6 * ps - ballHop;
+      const spacing = Math.min(110 * ps, w * 0.2);
 
-      for (const p of pets) drawPet(p, groundY, spacing, ps, ballX);
+      // a lone firefly — dim ember wandering low over the deck
+      const flyX = w / 2 + Math.sin(t * 0.35) * spacing * 1.15 + Math.sin(t * 0.13) * 20 * ps;
+      const flyY =
+        groundY -
+        (16 + Math.sin(t * 0.5) * 6 + Math.sin(t * 1.1) * 3) * ps;
+      const pulse = 0.55 + 0.35 * Math.sin(t * 2.2);
 
-      // a tiny drifting star — dim, calm
-      const bl = ctx.createRadialGradient(ballX, ballY, 0, ballX, ballY, 8 * ps);
-      bl.addColorStop(0, "rgba(255,224,160,.7)");
-      bl.addColorStop(0.35, "rgba(255,170,80,.22)");
-      bl.addColorStop(1, "rgba(255,170,80,0)");
-      ctx.fillStyle = bl;
+      for (const p of pets) drawPet(p, groundY, spacing, ps, flyX);
+
+      const fl = ctx.createRadialGradient(flyX, flyY, 0, flyX, flyY, 7 * ps);
+      fl.addColorStop(0, `rgba(255,214,150,${pulse * 0.65})`);
+      fl.addColorStop(0.4, `rgba(255,160,80,${pulse * 0.2})`);
+      fl.addColorStop(1, "rgba(255,160,80,0)");
+      ctx.fillStyle = fl;
       ctx.beginPath();
-      ctx.arc(ballX, ballY, 8 * ps, 0, Math.PI * 2);
+      ctx.arc(flyX, flyY, 7 * ps, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = "rgba(255,240,214,.9)";
+      ctx.fillStyle = `rgba(255,235,200,${pulse})`;
       ctx.beginPath();
-      ctx.arc(ballX, ballY, 2.2 * ps, 0, Math.PI * 2);
+      ctx.arc(flyX, flyY, 1.5 * ps, 0, Math.PI * 2);
       ctx.fill();
     };
 
@@ -578,6 +708,7 @@ export function SpaceCanvas({
       running = false;
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
+      window.removeEventListener("mousemove", onPointer);
       document.removeEventListener("visibilitychange", onVisibility);
     };
     // Telemetry props refresh at most once per ISR window; when they do,

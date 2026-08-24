@@ -23,7 +23,15 @@ export const viewport: Viewport = {
  * Root layout for the start.cobos.io subtree. Owns its own <html>/<body>
  * like the per-locale layouts do. Deliberately thin: no JSON-LD, no
  * LocaleSwitcher, no RSS — this is a personal tool page, not content.
+ *
+ * The inline pre-paint script arms the cinematic intro (adds
+ * `start-intro-boot` to <html>) before first paint, so the black veil is
+ * there from frame zero — the same trick used for theme flash. It runs
+ * once per browser session (sessionStorage) and never under reduced
+ * motion.
  */
+const INTRO_BOOT_SCRIPT = `try{if(!sessionStorage.getItem("start-intro-seen")&&!matchMedia("(prefers-reduced-motion: reduce)").matches){document.documentElement.classList.add("start-intro-boot");sessionStorage.setItem("start-intro-seen","1")}}catch(e){}`;
+
 export default function StartLayout({
   children,
 }: Readonly<{
@@ -32,6 +40,7 @@ export default function StartLayout({
   return (
     <html lang="es" className={fontClassName}>
       <body>
+        <script dangerouslySetInnerHTML={{ __html: INTRO_BOOT_SCRIPT }} />
         {children}
         <Analytics />
         <SpeedInsights />

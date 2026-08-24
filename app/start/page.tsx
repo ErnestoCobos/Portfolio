@@ -3,6 +3,9 @@ import { SessionTimer } from "./SessionTimer";
 import { StartClock } from "./StartClock";
 import { StartSearch } from "./StartSearch";
 import { getSpaceData } from "./spaceData";
+import { StartIntro } from "./StartIntro";
+import { DecodeText } from "./DecodeText";
+import { CountUp } from "./CountUp";
 
 /** Re-check remote statuses at most once a minute (ISR), so the page stays
  * fast and cheap while the dots stay honest. */
@@ -85,10 +88,13 @@ async function checkStatus(domain: string): Promise<Status> {
   }
 }
 
+type PanelStyle = React.CSSProperties & { "--sweep-delay"?: string };
+
 /* Expanse-style ship console panel: hairline frame, tab label overlapping
  * the top border, corner tick. Content is whatever the panel carries.
- * Visual chrome (glass, hover light, corner ticks) lives in the .start-panel
- * CSS rule so :hover can override it; layout props stay here. */
+ * Visual chrome (glass, hover light, corner ticks, scanline sweep) lives
+ * in the .start-panel CSS rules so :hover can override it; layout props
+ * stay here. --sweep-delay staggers the one-shot scanline sweep. */
 function Panel({
   label,
   children,
@@ -96,7 +102,7 @@ function Panel({
 }: {
   label: string;
   children: React.ReactNode;
-  style?: React.CSSProperties;
+  style?: PanelStyle;
 }) {
   return (
     <section
@@ -153,6 +159,20 @@ const SOL = Math.floor(
   (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000
 );
 
+/** Dilatación temporal gravitatoria real (métrica de Schwarzschild) para
+ * una órbita circular a ~3 AU de un agujero negro de 4.31×10⁶ masas
+ * solares — la escala de Gargantua. Δt = 1/√(1 − rₛ/r): el guiño nerd
+ * bajo el reloj. Constante a nivel de módulo, coste cero en runtime. */
+const DILATION = (() => {
+  const M = 4.31e6 * 1.989e30; // kg
+  const G = 6.674e-11; // m³/kg·s²
+  const c = 299792458; // m/s
+  const rs = (2 * G * M) / (c * c); // radio de Schwarzschild ≈ 1.27e10 m
+  const r = 4.5e11; // órbita ~3 AU
+  return 1 / Math.sqrt(1 - rs / r);
+})();
+const DILATION_STR = `×${DILATION.toFixed(4)}`;
+
 export default async function StartPage() {
   const [statuses, space] = await Promise.all([
     Promise.all(STATUS_TARGETS.map(checkStatus)),
@@ -162,6 +182,7 @@ export default async function StartPage() {
 
   return (
     <main
+      id="start-scene"
       className="cobos-art"
       style={{
         minHeight: "100vh",
@@ -171,6 +192,7 @@ export default async function StartPage() {
         overflow: "hidden",
       }}
     >
+      <StartIntro />
       <SpaceCanvas wind={space.solarWind} kp={space.kp} issLat={space.iss?.lat ?? null} />
 
       {/* ── Atmosphere: vignette + filmic grain ────────────────────
@@ -200,7 +222,7 @@ export default async function StartPage() {
           cobos<span style={{ color: "var(--cyan)" }}>::</span>start
         </span>
         <span className="start-header-center" style={{ flex: 1, textAlign: "center" }}>
-          órbita estable · sol {SOL}
+          <DecodeText text={`órbita estable · sol ${SOL}`} />
         </span>
         <span
           aria-label={allUp ? "Todos los sistemas en línea" : "Hay sistemas con problemas"}
@@ -231,7 +253,10 @@ export default async function StartPage() {
         }}
       >
         {/* NAV — quicklinks */}
-        <Panel label="nav // destinos" style={{ animationDelay: "0.15s" }}>
+        <Panel
+          label="nav // destinos"
+          style={{ animationDelay: "0.15s", "--sweep-delay": "0.45s" }}
+        >
           <div
             style={{
               display: "grid",
@@ -266,7 +291,7 @@ export default async function StartPage() {
                     <li key={l.href}>
                       <a
                         href={l.href}
-                        className="mono tap"
+                        className="mono tap start-link"
                         style={{
                           display: "inline-flex",
                           alignItems: "center",
@@ -279,6 +304,7 @@ export default async function StartPage() {
                       >
                         <span
                           aria-hidden
+                          className="start-link-prefix"
                           style={{ color: "var(--meta)", fontSize: 11 }}
                         >
                           {i === g.links.length - 1 ? "└─" : "├─"}
@@ -301,6 +327,7 @@ export default async function StartPage() {
             flexDirection: "column",
             gap: 18,
             animationDelay: "0.3s",
+            "--sweep-delay": "0.6s",
           }}
         >
           <div
@@ -327,18 +354,28 @@ export default async function StartPage() {
               lineHeight: 1.8,
             }}
           >
-            Δv {space.iss ? space.iss.velKms.toFixed(2) : "7.66"} km/s ·
+            Δv <CountUp value={space.iss ? space.iss.velKms : 7.66} decimals={2} /> km/s ·
             inclinación 51.6° · enlace nominal
             <br />
-            {space.iss
-              ? `iss ${space.iss.lat.toFixed(1)}°, ${space.iss.lon.toFixed(1)}°`
-              : "iss señal perdida"}{" "}
+            {space.iss ? (
+              <>
+                iss <CountUp value={space.iss.lat} decimals={1} />°,{" "}
+                <CountUp value={space.iss.lon} decimals={1} />°
+              </>
+            ) : (
+              "iss señal perdida"
+            )}{" "}
             · {space.people} humanos en el espacio
+            <br />
+            Δt horizonte {DILATION_STR} · métrica de schwarzschild
           </div>
         </Panel>
 
         {/* SYSTEMS — status readouts */}
-        <Panel label="systems // telemetría" style={{ animationDelay: "0.45s" }}>
+        <Panel
+          label="systems // telemetría"
+          style={{ animationDelay: "0.45s", "--sweep-delay": "0.75s" }}
+        >
           <ul
             style={{
               listStyle: "none",
@@ -384,7 +421,7 @@ export default async function StartPage() {
                     fontSize: 11,
                   }}
                 >
-                  {s.code > 0 ? s.code : "down"} · {s.ms}ms
+                  {s.code > 0 ? s.code : "down"} · <CountUp value={s.ms} />ms
                 </span>
               </li>
             ))}
@@ -399,7 +436,8 @@ export default async function StartPage() {
               color: "var(--meta)",
             }}
           >
-            viento solar {space.solarWind} km/s · kp {space.kp.toFixed(1)}
+            viento solar {space.solarWind} km/s · kp{" "}
+            <CountUp value={space.kp} decimals={1} />
             <br />
             noaa swpc · wheretheiss.at · open-notify
           </div>
