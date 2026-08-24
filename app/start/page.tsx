@@ -1,3 +1,5 @@
+import { SpaceCanvas } from "./SpaceCanvas";
+import { SessionTimer } from "./SessionTimer";
 import { StartClock } from "./StartClock";
 import { StartSearch } from "./StartSearch";
 
@@ -82,6 +84,72 @@ async function checkStatus(domain: string): Promise<Status> {
   }
 }
 
+/* Expanse-style ship console panel: hairline frame, tab label overlapping
+ * the top border, corner tick. Content is whatever the panel carries. */
+function Panel({
+  label,
+  children,
+  style,
+}: {
+  label: string;
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <section
+      aria-label={label}
+      style={{
+        position: "relative",
+        border: "1px solid rgba(91,227,216,.22)",
+        background: "rgba(4,6,12,.58)",
+        backdropFilter: "blur(10px)",
+        WebkitBackdropFilter: "blur(10px)",
+        padding: "18px 18px 16px",
+        ...style,
+      }}
+    >
+      {/* corner ticks */}
+      {(
+        [
+          { top: -1, left: -1, borderTop: "1px solid #5BE3D8", borderLeft: "1px solid #5BE3D8" },
+          { top: -1, right: -1, borderTop: "1px solid #5BE3D8", borderRight: "1px solid #5BE3D8" },
+          { bottom: -1, left: -1, borderBottom: "1px solid #5BE3D8", borderLeft: "1px solid #5BE3D8" },
+          { bottom: -1, right: -1, borderBottom: "1px solid #5BE3D8", borderRight: "1px solid #5BE3D8" },
+        ] as const
+      ).map((s, i) => (
+        <span
+          key={i}
+          aria-hidden
+          style={{ position: "absolute", width: 10, height: 10, ...s }}
+        />
+      ))}
+      <span
+        className="mono"
+        style={{
+          position: "absolute",
+          top: -8,
+          left: 14,
+          padding: "0 8px",
+          background: "rgba(4,6,12,.9)",
+          fontSize: 10,
+          letterSpacing: "0.22em",
+          textTransform: "uppercase",
+          color: "#5BE3D8",
+        }}
+      >
+        {label}
+      </span>
+      {children}
+    </section>
+  );
+}
+
+// "Sol" decorativo: día del año, como conteo de misión. Module scope — se
+// calcula una vez por revalidación ISR, no por render (react-compiler rule).
+const SOL = Math.floor(
+  (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000
+);
+
 export default async function StartPage() {
   const statuses = await Promise.all(STATUS_TARGETS.map(checkStatus));
   const allUp = statuses.every((s) => s.ok);
@@ -92,280 +160,249 @@ export default async function StartPage() {
       style={{
         minHeight: "100vh",
         display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "40px 18px",
+        flexDirection: "column",
         position: "relative",
         overflow: "hidden",
       }}
     >
-      {/* Ambient halo — same accent rotation as the home hero, dimmer. */}
-      <div
-        aria-hidden
-        style={{
-          position: "absolute",
-          inset: "5% -10%",
-          background:
-            "radial-gradient(ellipse at 70% 15%, rgba(0,212,255,.14), transparent 55%), radial-gradient(ellipse at 15% 85%, rgba(124,58,237,.15), transparent 55%)",
-          pointerEvents: "none",
-        }}
-      />
-      <div
-        aria-hidden
-        style={{
-          position: "absolute",
-          inset: 0,
-          backgroundImage:
-            "linear-gradient(var(--surface-soft) 1px, transparent 1px), linear-gradient(90deg, var(--surface-soft) 1px, transparent 1px)",
-          backgroundSize: "48px 48px",
-          maskImage:
-            "radial-gradient(ellipse at center, #000 25%, transparent 75%)",
-          WebkitMaskImage:
-            "radial-gradient(ellipse at center, #000 25%, transparent 75%)",
-          pointerEvents: "none",
-        }}
-      />
+      <SpaceCanvas />
 
-      {/* Terminal window */}
+      {/* ── Header strip ─────────────────────────────────────── */}
+      <header
+        className="mono"
+        style={{
+          position: "relative",
+          zIndex: 2,
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+          padding: "14px 20px",
+          fontSize: 11,
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          color: "var(--meta)",
+          borderBottom: "1px solid rgba(91,227,216,.12)",
+        }}
+      >
+        <span style={{ color: "var(--fg)" }}>
+          cobos<span style={{ color: "var(--cyan)" }}>::</span>start
+        </span>
+        <span className="start-header-center" style={{ flex: 1, textAlign: "center" }}>
+          órbita estable · sol {SOL}
+        </span>
+        <span
+          aria-label={allUp ? "Todos los sistemas en línea" : "Hay sistemas con problemas"}
+          style={{ color: allUp ? "#5BE3D8" : "#ff5f57" }}
+        >
+          ● {allUp ? "all systems go" : "degraded"}
+        </span>
+      </header>
+
+      {/* Spacer: the black hole lives in this visual band (canvas behind) */}
+      <div aria-hidden style={{ flex: "0 0 clamp(300px, 42vh, 460px)" }} />
+
+      {/* ── Console panels ───────────────────────────────────── */}
       <div
         style={{
           position: "relative",
+          zIndex: 2,
           width: "100%",
-          maxWidth: 780,
-          border: "1px solid var(--hairline-strong)",
-          borderRadius: 14,
-          overflow: "hidden",
-          background: "rgba(6,6,10,.82)",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
-          boxShadow:
-            "0 30px 80px rgba(0,0,0,.5), 0 0 80px rgba(0,212,255,.08)",
+          maxWidth: 1120,
+          margin: "0 auto",
+          padding: "0 18px 18px",
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gap: 22,
+          flex: 1,
+          alignContent: "start",
         }}
       >
-        {/* Window chrome */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "12px 16px",
-            borderBottom: "1px solid var(--hairline)",
-            background: "var(--surface-overlay)",
-          }}
-        >
-          <span
-            aria-hidden
+        {/* NAV — quicklinks */}
+        <Panel label="nav // destinos">
+          <div
             style={{
-              width: 12,
-              height: 12,
-              borderRadius: "var(--r-chip)",
-              background: "#444",
-            }}
-          />
-          <span
-            aria-hidden
-            style={{
-              width: 12,
-              height: 12,
-              borderRadius: "var(--r-chip)",
-              background: "#444",
-            }}
-          />
-          <span
-            aria-hidden
-            style={{
-              width: 12,
-              height: 12,
-              borderRadius: "var(--r-chip)",
-              background: "var(--cyan)",
-              boxShadow: "0 0 12px var(--cyan)",
-            }}
-          />
-          <span
-            className="mono"
-            style={{
-              fontSize: 12,
-              color: "var(--muted)",
-              marginLeft: 12,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(118px, 1fr))",
+              gap: "12px 14px",
             }}
           >
-            start.cobos.io — zsh
-          </span>
-          <span
-            className="mono"
-            aria-label={allUp ? "Todos los sistemas en línea" : "Hay sistemas con problemas"}
-            style={{
-              marginLeft: "auto",
-              fontSize: 12,
-              color: allUp ? "var(--cyan)" : "#ff5f57",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              flexShrink: 0,
-            }}
-          >
-            ● {allUp ? "all systems go" : "degraded"}
-          </span>
-        </div>
+            {GROUPS.map((g) => (
+              <div key={g.dir}>
+                <div
+                  className="mono"
+                  style={{
+                    color: "var(--violet)",
+                    fontSize: 11,
+                    letterSpacing: "0.1em",
+                    marginBottom: 6,
+                  }}
+                >
+                  {g.dir}
+                </div>
+                <ul
+                  style={{
+                    listStyle: "none",
+                    margin: 0,
+                    padding: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 3,
+                  }}
+                >
+                  {g.links.map((l, i) => (
+                    <li key={l.href}>
+                      <a
+                        href={l.href}
+                        className="mono tap"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 7,
+                          padding: "2px 5px",
+                          borderRadius: 4,
+                          color: "var(--fg)",
+                          fontSize: 12,
+                        }}
+                      >
+                        <span
+                          aria-hidden
+                          style={{ color: "var(--meta)", fontSize: 11 }}
+                        >
+                          {i === g.links.length - 1 ? "└─" : "├─"}
+                        </span>
+                        {l.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </Panel>
 
-        <div
-          className="mono"
-          style={{
-            padding: "22px 22px 26px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 26,
-            fontSize: 14,
-          }}
+        {/* COMMS — search + date */}
+        <Panel
+          label="comms // uplink"
+          style={{ display: "flex", flexDirection: "column", gap: 18 }}
         >
-          {/* $ date */}
-          <div style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
+          <div
+            className="mono"
+            style={{
+              display: "flex",
+              gap: 10,
+              alignItems: "baseline",
+              fontSize: 12,
+            }}
+          >
             <span style={{ color: "var(--cyan)", flexShrink: 0 }}>$ date</span>
             <StartClock />
           </div>
-
-          {/* $ search */}
           <StartSearch />
+          <div
+            className="mono"
+            aria-hidden
+            style={{
+              marginTop: "auto",
+              fontSize: 10,
+              letterSpacing: "0.08em",
+              color: "var(--meta)",
+              lineHeight: 1.8,
+            }}
+          >
+            Δv 0.00 km/s · inclinación 51.6° · enlace nominal
+            <br />
+            gargantua sys · third manif. · cobos-1 en estación
+          </div>
+        </Panel>
 
-          {/* $ ls ./quicklinks */}
-          <nav aria-label="Links rápidos">
-            <div style={{ color: "var(--cyan)", marginBottom: 10 }}>
-              $ ls <span style={{ color: "var(--fg)" }}>./quicklinks</span>
-            </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-                gap: "14px 20px",
-              }}
-            >
-              {GROUPS.map((g) => (
-                <div key={g.dir}>
-                  <div style={{ color: "var(--violet)", marginBottom: 6 }}>
-                    {g.dir}
-                  </div>
-                  <ul
-                    style={{
-                      listStyle: "none",
-                      margin: 0,
-                      padding: 0,
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 4,
-                    }}
-                  >
-                    {g.links.map((l, i) => (
-                      <li key={l.href}>
-                        <a
-                          href={l.href}
-                          className="mono tap"
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 8,
-                            padding: "3px 6px",
-                            borderRadius: 4,
-                            color: "var(--fg)",
-                            fontSize: 13,
-                          }}
-                        >
-                          <span
-                            aria-hidden
-                            style={{ color: "var(--meta)", fontSize: 12 }}
-                          >
-                            {i === g.links.length - 1 ? "└──" : "├──"}
-                          </span>
-                          {l.label}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </nav>
-
-          {/* $ status */}
-          <div>
-            <div style={{ color: "var(--cyan)", marginBottom: 10 }}>
-              $ status <span style={{ color: "var(--meta)" }}>--watch 60s</span>
-            </div>
-            <ul
-              style={{
-                listStyle: "none",
-                margin: 0,
-                padding: 0,
-                display: "flex",
-                flexDirection: "column",
-                gap: 6,
-              }}
-            >
-              {statuses.map((s) => (
-                <li
-                  key={s.domain}
+        {/* SYSTEMS — status readouts */}
+        <Panel label="systems // telemetría">
+          <ul
+            style={{
+              listStyle: "none",
+              margin: 0,
+              padding: 0,
+              display: "flex",
+              flexDirection: "column",
+              gap: 7,
+            }}
+          >
+            {statuses.map((s) => (
+              <li
+                key={s.domain}
+                className="mono"
+                style={{
+                  display: "flex",
+                  alignItems: "baseline",
+                  gap: 10,
+                  fontSize: 12,
+                }}
+              >
+                <span
+                  aria-hidden
                   style={{
-                    display: "flex",
-                    alignItems: "baseline",
-                    gap: 10,
-                    fontSize: 13,
+                    color: s.ok ? "#5BE3D8" : "#ff5f57",
+                    textShadow: s.ok ? "0 0 8px rgba(91,227,216,.8)" : "none",
                   }}
                 >
-                  <span
-                    aria-hidden
-                    style={{
-                      color: s.ok ? "var(--cyan)" : "#ff5f57",
-                      textShadow: s.ok ? "0 0 8px var(--cyan)" : "none",
-                    }}
-                  >
-                    ●
-                  </span>
-                  <span style={{ color: "var(--fg)" }}>{s.domain}</span>
-                  <span
-                    aria-hidden
-                    style={{
-                      flex: 1,
-                      borderBottom: "1px dotted var(--hairline-strong)",
-                      transform: "translateY(-3px)",
-                    }}
-                  />
-                  <span
-                    style={{
-                      color: s.ok ? "var(--muted)" : "#ff5f57",
-                      fontSize: 12,
-                    }}
-                  >
-                    {s.code > 0 ? s.code : "down"} · {s.ms}ms
-                  </span>
-                </li>
-              ))}
-            </ul>
+                  ●
+                </span>
+                <span style={{ color: "var(--fg)" }}>{s.domain}</span>
+                <span
+                  aria-hidden
+                  style={{
+                    flex: 1,
+                    borderBottom: "1px dotted rgba(91,227,216,.18)",
+                    transform: "translateY(-3px)",
+                  }}
+                />
+                <span
+                  style={{
+                    color: s.ok ? "var(--muted)" : "#ff5f57",
+                    fontSize: 11,
+                  }}
+                >
+                  {s.code > 0 ? s.code : "down"} · {s.ms}ms
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div
+            className="mono"
+            aria-hidden
+            style={{
+              marginTop: 14,
+              fontSize: 10,
+              letterSpacing: "0.08em",
+              color: "var(--meta)",
+            }}
+          >
+            sondeo cada 60s · head→get fallback · edge iad1
           </div>
-        </div>
-
-        {/* Status bar */}
-        <div
-          className="mono"
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 12,
-            padding: "8px 16px",
-            borderTop: "1px solid var(--hairline)",
-            background: "var(--surface-overlay)",
-            fontSize: 11,
-            color: "var(--meta)",
-          }}
-        >
-          <span>
-            cobos<span style={{ color: "var(--cyan)" }}>::</span>start
-          </span>
-          <span style={{ color: "var(--cyan)" }}>● online</span>
-        </div>
+        </Panel>
       </div>
+
+      {/* ── Footer telemetry strip ───────────────────────────── */}
+      <footer
+        className="mono"
+        style={{
+          position: "relative",
+          zIndex: 2,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+          padding: "10px 20px",
+          fontSize: 10,
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          color: "var(--meta)",
+          borderTop: "1px solid rgba(91,227,216,.12)",
+        }}
+      >
+        <SessionTimer />
+        <span>utc-6 · trayectoria nominal</span>
+      </footer>
     </main>
   );
 }

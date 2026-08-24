@@ -676,3 +676,11 @@ textarea:focus-visible {
     display: none;
   }
 }
+
+@media (max-width: 640px) {
+  /* The centered "órbita estable · sol N" strip wraps to three ugly lines
+   * on phones — hide it; logo + systems status carry the header. */
+  .start-header-center {
+    display: none;
+  }
+}
