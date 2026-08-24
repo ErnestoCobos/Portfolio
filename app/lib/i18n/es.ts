@@ -122,7 +122,7 @@ export const es = {
     action: (n: number) => `./projects.list (${n})`,
     headline: ["Lo que estoy ", "construyendo", " ahora."],
     blurb:
-      "Dos SaaS en producción, un servidor MCP open-source y dos repos que sostienen la operación. Cinco frentes activos.",
+      "Tres SaaS en producción, un servidor MCP open-source y dos repos que sostienen la operación. Seis frentes activos.",
     visit: "Visitar sitio",
     repo: "Ver repositorio",
   },

@@ -80,6 +80,18 @@ export const PROJECTS: Project[] = [
     accent: "violet",
   },
   {
+    slug: "connver",
+    name: "Connver",
+    url: "www.connver.com",
+    href: "https://www.connver.com",
+    tag: { es: "SaaS · WhatsApp CRM", en: "SaaS · WhatsApp CRM" },
+    blurb: {
+      es: "CRM de WhatsApp para negocios que venden por mensaje: inbox compartido, ficha y embudo por cliente, y seguimiento automatizado —cotizaciones sin respuesta, guías de envío, avisos de pedido— con asistencia de IA. Sin campañas masivas.",
+      en: "WhatsApp CRM for businesses that sell over chat: shared inbox, per-client records and pipeline, and automated follow-up —unanswered quotes, shipping guides, order notices— with AI assistance. No mass campaigns.",
+    },
+    accent: "cyan",
+  },
+  {
     slug: "apple-mail-mcp",
     name: "apple-mail-mcp",
     url: "apple-mail-mcp.cobos.io",
@@ -89,7 +101,7 @@ export const PROJECTS: Project[] = [
       es: "Servidor MCP unificado para Apple Mail: búsqueda on-disk en milisegundos (FTS5 sobre un buzón real de 210k mensajes) más escrituras completas por AppleScript, unidas por un Message-ID canónico y protegidas por una capa de seguridad con dry-run, undo y confirmación explícita. 31 tools MCP para tu agente.",
       en: "Unified MCP server for Apple Mail: millisecond on-disk search (FTS5 over a real 210k-message mailbox) plus complete AppleScript writes, bridged by a canonical Message-ID and gated by one safety layer with dry-run, undo, and explicit confirm. 31 MCP tools for your AI agent.",
     },
-    accent: "cyan",
+    accent: "violet",
   },
   {
     slug: "infrastructure",
@@ -102,7 +114,7 @@ export const PROJECTS: Project[] = [
       es: "Repositorio local-first de IaC con Terraform oficial, Cloudflare DNS, HCP Terraform, Vercel, Supabase y secretos vía 1Password para cobos.io, enkiflow y getdecant.",
       en: "Local-first IaC repo with official Terraform, Cloudflare DNS, HCP Terraform, Vercel, Supabase, and secrets via 1Password — powering cobos.io, enkiflow, and getdecant.",
     },
-    accent: "violet",
+    accent: "cyan",
   },
   {
     slug: "portfolio",
