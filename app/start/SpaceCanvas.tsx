@@ -89,26 +89,29 @@ export function SpaceCanvas({
     };
 
     // ── La tripulación ──────────────────────────────────────────
-    // Xolo mediano café, sphynx oscuro gris azulado y chihuahua
-    // blanco — cartoon sprites built from primitives, hopping at the
-    // bottom of the viewport chasing a tiny glowing "star" ball.
+    // Xolo mediano café, sphynx gris azulado y chihuahua blanco —
+    // side-profile sprites with breed-accurate proportions, muted
+    // palette and calm idle motion (breathing, tail sway, ear twitch).
+    // They only hop when the little star drifts close — quiet crew.
     type PetSpec = {
       dx: number; // slot: -1 left, 0 center, 1 right
-      size: number;
+      size: number; // torso length unit
+      legRatio: number; // leg length / size
       body: string;
       shade: string;
       earIn: string;
       earH: number; // ear height factor
+      tail: "low" | "whip" | "sickle";
       phase: number;
       jump: number;
     };
     const pets: PetSpec[] = [
-      // xolo — mediano, café, orejas grandes
-      { dx: -1, size: 46, body: "#9c6b46", shade: "#7d5334", earIn: "#c98a6d", earH: 1.15, phase: 0.0, jump: 10 },
-      // chihuahua — blanco, chiquito, el que más brinca
-      { dx: 0, size: 30, body: "#f2efe7", shade: "#d9d2c4", earIn: "#e8b7ae", earH: 1.35, phase: 1.9, jump: 18 },
-      // sphynx — gris azulado oscuro
-      { dx: 1, size: 40, body: "#7e8da3", shade: "#66738a", earIn: "#b58a94", earH: 1.05, phase: 3.6, jump: 8 },
+      // xolo — mediano, café, piernas largas y elegantes
+      { dx: -1, size: 34, legRatio: 0.38, body: "#7d5c42", shade: "#644832", earIn: "#a5795f", earH: 1.1, tail: "low", phase: 0.0, jump: 6 },
+      // chihuahua — blanco, chiquito, orejas enormes
+      { dx: 0, size: 22, legRatio: 0.32, body: "#ded9cd", shade: "#c3bcae", earIn: "#d9aca3", earH: 1.5, tail: "sickle", phase: 1.9, jump: 12 },
+      // sphynx — gris azulado oscuro, esbelto
+      { dx: 1, size: 30, legRatio: 0.34, body: "#68768c", shade: "#55617a", earIn: "#9d7d88", earH: 1.2, tail: "whip", phase: 3.6, jump: 5 },
     ];
 
     const drawPet = (
@@ -118,103 +121,148 @@ export function SpaceCanvas({
       ps: number,
       ballX: number
     ) => {
-      const size = p.size * ps;
+      const L = p.size * ps;
       const x = w / 2 + p.dx * spacing;
-      const dir = ballX >= x ? 1 : -1; // face the ball
-      const hop = Math.abs(Math.sin(t * 2.3 + p.phase)) * p.jump * ps;
-      const gy = groundY - hop;
-      const squash = hop < p.jump * ps * 0.25 ? 0.9 : 1; // landing squash
+      const dir = ballX >= x ? 1 : -1; // face the star
+      const legH = L * p.legRatio;
+      const bodyH = L * 0.34; // torso depth
+      // hops only when the star is nearby — calm idle otherwise
+      const near = Math.abs(ballX - x) < spacing * 0.55;
+      const hop = near ? Math.abs(Math.sin(t * 1.7 + p.phase)) * p.jump * ps : 0;
+      const gy = groundY - hop; // foot line
+      const bodyY = gy - legH; // belly line
+      const breath = 1 + Math.sin(t * 1.9 + p.phase) * 0.02;
 
-      // ground shadow (shrinks as they hop)
-      ctx.globalAlpha = 0.25 * (1 - hop / (p.jump * ps + 24));
+      // soft ground shadow
+      ctx.globalAlpha = 0.18 * (1 - hop / 30);
       ctx.fillStyle = "#000";
       ctx.beginPath();
-      ctx.ellipse(x, groundY + 2 * ps, size * 0.5, size * 0.1, 0, 0, Math.PI * 2);
+      ctx.ellipse(x, groundY + 1.5 * ps, L * 0.5, L * 0.07, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.globalAlpha = 1;
+      ctx.globalAlpha = 0.92;
 
-      // tail — wagging curve off the rear
-      const wag = Math.sin(t * 5.2 + p.phase) * 0.55;
-      const tx = x - dir * size * 0.42;
-      const ty = gy - size * 0.5;
-      ctx.strokeStyle = p.shade;
-      ctx.lineWidth = size * 0.09;
+      // legs — two-segment quadratic, far pair darker, slight gait
+      const shoulderX = x + dir * L * 0.32;
+      const hipX = x - dir * L * 0.3;
+      const gait = hop > 0 ? Math.sin(t * 5 + p.phase) * L * 0.06 : 0;
+      const leg = (rootX: number, footDx: number, color: string) => {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = L * 0.06;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(rootX, bodyY - bodyH * 0.1);
+        ctx.quadraticCurveTo(
+          rootX + footDx * 0.4 + dir * L * 0.02,
+          bodyY + legH * 0.55,
+          rootX + footDx + gait,
+          gy
+        );
+        ctx.stroke();
+      };
+      leg(hipX - L * 0.02, -L * 0.03, p.shade); // far hind
+      leg(shoulderX - L * 0.02, -L * 0.02, p.shade); // far front
+
+      // tail — breed carriage, slow sway (behind torso)
+      const sway = Math.sin(t * 1.6 + p.phase) * 0.18;
+      const tailX = x - dir * L * 0.44;
+      const tailY = bodyY - bodyH * 0.5;
+      ctx.strokeStyle = p.body;
+      ctx.lineWidth = L * 0.05;
       ctx.lineCap = "round";
       ctx.beginPath();
-      ctx.moveTo(tx, ty);
-      ctx.quadraticCurveTo(
-        tx - dir * size * 0.28,
-        ty - size * (0.28 + 0.12 * wag),
-        tx - dir * size * 0.34,
-        ty - size * (0.5 + 0.2 * wag)
-      );
+      ctx.moveTo(tailX, tailY);
+      if (p.tail === "low") {
+        ctx.quadraticCurveTo(
+          tailX - dir * L * 0.28, tailY + L * (0.1 + sway * 0.2),
+          tailX - dir * L * 0.42, tailY + L * (0.34 - sway * 0.3)
+        );
+      } else if (p.tail === "whip") {
+        ctx.quadraticCurveTo(
+          tailX - dir * L * 0.3, tailY - L * (0.05 + sway),
+          tailX - dir * L * 0.46, tailY - L * (0.3 + sway)
+        );
+      } else {
+        ctx.quadraticCurveTo(
+          tailX - dir * L * 0.2, tailY - L * (0.3 + sway * 0.4),
+          tailX - dir * L * 0.05, tailY - L * (0.42 + sway * 0.4)
+        );
+      }
       ctx.stroke();
 
-      // legs — dangling trot, feet touch down when hop = 0
-      ctx.strokeStyle = p.shade;
-      ctx.lineWidth = size * 0.1;
-      for (const [lx, lp] of [[-0.22, 0], [0.22, Math.PI]] as const) {
-        const step = Math.sin(t * 6 + p.phase + lp) * size * 0.08;
-        ctx.beginPath();
-        ctx.moveTo(x + lx * size, gy - size * 0.15);
-        ctx.lineTo(x + lx * size + step, gy + size * 0.08);
-        ctx.stroke();
-      }
-
-      // body
+      // torso — one closed silhouette: rump → back → chest → belly
       ctx.fillStyle = p.body;
       ctx.beginPath();
-      ctx.ellipse(x, gy - size * 0.38, size * 0.46, size * 0.3 * squash, 0, 0, Math.PI * 2);
+      ctx.moveTo(x - dir * L * 0.44, bodyY - bodyH * 0.55);
+      ctx.quadraticCurveTo(x - dir * L * 0.1, bodyY - bodyH * 1.02 * breath, x + dir * L * 0.38, bodyY - bodyH * 0.72);
+      ctx.quadraticCurveTo(x + dir * L * 0.5, bodyY - bodyH * 0.35, x + dir * L * 0.34, bodyY + bodyH * 0.02);
+      ctx.quadraticCurveTo(x, bodyY + bodyH * 0.24 * breath, x - dir * L * 0.36, bodyY);
+      ctx.quadraticCurveTo(x - dir * L * 0.5, bodyY - bodyH * 0.2, x - dir * L * 0.44, bodyY - bodyH * 0.55);
+      ctx.closePath();
       ctx.fill();
 
-      // head (gentle bob)
-      const hx = x + dir * size * 0.42;
-      const hy = gy - size * 0.66 + Math.sin(t * 4.4 + p.phase) * size * 0.03;
+      // near legs over the torso
+      leg(hipX + L * 0.02, L * 0.02, p.body); // near hind
+      leg(shoulderX + L * 0.02, L * 0.03, p.body); // near front
 
-      // ears — big triangles behind the head, slight twitch
+      // neck + head
+      const neckX = x + dir * L * 0.36;
+      const neckY = bodyY - bodyH * 0.6;
+      const hx = x + dir * L * 0.58;
+      const hy = bodyY - bodyH * 1.3 + Math.sin(t * 1.9 + p.phase) * L * 0.015;
+      ctx.strokeStyle = p.body;
+      ctx.lineWidth = bodyH * 0.42;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(neckX, neckY);
+      ctx.lineTo(hx - dir * L * 0.05, hy + bodyH * 0.1);
+      ctx.stroke();
+
+      const hr = L * 0.14; // skull radius
+      // ears — breed scale, slight twitch
       for (const s of [-1, 1] as const) {
-        const ex = hx + s * size * 0.11;
-        const ey = hy - size * 0.12;
-        const tipY = ey - size * 0.34 * p.earH;
-        const twitch = Math.sin(t * 3.1 + p.phase + s) * size * 0.025;
+        const ex = hx + s * L * 0.055;
+        const ey = hy - hr * 0.55;
+        const tipY = ey - hr * 1.7 * p.earH;
+        const twitch = Math.sin(t * 2.7 + p.phase + s) * L * 0.012;
         ctx.fillStyle = p.body;
         ctx.beginPath();
-        ctx.moveTo(ex - size * 0.1, ey);
-        ctx.lineTo(ex + s * size * 0.05 + twitch, tipY);
-        ctx.lineTo(ex + size * 0.1, ey);
+        ctx.moveTo(ex - L * 0.05, ey);
+        ctx.quadraticCurveTo(ex + s * L * 0.02 + twitch, (ey + tipY) / 2, ex + s * L * 0.035 + twitch, tipY);
+        ctx.quadraticCurveTo(ex + s * L * 0.05 + twitch, (ey + tipY) / 2, ex + L * 0.05, ey);
         ctx.closePath();
         ctx.fill();
         ctx.fillStyle = p.earIn;
         ctx.beginPath();
-        ctx.moveTo(ex - size * 0.045, ey - size * 0.02);
-        ctx.lineTo(ex + s * size * 0.04 + twitch * 0.7, tipY + size * 0.1);
-        ctx.lineTo(ex + size * 0.045, ey - size * 0.02);
+        ctx.moveTo(ex - L * 0.022, ey - L * 0.01);
+        ctx.lineTo(ex + s * L * 0.025 + twitch * 0.7, tipY + hr * 0.5);
+        ctx.lineTo(ex + L * 0.022, ey - L * 0.01);
         ctx.closePath();
         ctx.fill();
       }
-
+      // skull
       ctx.fillStyle = p.body;
       ctx.beginPath();
-      ctx.arc(hx, hy, size * 0.24, 0, Math.PI * 2);
+      ctx.arc(hx, hy, hr, 0, Math.PI * 2);
       ctx.fill();
-      // muzzle + nose
-      ctx.fillStyle = p.shade;
+      // muzzle — tapered wedge
       ctx.beginPath();
-      ctx.ellipse(hx + dir * size * 0.19, hy + size * 0.06, size * 0.1, size * 0.075, 0, 0, Math.PI * 2);
+      ctx.moveTo(hx + dir * hr * 0.3, hy - hr * 0.35);
+      ctx.quadraticCurveTo(hx + dir * hr * 1.7, hy - hr * 0.1, hx + dir * hr * 1.55, hy + hr * 0.28);
+      ctx.quadraticCurveTo(hx + dir * hr * 0.9, hy + hr * 0.75, hx + dir * hr * 0.15, hy + hr * 0.6);
+      ctx.closePath();
       ctx.fill();
-      ctx.fillStyle = "#2b2b30";
+      // nose
+      ctx.fillStyle = "#23232a";
       ctx.beginPath();
-      ctx.arc(hx + dir * size * 0.27, hy + size * 0.04, size * 0.035, 0, Math.PI * 2);
+      ctx.arc(hx + dir * hr * 1.5, hy + hr * 0.12, L * 0.018, 0, Math.PI * 2);
       ctx.fill();
-      // eye + catchlight
-      ctx.fillStyle = "#1c1c22";
+      // eye
+      ctx.fillStyle = "#15151a";
       ctx.beginPath();
-      ctx.arc(hx + dir * size * 0.07, hy - size * 0.06, size * 0.04, 0, Math.PI * 2);
+      ctx.arc(hx + dir * hr * 0.35, hy - hr * 0.18, L * 0.02, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = "rgba(255,255,255,.85)";
-      ctx.beginPath();
-      ctx.arc(hx + dir * size * 0.07 + size * 0.012, hy - size * 0.072, size * 0.013, 0, Math.PI * 2);
-      ctx.fill();
+
+      ctx.globalAlpha = 1;
     };
 
     const draw = () => {
@@ -379,28 +427,28 @@ export function SpaceCanvas({
       ctx.fill();
       ctx.globalAlpha = 1;
 
-      // ── La tripulación jugando abajo ──────────────────────────
+      // ── La tripulación — quiet idle at the bottom ─────────────
       const ps = Math.max(0.55, Math.min(1.05, Math.min(w, h) / 720));
       const groundY = h - Math.max(30, 34 * ps);
       const spacing = Math.min(120 * ps, w * 0.21);
-      const ballX = w / 2 + Math.sin(t * 1.15) * spacing * 0.72;
-      const ballHop = Math.abs(Math.sin(t * 2.3 + 0.9)) * 30 * ps;
-      const ballY = groundY - 8 * ps - ballHop;
+      const ballX = w / 2 + Math.sin(t * 0.9) * spacing * 0.72;
+      const ballHop = Math.abs(Math.sin(t * 1.7 + 0.9)) * 18 * ps;
+      const ballY = groundY - 6 * ps - ballHop;
 
       for (const p of pets) drawPet(p, groundY, spacing, ps, ballX);
 
-      // the ball — a tiny glowing star they chase
-      const bl = ctx.createRadialGradient(ballX, ballY, 0, ballX, ballY, 11 * ps);
-      bl.addColorStop(0, "rgba(255,224,160,.95)");
-      bl.addColorStop(0.35, "rgba(255,170,80,.4)");
+      // a tiny drifting star — dim, calm
+      const bl = ctx.createRadialGradient(ballX, ballY, 0, ballX, ballY, 8 * ps);
+      bl.addColorStop(0, "rgba(255,224,160,.7)");
+      bl.addColorStop(0.35, "rgba(255,170,80,.22)");
       bl.addColorStop(1, "rgba(255,170,80,0)");
       ctx.fillStyle = bl;
       ctx.beginPath();
-      ctx.arc(ballX, ballY, 11 * ps, 0, Math.PI * 2);
+      ctx.arc(ballX, ballY, 8 * ps, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = "#fff0d6";
+      ctx.fillStyle = "rgba(255,240,214,.9)";
       ctx.beginPath();
-      ctx.arc(ballX, ballY, 3 * ps, 0, Math.PI * 2);
+      ctx.arc(ballX, ballY, 2.2 * ps, 0, Math.PI * 2);
       ctx.fill();
     };
 
