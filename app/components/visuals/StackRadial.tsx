@@ -46,10 +46,9 @@ export function StackRadial({ stack }: { stack: StackGroup[] }) {
       <svg
         viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
         width="100%"
-        height="auto"
         role="img"
         aria-label={`Stack constellation with ${totalItems} tools across ${stack.length} groups`}
-        style={{ display: "block" }}
+        style={{ display: "block", height: "auto" }}
       >
         <defs>
           <radialGradient id="stack-radial-bg" cx="50%" cy="50%" r="55%">

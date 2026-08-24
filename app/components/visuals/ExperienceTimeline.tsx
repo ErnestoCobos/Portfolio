@@ -81,10 +81,9 @@ export function ExperienceTimeline({
       <svg
         viewBox={`0 0 ${VIEW_W} ${totalH}`}
         width="100%"
-        height="auto"
         role="img"
         aria-label={`Experience timeline from ${minYear} to ${currentYear}, ${ranges.length} roles`}
-        style={{ display: "block" }}
+        style={{ display: "block", height: "auto" }}
       >
         {/* Year axis grid: thin verticals + labels at the bottom */}
         {yearTicks.map((y) => {

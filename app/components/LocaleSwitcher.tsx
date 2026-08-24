@@ -95,6 +95,11 @@ export function LocaleSwitcher() {
         right: "max(20px, env(safe-area-inset-right))",
         bottom: "max(20px, env(safe-area-inset-bottom))",
         zIndex: 30,
+        // The chip floats over content CTAs on every viewport; only the
+        // alternative-locale link is actually interactive, so taps pass
+        // through the decorative shell (dots, labels, borders) instead of
+        // blocking the buttons underneath.
+        pointerEvents: "none",
         display: "inline-flex",
         alignItems: "center",
         gap: 8,
@@ -163,6 +168,7 @@ export function LocaleSwitcher() {
         aria-label={t.ariaSwitchTo(otherLocale)}
         className="locale-switch-other"
         style={{
+          pointerEvents: "auto",
           color: "var(--meta)",
           textDecoration: "none",
           // Padding sized so the entire glyph + breathing room is the
