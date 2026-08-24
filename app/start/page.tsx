@@ -86,7 +86,9 @@ async function checkStatus(domain: string): Promise<Status> {
 }
 
 /* Expanse-style ship console panel: hairline frame, tab label overlapping
- * the top border, corner tick. Content is whatever the panel carries. */
+ * the top border, corner tick. Content is whatever the panel carries.
+ * Visual chrome (glass, hover light, corner ticks) lives in the .start-panel
+ * CSS rule so :hover can override it; layout props stay here. */
 function Panel({
   label,
   children,
@@ -99,17 +101,10 @@ function Panel({
   return (
     <section
       aria-label={label}
-      style={{
-        position: "relative",
-        border: "1px solid rgba(91,227,216,.22)",
-        background: "rgba(4,6,12,.58)",
-        backdropFilter: "blur(10px)",
-        WebkitBackdropFilter: "blur(10px)",
-        padding: "18px 18px 16px",
-        ...style,
-      }}
+      className="start-panel start-reveal"
+      style={style}
     >
-      {/* corner ticks */}
+      {/* corner ticks — breathe on a staggered phase */}
       {(
         [
           { top: -1, left: -1, borderTop: "1px solid #5BE3D8", borderLeft: "1px solid #5BE3D8" },
@@ -121,7 +116,14 @@ function Panel({
         <span
           key={i}
           aria-hidden
-          style={{ position: "absolute", width: 10, height: 10, ...s }}
+          className="start-corner"
+          style={{
+            position: "absolute",
+            width: 10,
+            height: 10,
+            animationDelay: `${i * 0.4}s`,
+            ...s,
+          }}
         />
       ))}
       <span
@@ -171,9 +173,15 @@ export default async function StartPage() {
     >
       <SpaceCanvas wind={space.solarWind} kp={space.kp} issLat={space.iss?.lat ?? null} />
 
+      {/* ── Atmosphere: vignette + filmic grain ────────────────────
+          Sit above the canvas (z1), below content (z2). Focus the eye on
+          Gargantua and the console; add a touch of cinema grain. */}
+      <div className="start-vignette" aria-hidden />
+      <div className="start-grain" aria-hidden />
+
       {/* ── Header strip ─────────────────────────────────────── */}
       <header
-        className="mono"
+        className="mono start-reveal"
         style={{
           position: "relative",
           zIndex: 2,
@@ -196,6 +204,7 @@ export default async function StartPage() {
         </span>
         <span
           aria-label={allUp ? "Todos los sistemas en línea" : "Hay sistemas con problemas"}
+          className="start-beacon"
           style={{ color: allUp ? "#5BE3D8" : "#ff5f57" }}
         >
           ● {allUp ? "all systems go" : "degraded"}
@@ -222,7 +231,7 @@ export default async function StartPage() {
         }}
       >
         {/* NAV — quicklinks */}
-        <Panel label="nav // destinos">
+        <Panel label="nav // destinos" style={{ animationDelay: "0.15s" }}>
           <div
             style={{
               display: "grid",
@@ -287,7 +296,12 @@ export default async function StartPage() {
         {/* COMMS — search + date */}
         <Panel
           label="comms // uplink"
-          style={{ display: "flex", flexDirection: "column", gap: 18 }}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 18,
+            animationDelay: "0.3s",
+          }}
         >
           <div
             className="mono"
@@ -324,7 +338,7 @@ export default async function StartPage() {
         </Panel>
 
         {/* SYSTEMS — status readouts */}
-        <Panel label="systems // telemetría">
+        <Panel label="systems // telemetría" style={{ animationDelay: "0.45s" }}>
           <ul
             style={{
               listStyle: "none",
@@ -394,7 +408,7 @@ export default async function StartPage() {
 
       {/* ── Footer telemetry strip ───────────────────────────── */}
       <footer
-        className="mono"
+        className="mono start-reveal"
         style={{
           position: "relative",
           zIndex: 2,
@@ -408,6 +422,7 @@ export default async function StartPage() {
           textTransform: "uppercase",
           color: "var(--meta)",
           borderTop: "1px solid rgba(91,227,216,.12)",
+          animationDelay: "0.6s",
         }}
       >
         <SessionTimer />

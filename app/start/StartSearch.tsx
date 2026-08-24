@@ -27,7 +27,12 @@ export function StartSearch() {
   };
 
   return (
-    <form onSubmit={onSubmit} role="search" style={{ width: "100%" }}>
+    <form
+      onSubmit={onSubmit}
+      role="search"
+      className="start-search-line"
+      style={{ width: "100%" }}
+    >
       <label
         htmlFor="start-search"
         className="mono"

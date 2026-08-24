@@ -5,10 +5,14 @@ import { useEffect, useRef } from "react";
 /**
  * SpaceCanvas — full-viewport cinematic background for start.cobos.io.
  *
- * One canvas, one rAF loop, four layers:
+ * One canvas, one rAF loop, layers:
  *   1. Parallax starfield — 3 depth layers drifting left, each star
  *      twinkling on its own phase.
- *   2. "Gargantua" — a black hole rendered the Interstellar way: edge-on
+ *   2. Nebulae — two vast soft color clouds (cool indigo + warm ember)
+ *      that breathe slowly, giving the void depth.
+ *   3. Shooting stars — rare, fast meteors streaking across the upper
+ *      sky. A cinematic surprise, not noise.
+ *   4. "Gargantua" — a black hole rendered the Interstellar way: edge-on
  *      accretion disk (bright amber, dashed strokes rotating via
  *      lineDashOffset), the far side of the disk lensed into arcs above and
  *      below the horizon, black event horizon, and a thin photon ring.
@@ -55,6 +59,26 @@ export function SpaceCanvas({
     type Star = { x: number; y: number; z: number; r: number; phase: number };
     let stars: Star[] = [];
 
+    // ── Nebulae ──────────────────────────────────────────────────
+    // Two slow, vast color clouds that give the void depth — a cool
+    // indigo drift to the left of Gargantua and a warm ember wash to
+    // the right. Recomputed only on resize; opacity breathes in draw().
+    type Nebula = { x: number; y: number; rx: number; ry: number; hue: string };
+    let nebulae: Nebula[] = [];
+
+    // ── Shooting stars ────────────────────────────────────────────
+    // Occasional meteors streak across the upper sky. Rare and short-
+    // lived so they stay a cinematic surprise, not noise.
+    type Meteor = {
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      life: number; // 0..1, fades as it flies
+      len: number;
+    };
+    let meteors: Meteor[] = [];
+
     const resize = () => {
       dpr = Math.min(window.devicePixelRatio || 1, 2);
       w = window.innerWidth;
@@ -71,9 +95,40 @@ export function SpaceCanvas({
         r: 0.4 + Math.random() * 1.2,
         phase: Math.random() * Math.PI * 2,
       }));
+      nebulae = [
+        {
+          x: w * 0.26,
+          y: h * 0.34,
+          rx: Math.max(w, h) * 0.34,
+          ry: Math.max(w, h) * 0.24,
+          hue: "110,140,220",
+        },
+        {
+          x: w * 0.78,
+          y: h * 0.22,
+          rx: Math.max(w, h) * 0.30,
+          ry: Math.max(w, h) * 0.20,
+          hue: "200,110,90",
+        },
+      ];
     };
     resize();
     window.addEventListener("resize", resize);
+
+    /** Spawn a meteor occasionally — descends left-to-right, fast. */
+    const maybeSpawnMeteor = () => {
+      // ~1 in 240 frames on average → roughly one every few seconds.
+      if (Math.random() > 0.0042 || meteors.length > 2) return;
+      const startX = Math.random() * w * 0.7;
+      meteors.push({
+        x: startX,
+        y: Math.random() * h * 0.4,
+        vx: 7 + Math.random() * 4,
+        vy: 2.4 + Math.random() * 1.6,
+        life: 1,
+        len: 90 + Math.random() * 60,
+      });
+    };
 
     /** Ellipse arc helper: center-relative, flattened by `tilt`. */
     const ellipseArc = (
@@ -280,6 +335,53 @@ export function SpaceCanvas({
       bg.addColorStop(1, "#030408");
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, w, h);
+
+      // ── Nebulae ───────────────────────────────────────────────
+      // Vast soft color clouds that give the void depth. Opacity
+      // breathes slowly so they feel alive, not pasted-on. Storm Kp
+      // nudges them slightly brighter to match the disk's mood.
+      const nebBreath = 0.5 + 0.5 * Math.sin(t * 0.12);
+      const nebKp = Math.min(kp * 0.004, 0.03);
+      for (const n of nebulae) {
+        const g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.rx);
+        const a = (0.05 + nebBreath * 0.035 + nebKp).toFixed(3);
+        g.addColorStop(0, `rgba(${n.hue},${a})`);
+        g.addColorStop(0.6, `rgba(${n.hue},${(Number(a) * 0.3).toFixed(3)})`);
+        g.addColorStop(1, `rgba(${n.hue},0)`);
+        ctx.fillStyle = g;
+        ctx.save();
+        ctx.translate(n.x, n.y);
+        ctx.scale(1, n.ry / n.rx);
+        ctx.beginPath();
+        ctx.arc(0, 0, n.rx, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // ── Shooting stars ────────────────────────────────────────
+      if (!reduced) maybeSpawnMeteor();
+      for (let i = meteors.length - 1; i >= 0; i--) {
+        const m = meteors[i];
+        m.x += m.vx;
+        m.y += m.vy;
+        m.life -= 0.012;
+        if (m.life <= 0 || m.x > w + 100 || m.y > h + 100) {
+          meteors.splice(i, 1);
+          continue;
+        }
+        const tailX = m.x - m.vx * m.len * 0.12;
+        const tailY = m.y - m.vy * m.len * 0.12;
+        const mg = ctx.createLinearGradient(m.x, m.y, tailX, tailY);
+        mg.addColorStop(0, `rgba(230,238,255,${m.life})`);
+        mg.addColorStop(1, "rgba(147,197,253,0)");
+        ctx.strokeStyle = mg;
+        ctx.lineWidth = 1.6;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(m.x, m.y);
+        ctx.lineTo(tailX, tailY);
+        ctx.stroke();
+      }
 
       // ── Starfield (parallax drift + twinkle) ──────────────────
       // Drift speed follows the real solar wind: calm sun → slow stars.
