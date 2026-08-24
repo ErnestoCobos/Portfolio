@@ -650,8 +650,8 @@ function Nav({ mobile }: { mobile: boolean }) {
   );
 }
 
-/** Format session uptime. <1min: `12.3s`. ≥1min: `1m 23s`. Ticks every
- * frame from useTicker so it always reads as "real time". */
+/** Format session uptime. <1min: `12.3s`. ≥1min: `1m 23s`. Fed by
+ * SessionClock's 10Hz interval so it always reads as "real time". */
 function fmtSession(seconds: number): string {
   if (seconds < 60) return `${seconds.toFixed(1)}s`;
   const m = Math.floor(seconds / 60);
@@ -3889,8 +3889,14 @@ export default function Portfolio({ posts }: { posts: Post[] }) {
       <span id="top" aria-hidden style={{ position: "absolute" }} />
       <IntroVeil />
       <Hero mobile={mobile} />
-      <ProofStrip mobile={mobile} />
+      {/* Nav BEFORE ProofStrip: the dock's natural (pre-stick) position must
+       * clear the floating LocaleSwitcher's bottom-right zone. With the
+       * strip after the hero, the dock landed at ~85vh on 800–950px-tall
+       * viewports and its z-60 bar intercepted clicks meant for the z-30
+       * switcher. Hero → dock → strip reads as a deliberate divider and
+       * every viewport height stays collision-free at scroll 0. */}
       <Nav mobile={mobile} />
+      <ProofStrip mobile={mobile} />
       <About mobile={mobile} />
       <Stack mobile={mobile} />
       <Infra mobile={mobile} />
