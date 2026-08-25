@@ -305,7 +305,36 @@ export const CERTIFICATIONS: Certification[] = [
   },
 ];
 
-export type Trend = { t: Bilingual; d: Bilingual };
+/**
+ * A market trend backed by a REAL, cited statistic. A2 de-mock: the old
+ * shape rendered seeded-rand sparklines / rollout % / tenant counts that
+ * looked like live telemetry but were generated noise — a credibility
+ * risk. Every figure below is verbatim from a published survey or press
+ * release; the `url` lets the reader verify it in one click.
+ */
+export type TrendStat = {
+  /** The figure exactly as published (e.g. "82%"). Never computed here. */
+  value: string;
+  /** What the figure measures, resolved per locale at render time. */
+  label: Bilingual;
+};
+
+export type Trend = {
+  t: Bilingual;
+  d: Bilingual;
+  stat: TrendStat;
+  /** Publisher + report name, e.g. "CNCF Annual Survey". */
+  source: string;
+  /** Publication year of the cited report/edition. */
+  year: number;
+  url: string;
+};
+
+/** CNCF Annual Cloud Native Survey 2025 edition (published Jan 2026).
+ * Cited three times below (AI inference, GitOps maturity, security
+ * challenges), so hoisted once instead of repeating a 200-char URL. */
+const CNCF_2025 =
+  "https://www.cncf.io/announcements/2026/01/20/kubernetes-established-as-the-de-facto-operating-system-for-ai-as-production-use-hits-82-in-2025-cncf-annual-cloud-native-survey/";
 
 export const TRENDS: Trend[] = [
   {
@@ -314,6 +343,16 @@ export const TRENDS: Trend[] = [
       es: "GPU pools, vector DBs, gateways LLM con guardrails y observabilidad.",
       en: "GPU pools, vector DBs, LLM gateways with guardrails and observability.",
     },
+    stat: {
+      value: "66%",
+      label: {
+        es: "de las organizaciones que alojan modelos generativos de IA usan Kubernetes para parte o toda su inferencia",
+        en: "of organizations hosting generative AI models run some or all of their inference on Kubernetes",
+      },
+    },
+    source: "CNCF Annual Survey",
+    year: 2025,
+    url: CNCF_2025,
   },
   {
     t: { es: "Platform engineering", en: "Platform engineering" },
@@ -321,6 +360,16 @@ export const TRENDS: Trend[] = [
       es: "IDPs con golden paths, Backstage, contratos de servicio firmados.",
       en: "IDPs with golden paths, Backstage, signed service contracts.",
     },
+    stat: {
+      value: "80%",
+      label: {
+        es: "de las organizaciones de ingeniería de software tendrá platform teams para 2026, según la predicción de Gartner",
+        en: "of software engineering organizations will have platform teams by 2026, per Gartner's prediction",
+      },
+    },
+    source: "Gartner",
+    year: 2023,
+    url: "https://www.gartner.com/en/newsroom/press-releases/2023-11-28-gartner-hype-cycle-shows-ai-practices-and-platform-engineering-will-reach-mainstream-adoption-in-software-engineering-in-two-to-five-years",
   },
   {
     t: { es: "FinOps + GreenOps", en: "FinOps + GreenOps" },
@@ -328,6 +377,16 @@ export const TRENDS: Trend[] = [
       es: "Asignación por equipo, scheduling consciente de carbono, autoscaling agresivo.",
       en: "Per-team allocation, carbon-aware scheduling, aggressive autoscaling.",
     },
+    stat: {
+      value: "50%",
+      label: {
+        es: "sitúa la optimización de workloads y reducción de waste como prioridad #1; solo el 3% optimiza con criterios de sostenibilidad",
+        en: "rank workload optimization and waste reduction as their #1 priority; only 3% optimize for sustainability",
+      },
+    },
+    source: "FinOps Foundation · State of FinOps",
+    year: 2025,
+    url: "https://www.finops.org/insights/state-of-finops-2025/",
   },
   {
     t: { es: "Zero-trust by default", en: "Zero-trust by default" },
@@ -335,13 +394,36 @@ export const TRENDS: Trend[] = [
       es: "mTLS, SPIFFE/SPIRE, OPA/Gatekeeper, supply chain SLSA L3.",
       en: "mTLS, SPIFFE/SPIRE, OPA/Gatekeeper, supply-chain SLSA L3.",
     },
+    stat: {
+      value: "63%",
+      label: {
+        es: "de las organizaciones a nivel mundial ha implementado zero-trust de forma total o parcial (encuesta Gartner)",
+        en: "of organizations worldwide have implemented zero trust fully or partially (Gartner survey)",
+      },
+    },
+    source: "Gartner · vía Expert Insights",
+    year: 2025,
+    url: "https://expertinsights.com/network-security/zero-trust-adoption-statistics-and-trends",
   },
   {
-    t: { es: "Cloud-native edge", en: "Cloud-native edge" },
+    // Reemplaza "Cloud-native edge": no existía una serie de adopción edge
+    // citable 2024-2025, y GitOps sí tiene cifra publicada — además es el
+    // diferenciador real de Ernesto (GitOps end-to-end en sus SaaS).
+    t: { es: "GitOps como estándar", en: "GitOps as standard" },
     d: {
-      es: "K8s en el edge (k3s, Karmada), CDN-as-compute, replicación geo.",
-      en: "K8s at the edge (k3s, Karmada), CDN-as-compute, geo replication.",
+      es: "Promoción desde Git como única fuente de verdad: Argo CD, Flux, sync continuo y detección de drift.",
+      en: "Promotion from Git as single source of truth: Argo CD, Flux, continuous sync and drift detection.",
     },
+    stat: {
+      value: "58%",
+      label: {
+        es: "de los «cloud native innovators» usa GitOps extensivamente — frente al 23% de los adopters",
+        en: "of cloud native innovators use GitOps extensively — vs 23% of adopters",
+      },
+    },
+    source: "CNCF Annual Survey",
+    year: 2025,
+    url: CNCF_2025,
   },
   {
     t: { es: "Policy as code", en: "Policy as code" },
@@ -349,6 +431,16 @@ export const TRENDS: Trend[] = [
       es: "Rego, Cue, Kyverno — el cumplimiento es un commit.",
       en: "Rego, Cue, Kyverno — compliance is a commit.",
     },
+    stat: {
+      value: "36%",
+      label: {
+        es: "clasifican la seguridad entre los principales retos al adoptar cloud native — la política automatizada es la respuesta operativa",
+        en: "rank security among their top cloud native adoption challenges — automated policy is the operational answer",
+      },
+    },
+    source: "CNCF Annual Survey",
+    year: 2025,
+    url: CNCF_2025,
   },
 ];
 
