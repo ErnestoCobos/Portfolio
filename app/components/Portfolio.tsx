@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import type { Post } from "./portfolio-data";
 import { useIsMobile } from "./hooks";
+import { AtmosphereCanvas } from "./visuals/AtmosphereCanvas";
 import { Hero } from "./chrome/Hero";
 import { Nav } from "./chrome/Nav";
 import { IntroVeil, ProofStrip } from "./chrome/ProofStrip";
@@ -30,6 +31,7 @@ export default function Portfolio({ posts }: { posts: Post[] }) {
   const mobile = useIsMobile();
   return (
     <div className="cobos-art" id="main-scene">
+      <AtmosphereCanvas />
       <span id="top" aria-hidden style={{ position: "absolute" }} />
       <IntroVeil />
       <Hero mobile={mobile} />

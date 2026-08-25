@@ -68,3 +68,9 @@ test("/now responds and renders an h1", async ({ page }) => {
   const hasH1 = await page.evaluate(() => !!document.querySelector("h1"));
   expect(hasH1).toBe(true);
 });
+
+test("atmosphere layer exists and page still renders h1", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("#atmosphere")).toBeAttached();
+  await expect(page.locator("h1").first()).toBeVisible();
+});
