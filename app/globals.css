@@ -1147,17 +1147,18 @@ html.intro-boot #main-scene {
   }
 }
 
-/* ── Boot log pane — fixed terminal-row height so the typing animation never
-   grows the layout (was the main contributor to mobile CLS 0.105). Heights
-   sized to fit the fully-typed log including worst-case line wrapping at
-   320px; extra room reads as empty terminal rows. */
+/* ── Boot log pane — reserved terminal-row height so the typing animation
+   never grows the layout (was the main contributor to mobile CLS 0.105).
+   min-height, NOT fixed height: the log types to 9 lines and the telemetry
+   strip renders below — the old fixed 252px box clipped both on desktop.
+   Heights sized to the fully-typed log + strip including worst-case
+   wrapping at 320px; extra room reads as empty terminal rows. */
 .hero-bootlog {
-  height: 252px;
-  overflow: hidden;
+  min-height: 280px;
 }
 @media (max-width: 767.98px) {
   .hero-bootlog {
-    height: 296px;
+    min-height: 296px;
   }
 }
 
@@ -1198,6 +1199,13 @@ html.intro-boot #main-scene {
   margin-bottom: 8px;
   font-family: var(--font-display, inherit);
   font-size: clamp(40px, 10vw, 120px);
+  /* ≤768px: 10vw + the 2-digit prefix overflows 375px viewports on long
+   * words (CERTIFICATIONS, INFRASTRUCTURE) — drop to 7vw so the longest
+   * 14-char segment + number still fits inside the 16px-padded section. */
+  @media (max-width: 767.98px) {
+    font-size: clamp(20px, 7vw, 40px);
+    gap: 10px;
+  }
   line-height: var(--lh-display);
   letter-spacing: var(--ls-display);
   font-weight: 700;

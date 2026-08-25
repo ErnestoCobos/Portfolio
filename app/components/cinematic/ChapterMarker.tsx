@@ -10,11 +10,16 @@ import { DecodeText } from "./DecodeText";
  * prefers-reduced-motion block in globals.css.
  */
 export function ChapterMarker({ n, label }: { n: number; label: string }) {
+  // Display scale + nowrap only fits the label's FIRST segment — the full
+  // "showcase · proyectos" string was guillotined by overflow:hidden at
+  // the viewport edge. The small SectionHeader line below keeps the full
+  // label. Two-digit pad: "10", not "010".
+  const short = label.split("·")[0].trim();
   return (
     <div className="chapter-marker" aria-hidden>
-      <span className="chapter-marker-num">0{n}</span>
+      <span className="chapter-marker-num">{String(n).padStart(2, "0")}</span>
       <span className="chapter-marker-label">
-        <DecodeText text={label.toUpperCase()} />
+        <DecodeText text={short.toUpperCase()} />
       </span>
       <span className="chapter-marker-scan" />
     </div>

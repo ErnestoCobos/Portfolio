@@ -120,6 +120,40 @@ test("hero shows telemetry strip with placeholders before hydration", async ({ p
   await expect(strip.locator("span").first()).toBeVisible();
 });
 
+test("hero boot log and telemetry strip are not clipped by the bootlog box", async ({ page }) => {
+  // Regression guard: .hero-bootlog used a FIXED height sized for the old
+  // 7-line boot log; with 9 lines + the strip the tail was clipped by
+  // overflow:hidden on desktop (mobile fit by accident).
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  // Let the boot log finish typing (~5.5s at 55 chars/s).
+  await page.waitForTimeout(7000);
+  const clipped = await page.evaluate(() => {
+    const box = document.querySelector(".hero-bootlog");
+    const strip = document.querySelector("#telemetry-strip");
+    if (!box || !strip) return null;
+    return {
+      stripBottom: strip.getBoundingClientRect().bottom,
+      boxBottom: box.getBoundingClientRect().bottom,
+    };
+  });
+  expect(clipped).not.toBeNull();
+  expect(clipped!.stripBottom).toBeLessThanOrEqual(clipped!.boxBottom + 1);
+});
+
+test("chapter markers never overflow horizontally", async ({ page }) => {
+  // Regression guard: full section labels ("showcase · proyectos") at
+  // display scale with white-space:nowrap were guillotined by the
+  // marker's overflow:hidden at the viewport edge.
+  await page.goto("/");
+  const overflows = await page.evaluate(() =>
+    Array.from(document.querySelectorAll(".chapter-marker"))
+      .map((el) => ({ sw: el.scrollWidth, cw: el.clientWidth }))
+      .filter((m) => m.sw > m.cw + 1).length
+  );
+  expect(overflows).toBe(0);
+});
+
 test("power rail lists every section as a node", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
