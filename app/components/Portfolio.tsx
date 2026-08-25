@@ -5,6 +5,7 @@ import type { Post } from "./portfolio-data";
 import { useIsMobile } from "./hooks";
 import { AtmosphereCanvas } from "./visuals/AtmosphereCanvas";
 import { PowerRail } from "./visuals/PowerRail";
+import { MagneticCursor } from "./visuals/MagneticCursor";
 import { KineticMarquee } from "./cinematic/KineticMarquee";
 import { Hero } from "./chrome/Hero";
 import { Nav } from "./chrome/Nav";
@@ -35,6 +36,7 @@ export default function Portfolio({ posts }: { posts: Post[] }) {
     <div className="cobos-art" id="main-scene">
       <AtmosphereCanvas />
       <PowerRail />
+      <MagneticCursor />
       <span id="top" aria-hidden style={{ position: "absolute" }} />
       <IntroVeil />
       <Hero mobile={mobile} />

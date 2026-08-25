@@ -473,6 +473,7 @@ export function Nav({ mobile }: { mobile: boolean }) {
                   <Link
                     key={n.id}
                     href={href}
+                    data-magnetic
                     data-active={isActive ? "true" : undefined}
                     className="mono nav-chip"
                     style={chipStyle}
@@ -485,6 +486,7 @@ export function Nav({ mobile }: { mobile: boolean }) {
                 <a
                   key={n.id}
                   href={`#${n.id}`}
+                  data-magnetic
                   data-active={isActive ? "true" : undefined}
                   className="mono nav-chip"
                   style={chipStyle}

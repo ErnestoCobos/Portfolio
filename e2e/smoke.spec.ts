@@ -107,3 +107,10 @@ test("power rail lists every section as a node", async ({ page }) => {
   expect(sections).toBe(10);
   await expect(page.locator(".power-rail-node")).toHaveCount(sections);
 });
+
+test("magnetic cursor mounts on pointer:fine desktops", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("#magnetic-cursor")).toBeAttached();
+  // Power rail nodes (Task 5) carry the magnetic contract.
+  expect(await page.locator("[data-magnetic]").count()).toBeGreaterThan(0);
+});

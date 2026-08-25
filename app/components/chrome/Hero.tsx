@@ -491,10 +491,10 @@ export function Hero({ mobile }: { mobile: boolean }) {
               {dict.hero.subhead}
             </p>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <a href="#work" className="btn-primary">
+              <a href="#work" className="btn-primary" data-magnetic>
                 {dict.hero.cta}
               </a>
-              <a href="#contact" className="btn-secondary mono" style={{ fontFamily: "var(--font-jetbrains-mono)" }}>
+              <a href="#contact" className="btn-secondary mono" data-magnetic style={{ fontFamily: "var(--font-jetbrains-mono)" }}>
                 {dict.hero.ctaContact}
               </a>
             </div>
