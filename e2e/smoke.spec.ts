@@ -84,3 +84,8 @@ test("every section renders a chapter marker", async ({ page }) => {
   expect(sections).toBe(10);
   await expect(page.locator(".chapter-marker")).toHaveCount(sections);
 });
+
+test("kinetic marquees divide section groups", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator(".kinetic-marquee")).toHaveCount(3);
+});

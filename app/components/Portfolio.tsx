@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import type { Post } from "./portfolio-data";
 import { useIsMobile } from "./hooks";
 import { AtmosphereCanvas } from "./visuals/AtmosphereCanvas";
+import { KineticMarquee } from "./cinematic/KineticMarquee";
 import { Hero } from "./chrome/Hero";
 import { Nav } from "./chrome/Nav";
 import { IntroVeil, ProofStrip } from "./chrome/ProofStrip";
@@ -46,12 +47,15 @@ export default function Portfolio({ posts }: { posts: Post[] }) {
       <About mobile={mobile} />
       <Stack mobile={mobile} />
       <Infra mobile={mobile} />
+      <KineticMarquee mobile={mobile} words={["gitops", "platform", "finops", "zero-trust", "sre"]} />
       <Work mobile={mobile} />
       <Experience mobile={mobile} />
       <Certifications mobile={mobile} />
       <Testimonials mobile={mobile} />
       <Trends mobile={mobile} />
+      <KineticMarquee mobile={mobile} words={["aws", "gcp", "azure", "kubernetes", "terraform"]} />
       <Blog mobile={mobile} posts={posts} />
+      <KineticMarquee mobile={mobile} words={["ship", "measure", "harden", "repeat"]} />
       <Approach mobile={mobile} />
       <Contact mobile={mobile} />
       <div className="film-grain" aria-hidden />

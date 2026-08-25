@@ -1218,3 +1218,22 @@ html.intro-boot #main-scene {
   from { transform: translateY(-101%); }
   to { transform: translateY(101%); }
 }
+/* ─── Kinetic marquee ─────────────────────────────────────── */
+.kinetic-marquee {
+  overflow: hidden;
+  border-top: 1px solid var(--hairline);
+  padding: 12px 0;
+  user-select: none;
+}
+.kinetic-marquee-track {
+  display: inline-flex;
+  white-space: nowrap;
+  will-change: transform;
+  font-family: var(--font-display, inherit);
+  font-size: clamp(28px, 5vw, 56px);
+  font-weight: 700;
+  letter-spacing: var(--ls-heading);
+  line-height: var(--lh-heading);
+  color: transparent;
+  -webkit-text-stroke: 1px var(--hairline-strong);
+}
