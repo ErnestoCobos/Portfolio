@@ -1,23 +1,17 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { CERTIFICATIONS, PROJECTS, STACK } from "../portfolio-data";
+import { PROOF_METRICS } from "../portfolio-data";
 import { useT } from "../../lib/i18n/locale-context";
 import { CountUp } from "../cinematic/CountUp";
 
 /* ─── Social proof strip ─────────────────────────────────── */
-/** Slim metrics band between hero and nav. It doubles as the "next
- * section peek" under the fold-breaking hero — real numbers from
- * portfolio-data, counted up when scrolled into view. */
+/** Slim metrics band between hero and nav — A1 outcome metrics, not
+ * vanity stats. Figures live in PROOF_METRICS (portfolio-data) with
+ * their sources; labels resolve per locale from `proof.metrics`. Same
+ * count-up treatment as before. */
 export function ProofStrip({ mobile }: { mobile: boolean }) {
   const t = useT();
-  const sinceYear = parseInt(t.about.since, 10) || 2017;
-  const stats = [
-    { v: Math.max(1, new Date().getFullYear() - sinceYear), label: t.proof.years, suffix: "+" },
-    { v: PROJECTS.length, label: t.proof.projects },
-    { v: STACK.reduce((a, g) => a + g.items.length, 0), label: t.proof.tools },
-    { v: CERTIFICATIONS.length, label: t.proof.certs },
-  ];
   return (
     <section
       aria-label={t.proof.aria}
@@ -35,9 +29,9 @@ export function ProofStrip({ mobile }: { mobile: boolean }) {
           gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(4, 1fr)",
         }}
       >
-        {stats.map((s, i) => (
+        {PROOF_METRICS.map((m, i) => (
           <div
-            key={s.label}
+            key={m.labelKey}
             style={{
               padding: mobile ? "18px 16px" : "22px 32px",
               borderLeft: i % (mobile ? 2 : 4) !== 0 ? "1px solid var(--hairline)" : "none",
@@ -55,8 +49,11 @@ export function ProofStrip({ mobile }: { mobile: boolean }) {
                 marginBottom: 6,
               }}
             >
-              <CountUp value={s.v} />
-              {s.suffix && <span style={{ color: "var(--violet)" }}>{s.suffix}</span>}
+              {/* Numeric metrics count up on scroll-in; text metrics
+               * ("multi-cloud") render verbatim at the same size. */}
+              {m.count !== undefined && <CountUp value={m.count} />}
+              {m.raw}
+              {m.suffix && <span style={{ color: "var(--violet)" }}>{m.suffix}</span>}
             </div>
             <div
               className="mono"
@@ -67,7 +64,7 @@ export function ProofStrip({ mobile }: { mobile: boolean }) {
                 letterSpacing: "var(--ls-tag)",
               }}
             >
-              {s.label}
+              {t.proof.metrics[m.labelKey]}
             </div>
           </div>
         ))}

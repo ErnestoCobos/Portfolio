@@ -2,7 +2,11 @@
 
 import { useRef, useState, type CSSProperties, type FormEvent } from "react";
 import Link from "next/link";
-import { PROFILE } from "../portfolio-data";
+import {
+  PROFILE,
+  AVAILABILITY_NOTE,
+  PRICING_NOTE,
+} from "../portfolio-data";
 import { useLocale, useT } from "../../lib/i18n/locale-context";
 import { trackEvent } from "../../lib/analytics";
 import { CloudTopology, useReducedMotion } from "../portfolio-visuals";
@@ -73,19 +77,127 @@ function Field({
   );
 }
 
+/** B2 — compact terminal block above the form: availability, engagement
+ * model and (only when PRICING_NOTE is set) a pricing row. All figures
+ * are placeholders edited in portfolio-data — nothing invented ships. */
+function WorkWithMe() {
+  const t = useT();
+  return (
+    <div
+      className="mono"
+      style={{
+        border: "1px solid var(--hairline-strong)",
+        borderRadius: "var(--r-card-sm)",
+        background: "rgba(6,6,10,.72)",
+        backdropFilter: "blur(12px) saturate(140%)",
+        WebkitBackdropFilter: "blur(12px) saturate(140%)",
+        padding: 24,
+        marginBottom: 16,
+      }}
+    >
+      <div
+        style={{
+          fontSize: "var(--text-mono)",
+          color: "var(--muted)",
+          marginBottom: 14,
+        }}
+      >
+        <span style={{ color: "var(--cyan)" }}>$</span>{" "}
+        {t.contact.workTitle.replace(/^\$ /, "")}
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gap: 10,
+          fontSize: "var(--text-meta)",
+          lineHeight: 1.6,
+          color: "var(--muted)",
+        }}
+      >
+        <div>
+          <span
+            style={{
+              color: "var(--fg)",
+              textTransform: "uppercase",
+              letterSpacing: "var(--ls-tag)",
+              fontSize: "var(--text-mono-xs)",
+            }}
+          >
+            {t.contact.workAvailabilityLabel}
+          </span>
+          {"  ·  "}
+          {/* Green dot reads as an open slot — the note itself is the
+           * single source of truth for what's actually open. */}
+          <span aria-hidden style={{ color: "var(--green)" }}>●</span>{" "}
+          <span style={{ color: "var(--fg)" }}>{AVAILABILITY_NOTE}</span>
+        </div>
+        <div>
+          <span
+            style={{
+              color: "var(--fg)",
+              textTransform: "uppercase",
+              letterSpacing: "var(--ls-tag)",
+              fontSize: "var(--text-mono-xs)",
+            }}
+          >
+            {t.contact.workEngagementLabel}
+          </span>
+          {"  ·  "}
+          {t.contact.engagementModel}
+        </div>
+        {/* Pricing stays hidden until PRICING_NOTE is filled — the empty
+         * constant IS the feature flag. */}
+        {PRICING_NOTE && (
+          <div>
+            <span
+              style={{
+                color: "var(--fg)",
+                textTransform: "uppercase",
+                letterSpacing: "var(--ls-tag)",
+                fontSize: "var(--text-mono-xs)",
+              }}
+            >
+              {t.contact.workPricingLabel}
+            </span>
+            {"  ·  "}
+            {PRICING_NOTE}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Build the mailto hand-off URL from form fields. Shared by the legacy
+ * path and the API-failure fallback so both produce identical bodies. */
+function buildMailto(
+  email: string,
+  subjectLine: string,
+  bodyText: string,
+): string {
+  return `mailto:${email}?subject=${encodeURIComponent(
+    subjectLine
+  )}&body=${encodeURIComponent(bodyText)}`;
+}
+
 function ContactForm() {
   const t = useT();
   const locale = useLocale();
   const formRef = useRef<HTMLFormElement>(null);
-  const [sent, setSent] = useState(false);
+  // B3: idle → sending → sent | error. `error` keeps the composed mailto
+  // around so the fallback button can still hand off to the mail client.
+  const [status, setStatus] = useState<
+    "idle" | "sending" | "sent" | "error" | "mailto"
+  >("idle");
+  const [fallbackUrl, setFallbackUrl] = useState("");
 
   const subjectFallback =
     locale === "en" ? "Contact from cobos.io" : "Contacto desde cobos.io";
 
-  const submit = (e: FormEvent<HTMLFormElement>) => {
+  const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = formRef.current;
-    if (!form) return;
+    if (!form || status === "sending") return;
     const data = new FormData(form);
     const from = String(data.get("from") ?? "").trim();
     const email = String(data.get("email") ?? "").trim();
@@ -94,15 +206,46 @@ function ContactForm() {
 
     const subjectLine = subject || subjectFallback;
     const bodyText = `${body}\n\n— ${from || "—"}${email ? ` <${email}>` : ""}`;
-    const url = `mailto:${PROFILE.email}?subject=${encodeURIComponent(
-      subjectLine
-    )}&body=${encodeURIComponent(bodyText)}`;
-    // Fires right before the deferred mailto hand-off; the form's own
-    // navigation is JS-driven here, so ordering is guaranteed.
-    trackEvent("contact_email_click", { method: "form" });
-    setSent(true);
-    window.setTimeout(() => window.location.assign(url), 220);
+
+    try {
+      setStatus("sending");
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ from, email, subject: subjectLine, body }),
+      });
+      if (res.ok) {
+        setStatus("sent");
+        return;
+      }
+      // No RESEND_API_KEY configured (501): behave exactly like the old
+      // form — silent mailto hand-off, no scary error shown.
+      const url = buildMailto(PROFILE.email, subjectLine, bodyText);
+      if (res.status === 501) {
+        trackEvent("contact_email_click", { method: "form" });
+        setFallbackUrl(url);
+        setStatus("mailto");
+        window.setTimeout(() => window.location.assign(url), 220);
+        return;
+      }
+      // Real send failure (502+): show the error WITH a working fallback.
+      setStatus("error");
+      setFallbackUrl(url);
+    } catch {
+      // Network-level failure — same treatment as a 502.
+      setStatus("error");
+      setFallbackUrl(buildMailto(PROFILE.email, subjectLine, bodyText));
+    }
   };
+
+  const statusLabel =
+    status === "sending"
+      ? t.contact.statusSending
+      : status === "sent"
+        ? t.contact.statusSent
+        : status === "mailto"
+          ? t.contact.statusMailtoOpened
+          : null;
 
   return (
     <form
@@ -126,14 +269,16 @@ function ContactForm() {
           marginBottom: 16,
           display: "flex",
           justifyContent: "space-between",
+          gap: 8,
+          flexWrap: "wrap",
         }}
       >
         <span>
           <span style={{ color: "var(--cyan)" }}>›</span> {t.contact.formTitle.replace(/^›\s*/, "")}
         </span>
-        {sent && (
-          <span style={{ color: "var(--cyan)" }}>
-            ● mail client opened
+        {statusLabel && (
+          <span style={{ color: status === "error" ? "var(--amber)" : "var(--cyan)" }}>
+            {statusLabel}
           </span>
         )}
       </div>
@@ -165,13 +310,39 @@ function ContactForm() {
         <button
           type="submit"
           className="btn-primary-violet"
+          disabled={status === "sending"}
           style={{
             alignSelf: "flex-start",
             fontFamily: "var(--font-jetbrains-mono)",
           }}
         >
-          {t.contact.sendCta} <span aria-hidden>→</span>
+          {status === "sending" ? t.contact.statusSending : `${t.contact.sendCta}`}{" "}
+          <span aria-hidden>→</span>
         </button>
+        {status === "error" && (
+          <div
+            className="mono"
+            style={{
+              fontSize: "var(--text-mono)",
+              color: "var(--amber)",
+              display: "flex",
+              gap: 10,
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
+            <span>{t.contact.statusError}</span>
+            {/* The fallback must never lose the visitor: same composed
+             * body, handed to their own mail client instead of Resend. */}
+            <a
+              href={fallbackUrl}
+              onClick={() => trackEvent("contact_email_click", { method: "mailto-fallback" })}
+              style={{ color: "var(--cyan)", textDecoration: "none" }}
+            >
+              {t.contact.mailtoFallbackCta}
+            </a>
+          </div>
+        )}
       </div>
     </form>
   );
@@ -384,7 +555,12 @@ export function Contact({ mobile }: { mobile: boolean }) {
               </div>
             </div>
           </div>
-          <ContactForm />
+          {/* B2: availability + engagement model sit ABOVE the form — a
+           * prospect qualifies themselves before typing. */}
+          <div>
+            <WorkWithMe />
+            <ContactForm />
+          </div>
         </div>
         <div
           className="mono"

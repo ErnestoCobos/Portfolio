@@ -35,6 +35,8 @@ export const es = {
     ariaCloseMenu: "Cerrar menú",
     menuEntries: (n: number) => `${n} entries`,
     menuActiveHere: "● here",
+    /** B4 CV link — dock (desktop), tree menu (mobile) and /cv route. */
+    cvLink: "./cv.pdf",
     ariaLanguageGroup: "Selector de idioma",
     ariaSwitchTo: (other: "es" | "en"): string =>
       other === "en" ? "Cambiar a inglés" : "Cambiar a español",
@@ -42,10 +44,13 @@ export const es = {
 
   proof: {
     aria: "cobos.io en números",
-    years: "años construyendo",
-    projects: "proyectos activos",
-    tools: "tools en el stack",
-    certs: "certs en roadmap",
+    /** A1 outcome-metric labels, keyed by ProofMetric.labelKey. */
+    metrics: {
+      saas: "SaaS en producción",
+      mailIndexed: "mensajes en el índice de apple-mail-mcp",
+      regulatedYears: "años en sectores regulados",
+      multicloud: "aws · gcp · azure en operación diaria",
+    } as Record<string, string>,
   },
 
   now: {
@@ -102,6 +107,8 @@ export const es = {
       "Migraciones legacy → cloud-native, Kubernetes en sectores regulados, multi-cloud, DevSecOps y FinOps. Construyo plataformas como producto.",
     cta: "./view-work.sh",
     ctaContact: "./contact",
+    /** B1 booking CTA — renders only while BOOKING_URL is set. */
+    ctaBook: "./book-intro.sh",
     statusBar: {
       env: "eks-prod · eu-west-1",
       argo: "argo cd: synced",
@@ -293,6 +300,22 @@ export const es = {
     sendCta: "./send",
     copyEmail: "copiar email",
     copied: "copiado ✓",
+    /** B3 form states (idle/sending/sent/error + mailto fallback). */
+    statusSending: "● enviando…",
+    statusSent: "● enviado ✓",
+    statusMailtoOpened: "● cliente de correo abierto",
+    statusError: "✗ no se pudo enviar por API — fallback:",
+    mailtoFallbackCta: "./enviar vía cliente de correo",
+    /** B2 "trabaja conmigo" block. Engagement copy is the real model
+     * (diagnóstico → arquitectura → migración/operación); availability
+     * text comes from AVAILABILITY_NOTE and pricing from PRICING_NOTE
+     * (hidden while empty). */
+    workTitle: "$ ./work-with-me.sh",
+    workAvailabilityLabel: "disponibilidad",
+    workEngagementLabel: "modelo",
+    workPricingLabel: "pricing",
+    engagementModel:
+      "diagnóstico (1–2 semanas) → arquitectura objetivo → migración / operación",
     connectionAlive: "● connection alive",
     consoleVersion: "cobos.io / v3.0 · console",
     linkEmail: "email",

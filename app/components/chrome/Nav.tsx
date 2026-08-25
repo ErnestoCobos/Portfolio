@@ -5,12 +5,17 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { NAV } from "../portfolio-data";
 import { useLocale, useT } from "../../lib/i18n/locale-context";
+import { trackEvent } from "../../lib/analytics";
 import { CobosLogo, useMounted } from "../portfolio-visuals";
 
 /** NAV ids that are real routes instead of on-page anchors. */
 const ROUTES: Record<string, (locale: "es" | "en") => string> = {
   blog: (l) => (l === "en" ? "/en/blog" : "/blog"),
   now: (l) => (l === "en" ? "/en/now" : "/now"),
+  /** B4 recruiter funnel — /cv exists per locale (app/(es)/cv, app/en/cv).
+   * Kept out of NAV so the center chips don't grow; it gets its own dock
+   * slot next to ./contact instead. */
+  cv: (l) => (l === "en" ? "/en/cv" : "/cv"),
 };
 
 /* ─── Nav ────────────────────────────────────────────────── */
@@ -158,9 +163,10 @@ export function MobileMenu({
             gap: 2,
           }}
         >
-          {NAV.map((n, i) => {
-            const isLast = i === NAV.length - 1;
-            const branch = isLast ? "└──" : "├──";
+          {/* B4: ./cv.pdf is appended after this list and closes the
+           * tree, so no NAV item draws the final └── branch anymore. */}
+          {NAV.map((n) => {
+            const branch = "├──";
             const isActive = active === n.id;
             const linkStyle = {
               display: "flex",
@@ -248,6 +254,29 @@ export function MobileMenu({
               </li>
             );
           })}
+          {/* B4: CV closes the tree — visible route, not an anchor. */}
+          <li>
+            <Link
+              href={ROUTES.cv?.(locale) ?? "/cv"}
+              onClick={onClose}
+              className="mono tap"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                padding: "12px 8px",
+                fontSize: 15,
+                color: "var(--fg)",
+                borderRadius: "var(--r-tile)",
+              }}
+            >
+              <span style={{ color: "var(--muted)", fontSize: "var(--text-meta)" }}>
+                └──
+              </span>
+              <span style={{ color: "var(--muted)" }}>/</span>
+              <span>{t.nav.cvLink.replace(/^\.\//, "")}</span>
+            </Link>
+          </li>
         </ul>
         <div
           className="mono"
@@ -523,6 +552,27 @@ export function Nav({ mobile }: { mobile: boolean }) {
             />
             {t.nav.online}
           </span>
+        )}
+
+        {/* B4: CV route link — recruiter funnel. Kept OUT of the center
+         * chips (no new NAV entry → no dock crowding) and left of
+         * ./contact so the commercial CTA keeps its edge position. */}
+        {!mobile && (
+          <Link
+            href={ROUTES.cv?.(locale) ?? "/cv"}
+            data-magnetic
+            className="mono tap"
+            onClick={() => trackEvent("cv_open")}
+            style={{
+              padding: "5px 10px",
+              color: "var(--muted)",
+              borderRadius: 4,
+              flexShrink: 0,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {t.nav.cvLink}
+          </Link>
         )}
 
         <a

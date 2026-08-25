@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../../lib/i18n/locale-context";
 import { trackEvent } from "../../lib/analytics";
+import { BOOKING_URL } from "../portfolio-data";
 import {
   CloudTopology,
   IsoCloud,
@@ -502,6 +503,22 @@ export function Hero({ mobile }: { mobile: boolean }) {
               >
                 {dict.hero.cta}
               </a>
+              {/* B1 commercial CTA — renders ONLY while BOOKING_URL is set,
+               * so an unfilled placeholder never ships a dead link. It takes
+               * the violet primary weight (stronger accent than view-work's
+               * cyan) because booking a call is the top-funnel action. */}
+              {BOOKING_URL && (
+                <a
+                  href={BOOKING_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn-primary-violet"
+                  data-magnetic
+                  onClick={() => trackEvent("cta_book")}
+                >
+                  {dict.hero.ctaBook}
+                </a>
+              )}
               <a
                 href="#contact"
                 className="btn-secondary mono"

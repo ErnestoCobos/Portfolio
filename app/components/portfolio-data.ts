@@ -34,6 +34,24 @@ export const PROFILE = {
   } satisfies Bilingual,
 };
 
+/**
+ * Conversion placeholders (wave 2 · B1/B2). All three are EMPTY-or-plain
+ * strings on purpose: nothing commercial renders until Ernesto fills them
+ * in — no invented pricing, no dead links.
+ */
+/** B1 — booking link for the hero's `./book-intro.sh` CTA. Empty string
+ * hides the CTA entirely; set e.g. "https://cal.com/ernestocobos/intro30"
+ * to enable it (fires the reserved `cta_book` analytics event). */
+export const BOOKING_URL = "";
+
+/** B2 — availability line rendered verbatim in Contact's "work with me"
+ * block. Placeholder until edited by hand. */
+export const AVAILABILITY_NOTE = "2 slots Q4 2026";
+
+/** B2 — indicative pricing note in Contact. Empty string HIDES the pricing
+ * row completely (the default: no invented figures). */
+export const PRICING_NOTE = "";
+
 export const STACK = [
   { group: "Cloud", items: ["AWS", "GCP", "Azure", "Cloudflare"] },
   { group: "Platform", items: ["Kubernetes", "Argo CD", "Flux", "Terraform", "Pulumi"] },
@@ -41,6 +59,37 @@ export const STACK = [
   { group: "Code", items: ["Next.js", "Vue/Nuxt", "TypeScript", "Laravel", "Django"] },
   { group: "Security", items: ["OPA", "Trivy", "Falco", "Vault", "SOPS"] },
   { group: "Observability", items: ["Prometheus", "Grafana", "OTel", "Loki", "Tempo"] },
+];
+
+/**
+ * A1 outcome metrics for the ProofStrip. Replaces the old vanity stats
+ * (years / project count / tool count / cert count): every figure here
+ * is an ORDER-OF-MAGNITUDE claim a prospect can verify elsewhere on this
+ * site — no invented users, MRR or uptime. Sources:
+ *   - 3 SaaS → EnkiFlow, GetDecant, Connver (all live in PROJECTS).
+ *   - 210k messages → apple-mail-mcp's own repo/site ("FTS5 over a real
+ *     210k-message mailbox"); it is an INDEX size, so the label says so.
+ *   - 9 years regulated sectors → EXPERIENCE (banking, automotive,
+ *     enterprise retail).
+ * `count` animates via CountUp; when absent, `raw` renders verbatim at
+ * display size. Labels are dictionary keys under `proof.metrics` so the
+ * ES/EN copy lives with all other copy in lib/i18n. */
+export type ProofMetric = {
+  /** Numeric part of the big value — animated by CountUp. */
+  count?: number;
+  /** Violet suffix rendered right after the count (e.g. "+", "k+"). */
+  suffix?: string;
+  /** Non-numeric big value rendered verbatim when there is no count. */
+  raw?: string;
+  /** Key into the `proof.metrics` dictionary namespace. */
+  labelKey: string;
+};
+
+export const PROOF_METRICS: ProofMetric[] = [
+  { count: 3, labelKey: "saas" },
+  { count: 210, suffix: "k+", labelKey: "mailIndexed" },
+  { count: 9, labelKey: "regulatedYears" },
+  { raw: "multi-cloud", labelKey: "multicloud" },
 ];
 
 export type Project = {

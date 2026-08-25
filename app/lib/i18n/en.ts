@@ -35,6 +35,8 @@ export const en: Dictionary = {
     ariaCloseMenu: "Close menu",
     menuEntries: (n: number) => `${n} entries`,
     menuActiveHere: "● here",
+    /** B4 CV link — dock (desktop), tree menu (mobile) and /cv route. */
+    cvLink: "./cv.pdf",
     ariaLanguageGroup: "Language",
     ariaSwitchTo: (other: "es" | "en"): string =>
       other === "en" ? "Switch to English" : "Switch to Spanish",
@@ -42,10 +44,13 @@ export const en: Dictionary = {
 
   proof: {
     aria: "cobos.io in numbers",
-    years: "years building",
-    projects: "active projects",
-    tools: "stack tools",
-    certs: "certs on roadmap",
+    /** A1 outcome-metric labels, keyed by ProofMetric.labelKey. */
+    metrics: {
+      saas: "SaaS in production",
+      mailIndexed: "messages in apple-mail-mcp's index",
+      regulatedYears: "years in regulated sectors",
+      multicloud: "aws · gcp · azure in daily operation",
+    } as Record<string, string>,
   },
 
   now: {
@@ -102,6 +107,8 @@ export const en: Dictionary = {
       "Legacy → cloud-native migrations, Kubernetes in regulated sectors, multi-cloud, DevSecOps and FinOps. I build platforms as a product.",
     cta: "./view-work.sh",
     ctaContact: "./contact",
+    /** B1 booking CTA — renders only while BOOKING_URL is set. */
+    ctaBook: "./book-intro.sh",
     statusBar: {
       env: "eks-prod · eu-west-1",
       argo: "argo cd: synced",
@@ -288,6 +295,22 @@ export const en: Dictionary = {
     sendCta: "./send",
     copyEmail: "copy email",
     copied: "copied ✓",
+    /** B3 form states (idle/sending/sent/error + mailto fallback). */
+    statusSending: "● sending…",
+    statusSent: "● sent ✓",
+    statusMailtoOpened: "● mail client opened",
+    statusError: "✗ API send failed — fallback:",
+    mailtoFallbackCta: "./send via mail client",
+    /** B2 "work with me" block. Engagement copy is the real model
+     * (diagnostic → architecture → migrate/operate); availability text
+     * comes from AVAILABILITY_NOTE and pricing from PRICING_NOTE (hidden
+     * while empty). */
+    workTitle: "$ ./work-with-me.sh",
+    workAvailabilityLabel: "availability",
+    workEngagementLabel: "model",
+    workPricingLabel: "pricing",
+    engagementModel:
+      "diagnostic (1–2 weeks) → target architecture → migration / operation",
     connectionAlive: "● connection alive",
     consoleVersion: "cobos.io / v3.0 · console",
     linkEmail: "email",
