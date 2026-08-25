@@ -116,6 +116,40 @@ export function buildWebsiteLd(locale: Locale) {
   };
 }
 
+/* Consulting Service node — the commercial counterpart to the Person.
+ * Injected per locale from `RootHead` (which already knows its tree's
+ * locale), so crawlers see localized copy on `/` and `/en` while the
+ * canonical entity `@id` (`#service-consulting`) stays stable across
+ * both trees. No `offers`/price yet: indicative pricing is gated on the
+ * B2 roadmap item ("Trabaja conmigo") and inventing figures here would
+ * publish unapproved claims to search engines.
+ *
+ * `provider` references the Person purely by `@id` — same-page graph
+ * stitching, exactly like `buildWebsiteLd.author`. */
+export function buildServiceLd(locale: Locale) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    "@id": "https://cobos.io/#service-consulting",
+    name: "Cloud Architecture & Platform Engineering Consulting",
+    description:
+      locale === "en"
+        ? "Consulting in cloud audits, architecture, legacy-to-cloud migrations, FinOps and DevSecOps — delivered remotely, worldwide."
+        : "Consultoría en auditorías cloud, arquitectura, migraciones legacy→cloud, FinOps y DevSecOps — remota, a nivel mundial.",
+    /* Canonical schema.org terms (English vocabulary regardless of page
+     * language) so Google can classify the service type deterministically. */
+    serviceType: [
+      "Cloud Audit",
+      "Cloud Architecture",
+      "Cloud Migration",
+      "FinOps",
+      "DevSecOps",
+    ],
+    provider: { "@id": "https://cobos.io/#person" },
+    areaServed: "Worldwide",
+  };
+}
+
 /* Pre-paint boot scripts — must run before first paint (no FOUC):
  *  1. `js` class: gates every scroll-reveal hiding rule. Without JS the
  *     page renders fully visible; with JS, [data-reveal] elements start
@@ -170,6 +204,10 @@ export function RootHead({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(buildServiceLd(locale)) }}
       />
     </>
   );

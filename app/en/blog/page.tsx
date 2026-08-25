@@ -40,8 +40,36 @@ export const metadata: Metadata = {
 
 export default function BlogIndexEn() {
   const posts = getAllPosts(LOCALE);
+
+  /* CollectionPage + ItemList: tells crawlers this URL is a listing over
+   * the real post set (not a content page), with stable positions. The
+   * Person `@id` reference resolves because the root layout head —
+   * rendered on this same page — declares the `#person` node. */
+  const collectionLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "@id": `${SITE}/en/blog#collection`,
+    url: `${SITE}/en/blog`,
+    name: "cobos::/blog · field notes",
+    inLanguage: "en",
+    publisher: { "@id": `${SITE}/#person` },
+    mainEntity: {
+      "@type": "ItemList",
+      itemListElement: posts.map((p, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        url: `${SITE}/en/blog/${p.slug}`,
+        name: p.title,
+      })),
+    },
+  };
+
   return (
     <LocaleProvider locale={LOCALE}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionLd) }}
+      />
       <BlogClient posts={posts} />
       <BlogSubscribe />
     </LocaleProvider>
