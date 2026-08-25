@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import BlogClient from "../../components/blog/BlogClient";
+import BlogSubscribe from "../../components/blog/BlogSubscribe";
 import { LocaleProvider } from "../../lib/i18n/locale-context";
 import { getAllPosts } from "../../lib/posts";
 
@@ -42,6 +43,7 @@ export default function BlogIndexEn() {
   return (
     <LocaleProvider locale={LOCALE}>
       <BlogClient posts={posts} />
+      <BlogSubscribe />
     </LocaleProvider>
   );
 }

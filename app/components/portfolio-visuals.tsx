@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import type { RefObject } from "react";
 import type { Architecture } from "./architectures";
 
 /**
@@ -57,6 +58,31 @@ export function useReducedMotion(): boolean {
   );
 }
 
+/**
+ * Whether the attached element is (about to be) on screen. Threshold 0 with a
+ * +100px margin so ambient loops resume just before the element scrolls in.
+ * Ambient rAF/ticker visuals used to keep burning CPU/battery three
+ * viewports down the page; callers gate their loops on the boolean.
+ * Starts `true` so SSR and engines without IntersectionObserver simply never
+ * pause — the observer is the only thing allowed to flip it false.
+ */
+function useInViewport<T extends Element>(): [RefObject<T | null>, boolean] {
+  const ref = useRef<T>(null);
+  const [inView, setInView] = useState(true);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const obs = new IntersectionObserver(
+      // Last entry wins: batches arrive oldest→newest.
+      (entries) => setInView(entries[entries.length - 1].isIntersecting),
+      { threshold: 0, rootMargin: "100px" }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return [ref, inView];
+}
+
 type CloudTopologyProps = {
   width: number;
   height: number;
@@ -72,10 +98,14 @@ export function CloudTopology({
   palette = ["#00D4FF", "#7C3AED"],
   animate = true,
 }: CloudTopologyProps) {
-  const ref = useRef<HTMLCanvasElement>(null);
+  const [canvasRef, inView] = useInViewport<HTMLCanvasElement>();
+  // Per-frame step installed by the setup effect; the loop effect below
+  // invokes it. Splitting this way lets the rAF loop stop/start on viewport
+  // entry/exit without tearing down the particle field (positions survive).
+  const stepRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    const c = ref.current;
+    const c = canvasRef.current;
     if (!c) return;
     const ctx = c.getContext("2d");
     if (!ctx) return;
@@ -136,8 +166,7 @@ export function CloudTopology({
       return;
     }
 
-    let raf = 0;
-    const loop = () => {
+    stepRef.current = () => {
       for (const n of nodes) {
         n.x += n.vx;
         n.y += n.vy;
@@ -147,13 +176,26 @@ export function CloudTopology({
         if (n.y > height + 10) n.y = -10;
       }
       draw();
-      raf = requestAnimationFrame(loop);
     };
-    loop();
-    return () => cancelAnimationFrame(raf);
-  }, [width, height, density, palette, animate]);
+    return () => {
+      stepRef.current = null;
+    };
+  }, [canvasRef, width, height, density, palette, animate]);
 
-  return <canvas ref={ref} style={{ width, height, display: "block" }} />;
+  // The actual rAF loop runs only while the canvas is on screen — off-screen
+  // it cancels entirely instead of painting frames nobody sees.
+  useEffect(() => {
+    if (!animate || !inView) return;
+    let raf = 0;
+    const tick = () => {
+      stepRef.current?.();
+      raf = requestAnimationFrame(tick);
+    };
+    tick();
+    return () => cancelAnimationFrame(raf);
+  }, [animate, inView]);
+
+  return <canvas ref={canvasRef} style={{ width, height, display: "block" }} />;
 }
 
 export function IsoCloud({
@@ -163,7 +205,10 @@ export function IsoCloud({
   size?: number;
   animate?: boolean;
 }) {
-  const t = useTicker(animate, 24); // slow wave — 24fps is plenty
+  const [svgRef, inView] = useInViewport<SVGSVGElement>();
+  // Ticker gated on visibility — off-screen the wave freezes instead of
+  // re-rendering 36 cells at 24fps for nobody.
+  const t = useTicker(animate && inView, 24); // slow wave — 24fps is plenty
   const cells: { x: number; z: number; h: number; op: number }[] = [];
   const W = 6;
   for (let z = 0; z < W; z++) {
@@ -174,7 +219,7 @@ export function IsoCloud({
     }
   }
   return (
-    <svg viewBox="0 0 240 240" style={{ width: size, height: size, overflow: "visible" }}>
+    <svg ref={svgRef} viewBox="0 0 240 240" style={{ width: size, height: size, overflow: "visible" }}>
       <defs>
         <linearGradient id="iso-cyan" x1="0" x2="0" y1="0" y2="1">
           <stop offset="0" stopColor="#00D4FF" stopOpacity=".95" />
@@ -232,7 +277,10 @@ export function ArchDiagram({
   compact?: boolean;
   animate?: boolean;
 }) {
-  const t = useTicker(animate, 20); // slow pulses — no need for 60fps diffs of the whole SVG
+  const [svgRef, inView] = useInViewport<SVGSVGElement>();
+  // Ticker gated on visibility — off-screen diagrams hold their last frame
+  // instead of diffing the whole SVG at 20fps.
+  const t = useTicker(animate && inView, 20); // slow pulses — no need for 60fps diffs of the whole SVG
   const W = compact ? 360 : 920;
   const H = compact ? 260 : 560;
   const pulse = 0.5 + 0.5 * Math.sin(t * 2.4);
@@ -247,6 +295,7 @@ export function ArchDiagram({
     return (
       <svg
         key={arch.id}
+        ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
         style={{ width: "100%", height: "auto", display: "block" }}
       >
@@ -271,6 +320,7 @@ export function ArchDiagram({
   return (
     <svg
       key={arch.id}
+      ref={svgRef}
       viewBox={`0 0 ${W} ${H}`}
       style={{ width: "100%", height: "auto", display: "block" }}
     >

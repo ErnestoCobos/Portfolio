@@ -352,6 +352,92 @@ export const TRENDS: Trend[] = [
   },
 ];
 
+export type Testimonial = {
+  /** The quote. Only add REAL quotes — never invent them. */
+  quote: Bilingual;
+  author: string;
+  /** e.g. "CEO · Tarzzo Stone" */
+  role: Bilingual;
+};
+
+/**
+ * Social-proof quotes. INTENTIONALLY EMPTY until real, attributable quotes
+ * exist — the Testimonials section renders nothing while this is empty.
+ * To enable: add entries with verifiable quotes (with permission).
+ */
+export const TESTIMONIALS: Testimonial[] = [];
+
+export type NowItem = {
+  /** e.g. { es: "ahora", en: "now" } */
+  period: Bilingual;
+  title: Bilingual;
+  detail: Bilingual;
+  status: "active" | "brewing";
+};
+
+/**
+ * Snapshot of current fronts for the /now page. Derived from the
+ * PROJECTS / EXPERIENCE / CERTIFICATIONS data above — don't invent
+ * facts here. Refreshed monthly (`NOW.updated`).
+ */
+export const NOW: {
+  /** Last refresh, e.g. "agosto 2026" / "August 2026". */
+  updated: Bilingual;
+  items: NowItem[];
+} = {
+  updated: { es: "agosto 2026", en: "August 2026" },
+  items: [
+    {
+      period: { es: "sprint actual", en: "current sprint" },
+      title: { es: "EnkiFlow", en: "EnkiFlow" },
+      detail: {
+        es: "Time tracker con AI en producción: contexto por voz/video y sync entre web, desktop, Chrome Extension y VS Code.",
+        en: "AI time tracker in production: voice/video context capture and sync across web, desktop, Chrome Extension, and VS Code.",
+      },
+      status: "active",
+    },
+    {
+      period: { es: "en producción", en: "in production" },
+      title: { es: "GetDecant", en: "GetDecant" },
+      detail: {
+        es: "SaaS para perfumería operando en producción: POS táctil, inventario por mililitro y operación multi-sucursal.",
+        en: "Scent-retail SaaS running in production: touch POS, milliliter-level inventory, and multi-store operation.",
+      },
+      status: "active",
+    },
+    {
+      period: { es: "lanzamiento reciente", en: "newest launch" },
+      title: { es: "Connver", en: "Connver" },
+      detail: {
+        es: "CRM de WhatsApp con seguimiento automatizado asistido por IA. Producto Voltaflow — el lanzamiento más nuevo.",
+        en: "WhatsApp CRM with AI-assisted automated follow-up. A Voltaflow product — the newest launch.",
+      },
+      status: "active",
+    },
+    {
+      period: { es: "2026 Q3 → 2027 Q1", en: "2026 Q3 → 2027 Q1" },
+      title: {
+        es: "Certificaciones · roadmap",
+        en: "Certification roadmap",
+      },
+      detail: {
+        es: "Prep activa: CKA 75% · SAP-C02 60% · CKS 40% · PCA 25%. Targets 2026 Q3 → 2027 Q1.",
+        en: "Active prep: CKA 75% · SAP-C02 60% · CKS 40% · PCA 25%. Targets 2026 Q3 → 2027 Q1.",
+      },
+      status: "active",
+    },
+    {
+      period: { es: "open source", en: "open source" },
+      title: { es: "apple-mail-mcp", en: "apple-mail-mcp" },
+      detail: {
+        es: "Servidor MCP para Apple Mail: 31 tools, búsqueda FTS5 y capa de seguridad con undo. Iterando con feedback de la comunidad.",
+        en: "MCP server for Apple Mail: 31 tools, FTS5 search, and a safety layer with undo. Iterating on community feedback.",
+      },
+      status: "brewing",
+    },
+  ],
+};
+
 export type PostCategory = "gitops" | "migrations" | "finops" | "platform";
 
 export const CATEGORY_META: Record<
@@ -391,6 +477,7 @@ export const NAV = [
   { id: "certs", label: "Certs" },
   { id: "trends", label: "2026" },
   { id: "blog", label: "Blog" },
+  { id: "now", label: "Now" },
   { id: "approach", label: "Approach" },
   { id: "contact", label: "Contact" },
 ];

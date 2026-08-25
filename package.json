@@ -8,6 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test",
     "translate": "node scripts/translate-posts.mjs",
     "translate:force": "rm -f content/blog/.translator-cache.json && node scripts/translate-posts.mjs",
     "sync-notion": "node scripts/fetch-notion.mjs && node scripts/translate-posts.mjs",
@@ -25,6 +27,7 @@
     "sharp": "^0.35.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4.3.0",
     "@types/node": "^20",
     "@types/react": "^19.2.15",

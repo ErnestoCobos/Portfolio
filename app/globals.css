@@ -1139,3 +1139,29 @@ html.intro-boot #main-scene {
     opacity: 1;
   }
 }
+
+/* ── Boot log pane — fixed terminal-row height so the typing animation never
+   grows the layout (was the main contributor to mobile CLS 0.105). Heights
+   sized to fit the fully-typed log including worst-case line wrapping at
+   320px; extra room reads as empty terminal rows. */
+.hero-bootlog {
+  height: 252px;
+  overflow: hidden;
+}
+@media (max-width: 767.98px) {
+  .hero-bootlog {
+    height: 296px;
+  }
+}
+
+/* ─── /cv print sheet ─── the site is dark with inline styles; print
+   needs !important to beat inline specificity ─── */
+@media print {
+  @page { size: A4; margin: 14mm; }
+  body * { visibility: hidden; }
+  .cv-print, .cv-print * { visibility: visible; }
+  .cv-print { position: absolute; left: 0; top: 0; width: 100%; background: #fff !important; color: #111 !important; }
+  .cv-print * { color: #111 !important; background: transparent !important; border-color: #ddd !important; text-shadow: none !important; box-shadow: none !important; }
+  .cv-print a { text-decoration: none; }
+  .cv-noprint { display: none !important; }
+}

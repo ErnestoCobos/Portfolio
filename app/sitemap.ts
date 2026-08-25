@@ -52,6 +52,45 @@ export default function sitemap(): MetadataRoute.Sitemap {
     });
   }
 
+  // /now snapshot — same cluster semantics as home/blog: byte-identical
+  // URLs across the hreflang set, matching each page's canonical.
+  const NOW_ES = `${SITE}/now`;
+  const NOW_EN = `${SITE}/en/now`;
+  for (const nowUrl of [NOW_ES, NOW_EN]) {
+    out.push({
+      url: nowUrl,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.8,
+      alternates: {
+        languages: {
+          "es-MX": NOW_ES,
+          "en-US": NOW_EN,
+          "x-default": NOW_ES,
+        },
+      },
+    });
+  }
+
+  // /cv printable résumé — same cluster semantics as /now.
+  const CV_ES = `${SITE}/cv`;
+  const CV_EN = `${SITE}/en/cv`;
+  for (const cvUrl of [CV_ES, CV_EN]) {
+    out.push({
+      url: cvUrl,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.8,
+      alternates: {
+        languages: {
+          "es-MX": CV_ES,
+          "en-US": CV_EN,
+          "x-default": CV_ES,
+        },
+      },
+    });
+  }
+
   // Per-post entries. We build a slug→locales map first so each entry
   // can announce its alternates without re-scanning posts.
   const slugLocales = new Map<string, Locale[]>();

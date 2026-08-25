@@ -48,6 +48,47 @@ export const en: Dictionary = {
     certs: "certs on roadmap",
   },
 
+  now: {
+    label: "now",
+    title: "/now",
+    headline: ["What I'm ", "building", " right now."],
+    subhead:
+      "Snapshot of current fronts: SaaS in production, certification prep, and open source. Updated monthly.",
+    updatedLabel: "updated",
+    statusActive: "active",
+    statusBrewing: "brewing",
+    backHome: "← cobos::/home",
+  },
+
+  testimonials: {
+    label: "testimonials",
+    headline: ["What the people ", "working", " with me say."],
+    blurb:
+      "Real quotes from clients and colleagues. No marketing fluff — what they said, attributable and with permission.",
+  },
+
+  cv: {
+    title: "CV · Ernesto Cobos",
+    headline: "cv.pdf — one page, no fluff",
+    print: "download PDF",
+    contactLabel: "contact",
+    expLabel: "experience",
+    projectsLabel: "projects",
+    certsLabel: "certifications",
+    stackLabel: "stack",
+  },
+
+  newsletter: {
+    title: "./subscribe",
+    blurb:
+      "One note whenever a new post ships. No spam — unsubscribing is one click.",
+    placeholder: "you@email.com",
+    cta: "subscribe",
+    success: "● subscribed — check your inbox",
+    error: "✗ try again",
+    rssCta: "or via RSS",
+  },
+
   hero: {
     terminalTitle: "~/cobos.io  —  zsh  —  120×40",
     terminalTitleMobile: "~/cobos.io",
@@ -96,7 +137,7 @@ export const en: Dictionary = {
 
   stack: {
     sectionLabel: "stack",
-    action: "ls -la ./tools | wc -l → 38",
+    action: "ls -la ./tools | wc -l → 28",
     radialCenterTop: "COBOS::",
     radialCenterMid: "stack",
     radialCenterTools: "TOOLS",
