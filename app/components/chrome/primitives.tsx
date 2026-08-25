@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { ChapterMarker } from "../cinematic/ChapterMarker";
 import { DecodeText } from "../cinematic/DecodeText";
 import { Reveal } from "../cinematic/Reveal";
 
@@ -31,6 +32,7 @@ export function SectionHeader({
   // one integration point covers all ten sections.
   return (
     <Reveal>
+      <ChapterMarker n={n} label={t} />
       <div
         style={{
           display: "flex",

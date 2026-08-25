@@ -74,3 +74,13 @@ test("atmosphere layer exists and page still renders h1", async ({ page }) => {
   await expect(page.locator("#atmosphere")).toBeAttached();
   await expect(page.locator("h1").first()).toBeVisible();
 });
+
+test("every section renders a chapter marker", async ({ page }) => {
+  await page.goto("/");
+  // Deviation from plan (expected 11): Testimonials returns null while
+  // TESTIMONIALS is intentionally empty, so the live page has 10 sections.
+  // Assert one marker per rendered section instead of a magic number.
+  const sections = await page.locator("#main-scene section[id]").count();
+  expect(sections).toBe(10);
+  await expect(page.locator(".chapter-marker")).toHaveCount(sections);
+});

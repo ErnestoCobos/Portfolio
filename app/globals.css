@@ -1181,3 +1181,40 @@ html.intro-boot #main-scene {
     radial-gradient(55% 45% at 85% 20%, var(--violet-tint-soft), transparent 70%),
     var(--bg);
 }
+/* ─── Chapter markers ─────────────────────────────────────── */
+.chapter-marker {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 8px;
+  font-family: var(--font-display, inherit);
+  font-size: clamp(40px, 10vw, 120px);
+  line-height: var(--lh-display);
+  letter-spacing: var(--ls-display);
+  font-weight: 700;
+  color: var(--fg);
+  opacity: 0.14; /* ghost watermark — felt, not competing with content */
+  user-select: none;
+  white-space: nowrap;
+}
+.chapter-marker-num { color: var(--cyan); font-weight: 400; }
+.chapter-marker-scan {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    var(--cyan-tint-loud) 48%,
+    var(--cyan-tint-loud) 52%,
+    transparent 100%
+  );
+  transform: translateY(-101%);
+  animation: chapter-scan var(--motion-slow) ease-out 1;
+  pointer-events: none;
+}
+@keyframes chapter-scan {
+  from { transform: translateY(-101%); }
+  to { transform: translateY(101%); }
+}
