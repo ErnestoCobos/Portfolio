@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useReducedMotion } from "../portfolio-visuals";
+import { useMounted, useReducedMotion } from "../portfolio-visuals";
 
 const VERT = `attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}`;
 
@@ -35,17 +35,45 @@ function compile(gl: WebGLRenderingContext, type: number, src: string) {
   return s;
 }
 
+// Touch devices and low-core CPUs can't hold a steady 30fps under a live GL
+// loop — the shader runs fullscreen on every frame, so on that hardware the
+// canvas costs battery/jank for an effect nobody perceives. The CSS gradient
+// fallback is visually equivalent at rest (same bg tokens) and free.
+function isLowEndDevice(): boolean {
+  if (typeof window === "undefined") return false;
+  if (window.matchMedia("(pointer: coarse)").matches) return true;
+  // hardwareConcurrency is optional per spec; treat "unknown" as capable so
+  // we only degrade on positive evidence.
+  const cores = navigator.hardwareConcurrency;
+  return typeof cores === "number" && cores <= 4;
+}
+
 /**
  * AtmosphereCanvas — fullscreen nebula-grid behind the whole page.
  * ~30fps, DPR ≤1.5, pauses on document.hidden. Reduced motion renders a
- * single static frame; missing WebGL falls back to a CSS gradient div.
+ * single static frame; low-end devices (pointer: coarse / ≤4 cores) and
+ * missing WebGL fall back to a CSS gradient div.
  */
 export function AtmosphereCanvas() {
   const ref = useRef<HTMLCanvasElement>(null);
   const reduced = useReducedMotion();
+  const mounted = useMounted();
+  // Lazy initializer: the decision is computed once, on the very first client
+  // render, so a low-end device never paints the canvas at all. SSR can't run
+  // it (no matchMedia/navigator there), so until hydration completes we must
+  // keep rendering exactly what the server rendered — hence the useMounted
+  // gate below. That first post-hydration frame is an untouched transparent
+  // canvas over the page background, i.e. visually identical to the fallback:
+  // no flash. The same pattern covers webglDead, which only flips from the
+  // mount effect (post-hydration) and so never risks a mismatch either.
+  const [lowEnd] = useState(isLowEndDevice);
   const [webglDead, setWebglDead] = useState(false);
 
   useEffect(() => {
+    // Bail before getContext: on low-end hardware even creating the GL context
+    // has a cost, and we don't want the context lingering if we won't draw.
+    // The reduced-motion and no-WebGL gates stay untouched after this check.
+    if (lowEnd) return;
     const canvas = ref.current;
     if (!canvas) return;
     const gl = canvas.getContext("webgl", { alpha: false, antialias: false });
@@ -135,9 +163,9 @@ export function AtmosphereCanvas() {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("resize", resize);
     };
-  }, [reduced]);
+  }, [reduced, lowEnd]);
 
-  if (webglDead) {
+  if (mounted && (lowEnd || webglDead)) {
     return <div id="atmosphere" className="atmosphere-fallback" aria-hidden />;
   }
   return <canvas id="atmosphere" ref={ref} aria-hidden />;
