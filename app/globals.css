@@ -601,9 +601,16 @@ textarea:focus-visible {
   outline-offset: 2px;
 }
 
-/* Hide vertical scrollbars on artboard surfaces */
+/* Hide vertical scrollbars on artboard surfaces. No background here:
+ * body already paints --bg. The `position: relative; z-index: 0` turns
+ * the artboard into a stacking context so the fixed #atmosphere canvas
+ * (z-index: -1) paints above the propagated page background but behind
+ * all in-flow content — without it, html's background stops body's from
+ * propagating and body's background box covers the canvas below the
+ * hero. */
 .cobos-art {
-  background: var(--bg);
+  position: relative;
+  z-index: 0;
   color: var(--fg);
   font-size: 18px;
   line-height: 1.6;
@@ -1211,8 +1218,13 @@ html.intro-boot #main-scene {
     transparent 100%
   );
   transform: translateY(-101%);
-  animation: chapter-scan var(--motion-slow) ease-out 1;
+  /* Gated on the wrapping Reveal: the sweep plays when the section
+   * enters the viewport, not once at page load. */
+  animation: none;
   pointer-events: none;
+}
+[data-reveal="in"] .chapter-marker-scan {
+  animation: chapter-scan var(--motion-slow) ease-out 1;
 }
 @keyframes chapter-scan {
   from { transform: translateY(-101%); }
@@ -1277,6 +1289,13 @@ html.intro-boot #main-scene {
     border-color var(--motion-fast);
 }
 .power-rail-node:hover { border-color: var(--cyan); }
+/* Invisible 25×25px hit area around the 9px dot (WCAG 2.2 AA ≥24px
+ * target) — the visual stays a hairline node, the click zone doesn't. */
+.power-rail-node::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+}
 .power-rail-node.active {
   background: var(--cyan);
   border-color: var(--cyan);
@@ -1295,7 +1314,7 @@ html.intro-boot #main-scene {
   border-radius: var(--r-chip);
   opacity: 0.6;
   transition: width var(--motion-fast), height var(--motion-fast),
-    opacity var(--motion-fast);
+    margin var(--motion-fast), opacity var(--motion-fast);
 }
 #magnetic-cursor::before,
 #magnetic-cursor::after {
@@ -1308,5 +1327,8 @@ html.intro-boot #main-scene {
 #magnetic-cursor[data-state="locked"] {
   width: 36px;
   height: 36px;
+  /* The JS transform offsets by half the 24px free size; recenter the
+   * grown reticle by the 6px the size delta adds. */
+  margin: -6px 0 0 -6px;
   opacity: 0.9;
 }

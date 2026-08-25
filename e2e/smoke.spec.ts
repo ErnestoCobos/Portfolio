@@ -69,10 +69,32 @@ test("/now responds and renders an h1", async ({ page }) => {
   expect(hasH1).toBe(true);
 });
 
-test("atmosphere layer exists and page still renders h1", async ({ page }) => {
+test("atmosphere layer exists and visibly paints the page", async ({
+  page,
+}) => {
+  // Reduced motion → AtmosphereCanvas draws one quiet static frame and
+  // every other CSS/JS animation is frozen by the universal reset, so
+  // the two screenshots below are deterministic.
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
   await expect(page.locator("#atmosphere")).toBeAttached();
   await expect(page.locator("h1").first()).toBeVisible();
+  // Let hydration run the mount effect (static frame draw) before
+  // capturing the baseline.
+  await page.evaluate(
+    () =>
+      new Promise((r) =>
+        requestAnimationFrame(() => requestAnimationFrame(r))
+      )
+  );
+  const withAtmosphere = await page.screenshot();
+  await page.addStyleTag({
+    content: "#atmosphere{display:none!important}",
+  });
+  const withoutAtmosphere = await page.screenshot();
+  // Regression guard: an opaque layer over the fixed canvas (e.g. a
+  // background on .cobos-art) makes these buffers identical.
+  expect(withAtmosphere.equals(withoutAtmosphere)).toBe(false);
 });
 
 test("every section renders a chapter marker", async ({ page }) => {

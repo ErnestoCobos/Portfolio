@@ -44,27 +44,29 @@ export function MagneticCursor() {
     };
 
     const loop = () => {
-      let gx = px;
-      let gy = py;
-      if (target) {
-        const r = target.getBoundingClientRect();
-        const tx = r.left + r.width / 2;
-        const ty = r.top + r.height / 2;
-        const dist = Math.hypot(tx - px, ty - py);
-        if (dist < 120) {
-          const pull = 1 - dist / 120;
-          gx = px + (tx - px) * pull * 0.5;
-          gy = py + (ty - py) * pull * 0.5;
-          const ox = Math.max(-4, Math.min(4, (px - tx) * 0.08));
-          const oy = Math.max(-4, Math.min(4, (py - ty) * 0.08));
-          target.style.transform = `translate(${ox}px,${oy}px)`;
-        } else {
-          target.style.transform = "";
+      if (!document.hidden) {
+        let gx = px;
+        let gy = py;
+        if (target) {
+          const r = target.getBoundingClientRect();
+          const tx = r.left + r.width / 2;
+          const ty = r.top + r.height / 2;
+          const dist = Math.hypot(tx - px, ty - py);
+          if (dist < 120) {
+            const pull = 1 - dist / 120;
+            gx = px + (tx - px) * pull * 0.5;
+            gy = py + (ty - py) * pull * 0.5;
+            const ox = Math.max(-4, Math.min(4, (px - tx) * 0.08));
+            const oy = Math.max(-4, Math.min(4, (py - ty) * 0.08));
+            target.style.transform = `translate(${ox}px,${oy}px)`;
+          } else {
+            target.style.transform = "";
+          }
         }
+        cx += (gx - cx) * 0.18;
+        cy += (gy - cy) * 0.18;
+        el.style.transform = `translate3d(${cx - 12}px,${cy - 12}px,0)`;
       }
-      cx += (gx - cx) * 0.18;
-      cy += (gy - cy) * 0.18;
-      el.style.transform = `translate3d(${cx - 12}px,${cy - 12}px,0)`;
       raf = requestAnimationFrame(loop);
     };
 
