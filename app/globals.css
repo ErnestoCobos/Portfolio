@@ -1237,3 +1237,41 @@ html.intro-boot #main-scene {
   color: transparent;
   -webkit-text-stroke: 1px var(--hairline-strong);
 }
+/* ─── Power rail ──────────────────────────────────────────── */
+.power-rail {
+  position: fixed;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.power-rail::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -8px;
+  bottom: -8px;
+  width: 1px;
+  background: var(--hairline);
+}
+.power-rail-node {
+  position: relative;
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  border-radius: var(--r-chip);
+  border: 1px solid var(--hairline-strong);
+  background: var(--bg);
+  cursor: pointer;
+  transition: background var(--motion-fast), box-shadow var(--motion-fast),
+    border-color var(--motion-fast);
+}
+.power-rail-node:hover { border-color: var(--cyan); }
+.power-rail-node.active {
+  background: var(--cyan);
+  border-color: var(--cyan);
+  box-shadow: 0 0 12px var(--cyan-glow);
+}

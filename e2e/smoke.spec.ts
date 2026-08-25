@@ -97,3 +97,13 @@ test("hero shows telemetry strip with placeholders before hydration", async ({ p
   // Network may be unavailable in CI — assert structure, not live values.
   await expect(strip.locator("span").first()).toBeVisible();
 });
+
+test("power rail lists every section as a node", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  // Deviation from plan (expected 11): Testimonials returns null while
+  // TESTIMONIALS is intentionally empty → 10 sections → 10 rail nodes.
+  const sections = await page.locator("#main-scene section[id]").count();
+  expect(sections).toBe(10);
+  await expect(page.locator(".power-rail-node")).toHaveCount(sections);
+});
