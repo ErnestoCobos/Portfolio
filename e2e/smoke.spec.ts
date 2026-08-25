@@ -89,3 +89,11 @@ test("kinetic marquees divide section groups", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator(".kinetic-marquee")).toHaveCount(3);
 });
+
+test("hero shows telemetry strip with placeholders before hydration", async ({ page }) => {
+  await page.goto("/");
+  const strip = page.locator("#telemetry-strip");
+  await expect(strip).toBeAttached();
+  // Network may be unavailable in CI — assert structure, not live values.
+  await expect(strip.locator("span").first()).toBeVisible();
+});

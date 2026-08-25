@@ -9,6 +9,7 @@ import {
   useReducedMotion,
 } from "../portfolio-visuals";
 import { useViewportWidth } from "../hooks";
+import { TelemetryStrip } from "./TelemetryStrip";
 
 /** Format session uptime. <1min: `12.3s`. ≥1min: `1m 23s`. Fed by
  * SessionClock's 10Hz interval so it always reads as "real time". */
@@ -423,6 +424,7 @@ export function Hero({ mobile }: { mobile: boolean }) {
           }}
         >
           <BootLog mobile={mobile} />
+          <TelemetryStrip mobile={mobile} />
         </div>
 
         <div
