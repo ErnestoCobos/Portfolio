@@ -1218,6 +1218,13 @@ html.intro-boot #main-scene {
   from { transform: translateY(-101%); }
   to { transform: translateY(101%); }
 }
+@media (prefers-reduced-motion: reduce) {
+  /* Kill the power-on sweep outright — the universal reset would still
+     play it once at 0.001ms; reduced-motion users get nothing. */
+  .chapter-marker-scan {
+    animation: none !important;
+  }
+}
 /* ─── Kinetic marquee ─────────────────────────────────────── */
 .kinetic-marquee {
   overflow: hidden;
