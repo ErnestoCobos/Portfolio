@@ -1,8 +1,10 @@
 "use client";
 
 import { useRef, useState, type CSSProperties, type FormEvent } from "react";
+import Link from "next/link";
 import { PROFILE } from "../portfolio-data";
 import { useLocale, useT } from "../../lib/i18n/locale-context";
+import { trackEvent } from "../../lib/analytics";
 import { CloudTopology, useReducedMotion } from "../portfolio-visuals";
 import { useViewportWidth } from "../hooks";
 import { SectionHeader } from "../chrome/primitives";
@@ -95,6 +97,9 @@ function ContactForm() {
     const url = `mailto:${PROFILE.email}?subject=${encodeURIComponent(
       subjectLine
     )}&body=${encodeURIComponent(bodyText)}`;
+    // Fires right before the deferred mailto hand-off; the form's own
+    // navigation is JS-driven here, so ordering is guaranteed.
+    trackEvent("contact_email_click", { method: "form" });
     setSent(true);
     window.setTimeout(() => window.location.assign(url), 220);
   };
@@ -184,6 +189,7 @@ function CopyEmailButton() {
       type="button"
       className="tap mono"
       onClick={() => {
+        trackEvent("contact_copy_email");
         navigator.clipboard?.writeText(PROFILE.email).then(
           () => {
             setCopied(true);
@@ -326,22 +332,55 @@ export function Contact({ mobile }: { mobile: boolean }) {
             >
               <div>
                 {t.contact.linkEmail}{"   "}
-                <span style={{ color: "var(--cyan)" }}>{PROFILE.email}</span>
+                {/* The address used to be plain text — it only became
+                 * measurable once clickable. mailto keeps working without JS;
+                 * onClick is additive (no preventDefault). */}
+                <a
+                  href={`mailto:${PROFILE.email}`}
+                  onClick={() => trackEvent("contact_email_click", { method: "link" })}
+                  style={{ color: "var(--cyan)", textDecoration: "none" }}
+                >
+                  {PROFILE.email}
+                </a>
                 <CopyEmailButton />
               </div>
               <div>
                 {t.contact.linkGithub}{"  "}
-                <span style={{ color: "var(--cyan)" }}>{PROFILE.github}</span>
+                <a
+                  href={`https://${PROFILE.github}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => trackEvent("outbound_github")}
+                  style={{ color: "var(--cyan)", textDecoration: "none" }}
+                >
+                  {PROFILE.github}
+                </a>
               </div>
               <div>
                 {t.contact.linkLi}
                 {"      "}
-                <span style={{ color: "var(--cyan)" }}>{PROFILE.linkedin}</span>
+                <a
+                  href={`https://${PROFILE.linkedin}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => trackEvent("outbound_linkedin")}
+                  style={{ color: "var(--cyan)", textDecoration: "none" }}
+                >
+                  {PROFILE.linkedin}
+                </a>
               </div>
               <div>
                 {t.contact.linkBlog}
                 {"    "}
-                <span style={{ color: "var(--cyan)" }}>cobos.io/blog</span>
+                {/* next/link (not <a>): internal route, so client-side nav
+                 * avoids a full reload; onClick tracking still fires. */}
+                <Link
+                  href="/blog"
+                  onClick={() => trackEvent("contact_blog_click")}
+                  style={{ color: "var(--cyan)", textDecoration: "none" }}
+                >
+                  cobos.io/blog
+                </Link>
               </div>
             </div>
           </div>

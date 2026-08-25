@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../../lib/i18n/locale-context";
+import { trackEvent } from "../../lib/analytics";
 import {
   CloudTopology,
   IsoCloud,
@@ -491,10 +492,23 @@ export function Hero({ mobile }: { mobile: boolean }) {
               {dict.hero.subhead}
             </p>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <a href="#work" className="btn-primary" data-magnetic>
+              {/* onClick fires alongside the hash navigation (no
+               * preventDefault) — the CTA still works with JS disabled. */}
+              <a
+                href="#work"
+                className="btn-primary"
+                data-magnetic
+                onClick={() => trackEvent("cta_view_work")}
+              >
                 {dict.hero.cta}
               </a>
-              <a href="#contact" className="btn-secondary mono" data-magnetic style={{ fontFamily: "var(--font-jetbrains-mono)" }}>
+              <a
+                href="#contact"
+                className="btn-secondary mono"
+                data-magnetic
+                style={{ fontFamily: "var(--font-jetbrains-mono)" }}
+                onClick={() => trackEvent("cta_contact")}
+              >
                 {dict.hero.ctaContact}
               </a>
             </div>

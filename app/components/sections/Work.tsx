@@ -2,6 +2,7 @@
 
 import { pick, PROJECTS } from "../portfolio-data";
 import { useLocale, useT } from "../../lib/i18n/locale-context";
+import { trackEvent } from "../../lib/analytics";
 import { Reveal } from "../cinematic/Reveal";
 import { Section, SectionHeader, spotlightMove } from "../chrome/primitives";
 
@@ -71,6 +72,10 @@ function WorkCard({
   const glow =
     p.accent === "violet" ? "rgba(124,58,237,.6)" : "rgba(0,212,255,.6)";
   const href = p.href ?? `https://${p.url}`;
+  // One handler for all three outbound surfaces of the card (title, URL,
+  // CTA) — `saas` is the project slug, so enkiflow/getdecant/connver stay
+  // separable in the dashboard. Fires alongside the real navigation.
+  const onOutbound = () => trackEvent("outbound_saas", { saas: p.slug });
   return (
     <Reveal fill delayMs={pi * 80}>
       <div
@@ -118,6 +123,7 @@ function WorkCard({
                   href={href}
                   target="_blank"
                   rel="noreferrer"
+                  onClick={onOutbound}
                   style={{ color: "inherit", textDecoration: "none" }}
                 >
                   {p.name}
@@ -139,6 +145,7 @@ function WorkCard({
                   href={href}
                   target="_blank"
                   rel="noreferrer"
+                  onClick={onOutbound}
                   style={{
                     color: "inherit",
                     textDecoration: "none",
@@ -165,6 +172,7 @@ function WorkCard({
                 target="_blank"
                 rel="noreferrer"
                 className="tap mono"
+                onClick={onOutbound}
                 style={{
                   display: "flex",
                   alignItems: "center",
