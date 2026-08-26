@@ -164,13 +164,15 @@ function analyzePods(items) {
       (pod.status.containerStatuses ?? []).length > 0 &&
       (pod.status.containerStatuses ?? []).every((cs) => cs.ready);
     if (allReady) agg.ready++;
-    for (const cs of pod.status.containerStatuses ?? [])
+    let podRestarts = 0;
+    for (const cs of pod.status.containerStatuses ?? []) {
       agg.restarting += cs.restartCount || 0;
+      podRestarts = Math.max(podRestarts, cs.restartCount || 0);
+    }
 
     if (problem) {
-      const entry = { ns, pod: name, reason: problem };
-      agg.failing.push(entry);
-      failing.push(entry);
+      agg.failing.push({ ns, pod: name, reason: problem, restarts: podRestarts });
+      failing.push({ ns, pod: name, reason: problem, restarts: podRestarts });
     }
   }
   return { generatedAt: new Date().toISOString(), namespaces, failing };

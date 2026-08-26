@@ -22,6 +22,8 @@ export type SentinelFailing = {
   ns: string;
   pod: string;
   reason: string;
+  /** restartCount of the worst container in the pod at snapshot time */
+  restarts?: number;
 };
 
 export type NamespaceHealth = {

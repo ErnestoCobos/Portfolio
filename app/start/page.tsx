@@ -502,11 +502,15 @@ export default async function StartPage() {
                   return (
                     <li
                       key={ns}
-                      className="mono"
-                      title={
-                        health.failing.map((f) => `${f.pod}: ${f.reason}`).join("\n") ||
-                        undefined
-                      }
+                      className={`mono start-wl${bad ? " is-bad" : ""}`}
+                      tabIndex={0}
+                      aria-label={`${label}: ${
+                        bad
+                          ? health.failing
+                              .map((f) => `${f.pod}, ${f.reason}`)
+                              .join("; ")
+                          : `${health.ready} de ${health.pods} pods listos`
+                      }`}
                       style={{
                         display: "flex",
                         alignItems: "baseline",
@@ -549,15 +553,46 @@ export default async function StartPage() {
                           {health.ready}/{health.pods} pods
                         </span>
                       )}
+                      {/* hover/focus popup — error detail without leaving the page */}
+                      <span className="start-wl-pop" role="tooltip">
+                        <span className="start-wl-pop-head">
+                          {label} · {bad ? "fallo activo" : "nominal"}
+                        </span>
+                        {bad ? (
+                          health.failing.map((f) => (
+                            <span className="start-wl-pop-line" key={f.pod}>
+                              <span className="start-wl-pop-pod">{f.pod}</span>
+                              <span>{shortReason(f.reason)}</span>
+                              {typeof f.restarts === "number" && f.restarts > 0 && (
+                                <span className="start-wl-pop-meta">
+                                  ↻ {f.restarts} restarts
+                                </span>
+                              )}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="start-wl-pop-line">
+                            {health.ready}/{health.pods} pods ready · sin fallos
+                          </span>
+                        )}
+                        <span className="start-wl-pop-meta">
+                          ns {ns} · muestreo 15s
+                        </span>
+                      </span>
                     </li>
                   );
                 })}
                 {otherNs.length > 0 && (
                   <li
-                    className="mono"
-                    title={otherFailing
-                      .map((f) => `${f.ns}/${f.pod}: ${f.reason}`)
-                      .join("\n")}
+                    className={`mono start-wl start-wl-sys${
+                      otherFailing.length > 0 ? " is-warn" : ""
+                    }`}
+                    tabIndex={0}
+                    aria-label={`sistema: ${otherPods} pods${
+                      otherFailing.length > 0
+                        ? `, ${otherFailing.length} con fallo`
+                        : ", sin fallos"
+                    }`}
                     style={{
                       display: "flex",
                       alignItems: "baseline",
@@ -587,6 +622,30 @@ export default async function StartPage() {
                       {otherPods} pods
                       {otherFailing.length > 0 &&
                         ` · ${otherFailing.length} con fallo`}
+                    </span>
+                    <span className="start-wl-pop" role="tooltip">
+                      <span className="start-wl-pop-head">
+                        sistema · {otherFailing.length > 0 ? "revisar" : "nominal"}
+                      </span>
+                      {otherFailing.length > 0 ? (
+                        otherFailing.map((f) => (
+                          <span className="start-wl-pop-line" key={`${f.ns}/${f.pod}`}>
+                            <span className="start-wl-pop-pod">
+                              {f.ns}/{f.pod}
+                            </span>
+                            <span>{shortReason(f.reason)}</span>
+                            {typeof f.restarts === "number" && f.restarts > 0 && (
+                              <span className="start-wl-pop-meta">
+                                ↻ {f.restarts} restarts
+                              </span>
+                            )}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="start-wl-pop-line">
+                          {otherPods} pods · sin fallos
+                        </span>
+                      )}
                     </span>
                   </li>
                 )}

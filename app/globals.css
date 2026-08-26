@@ -908,6 +908,108 @@ html.start-intro-boot #start-scene {
   color: var(--cyan);
 }
 
+/* ─── start.cobos.io · workloads hover popup ────────────────── */
+
+/* Pure-CSS tooltip for the sertoma.k8s rows: hover (or focus — rows are
+   tabbable) reveals a console-glass card above the row with the failing
+   pod, reason and restart count. Server-rendered: zero client JS. */
+.start-wl {
+  position: relative;
+  cursor: default;
+}
+.start-wl-pop {
+  position: absolute;
+  bottom: calc(100% + 9px);
+  left: -4px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 250px;
+  max-width: 330px;
+  padding: 10px 12px;
+  background: rgba(4, 6, 12, 0.94);
+  border: 1px solid rgba(91, 227, 216, 0.28);
+  box-shadow:
+    0 14px 44px -14px rgba(0, 0, 0, 0.85),
+    0 0 0 1px rgba(91, 227, 216, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  text-align: left;
+  opacity: 0;
+  transform: translateY(5px);
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.start-wl.is-bad .start-wl-pop {
+  border-color: rgba(255, 95, 87, 0.4);
+  box-shadow:
+    0 14px 44px -14px rgba(0, 0, 0, 0.85),
+    0 0 24px -6px rgba(255, 95, 87, 0.15);
+}
+.start-wl.is-warn .start-wl-pop {
+  border-color: rgba(245, 194, 107, 0.4);
+}
+.start-wl:hover .start-wl-pop,
+.start-wl:focus-visible .start-wl-pop,
+.start-wl:focus-within .start-wl-pop {
+  opacity: 1;
+  transform: translateY(0);
+}
+/* the little tail connecting popup to row */
+.start-wl-pop::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 18px;
+  border: 6px solid transparent;
+  border-top-color: rgba(91, 227, 216, 0.28);
+}
+.start-wl.is-bad .start-wl-pop::after {
+  border-top-color: rgba(255, 95, 87, 0.4);
+}
+.start-wl.is-warn .start-wl-pop::after {
+  border-top-color: rgba(245, 194, 107, 0.4);
+}
+.start-wl-pop-head {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  border-bottom: 1px solid rgba(91, 227, 216, 0.14);
+  padding-bottom: 5px;
+  margin-bottom: 2px;
+}
+.start-wl.is-bad .start-wl-pop-head {
+  color: #ff5f57;
+  border-bottom-color: rgba(255, 95, 87, 0.18);
+}
+.start-wl.is-warn .start-wl-pop-head {
+  color: #f5c26b;
+  border-bottom-color: rgba(245, 194, 107, 0.18);
+}
+.start-wl-pop-line {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 11px;
+  color: var(--fg);
+}
+.start-wl-pop-pod {
+  color: #ff8a84;
+  font-weight: 600;
+}
+.start-wl-pop-meta {
+  font-size: 10px;
+  color: var(--meta);
+}
+@media (prefers-reduced-motion: reduce) {
+  .start-wl-pop {
+    transition: opacity 0.01s;
+    transform: none;
+  }
+}
+
 /* ════════════════════════════════════════════════════════════ */
 /* ─── cobos.io · cinematic layer ────────────────────────────── */
 /* Scroll reveals, one-shot intro boot, CSS-only hero orbit,     */
