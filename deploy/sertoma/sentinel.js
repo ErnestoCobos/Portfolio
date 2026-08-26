@@ -189,18 +189,21 @@ async function poll() {
 }
 
 function send(res, code, body) {
-  const payload = JSON.stringify(body);
+  // HEAD requests (UptimeRobot's default probe) get routing + status but
+  // no payload — a 405 here would read as "down" to the monitors.
+  const isHead = res.req?.method === "HEAD";
   res.writeHead(code, {
     "content-type": "application/json",
     "cache-control": "no-store",
   });
-  res.end(payload);
+  res.end(isHead ? undefined : JSON.stringify(body));
 }
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, "http://localhost");
+  const method = req.method === "HEAD" ? "GET" : req.method;
   try {
-    if (req.method !== "GET") return send(res, 405, { ok: false });
+    if (method !== "GET") return send(res, 405, { ok: false });
 
     if (url.pathname === "/healthz") {
       return send(res, 200, {
