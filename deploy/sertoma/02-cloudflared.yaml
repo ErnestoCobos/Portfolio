@@ -1,0 +1,82 @@
+# Cloudflare Tunnel — exposes the sentinel through sertoma.cobos.io.
+#
+# Locally-managed tunnel: config.yml (this file) declares the ingress, so
+# no Zero Trust dashboard config is needed. Credentials live in a Secret,
+# applied out-of-band from ~/.cloudflared/<tunnel-id>.json (never commit).
+#
+#   kubectl -n monitoring create secret generic cloudflared-creds \
+#     --from-file=credentials.json=~/.cloudflared/<tunnel-id>.json
+#
+# No ingress controller exists on this cluster by design: cloudflared
+# dials the sentinel Service directly (cluster-local DNS), keeping the
+# exposed surface to exactly three routes.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared-config
+  namespace: monitoring
+data:
+  config.yaml: |
+    tunnel: 3ebfca50-dccf-43c0-ab42-babf571726d7
+    credentials-file: /etc/cloudflared/credentials.json
+    metrics: 0.0.0.0:2000
+    no-autoupdate: true
+    ingress:
+      - hostname: sertoma.cobos.io
+        service: http://sentinel.monitoring.svc.cluster.local:80
+      - service: http_status:404
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: monitoring
+  labels:
+    app: cloudflared
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloudflared
+  template:
+    metadata:
+      labels:
+        app: cloudflared
+    spec:
+      containers:
+      - name: cloudflared
+        image: cloudflare/cloudflared:latest
+        args:
+        - tunnel
+        - --config
+        - /etc/cloudflared/config.yaml
+        - run
+        livenessProbe:
+          httpGet:
+            path: /ready
+            port: 2000
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            memory: 96Mi
+        volumeMounts:
+        - name: config
+          mountPath: /etc/cloudflared/config.yaml
+          subPath: config.yaml
+          readOnly: true
+        - name: creds
+          mountPath: /etc/cloudflared/credentials.json
+          subPath: credentials.json
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: cloudflared-config
+      - name: creds
+        secret:
+          secretName: cloudflared-creds

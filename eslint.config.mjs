@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Cluster infrastructure, not app code (CommonJS node scripts).
+    "deploy/**",
   ]),
 ]);
 

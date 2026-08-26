@@ -1,0 +1,83 @@
+# Sentinel — k8s health agent for start.cobos.io monitoring.
+#
+# The JS lives in a ConfigMap built from the real file (single source of
+# truth in git), applied before this manifest:
+#   kubectl -n monitoring create configmap sentinel-script \
+#     --from-file=sentinel.js --dry-run=client -o yaml | kubectl apply -f -
+#
+# Secrets are applied out-of-band (never committed):
+#   kubectl -n monitoring create secret generic sentinel-secrets \
+#     --from-literal=STATUS_TOKEN="$(openssl rand -hex 24)"
+#
+# Probe note: BOTH probes hit /healthz on purpose. If readiness used /ready,
+# a broken workload would evict this pod from the Service endpoints → the
+# tunnel would die too → UptimeRobot would double-alert and we'd lose the
+# per-project status JSON exactly when we need it most.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sentinel
+  namespace: monitoring
+  labels:
+    app: sentinel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sentinel
+  template:
+    metadata:
+      labels:
+        app: sentinel
+    spec:
+      serviceAccountName: sentinel-ro
+      containers:
+      - name: sentinel
+        image: node:22-alpine
+        command: ["node", "/app/sentinel.js"]
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: STATUS_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: sentinel-secrets
+              key: STATUS_TOKEN
+        - name: IGNORE_READY_NS
+          value: "arc-runners"
+        livenessProbe:
+          httpGet: { path: /healthz, port: 8080 }
+          initialDelaySeconds: 5
+          periodSeconds: 15
+        readinessProbe:
+          httpGet: { path: /healthz, port: 8080 }
+          initialDelaySeconds: 3
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            memory: 96Mi
+        volumeMounts:
+        - name: script
+          mountPath: /app
+          readOnly: true
+      volumes:
+      - name: script
+        configMap:
+          name: sentinel-script
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sentinel
+  namespace: monitoring
+spec:
+  selector:
+    app: sentinel
+  ports:
+  - port: 80
+    targetPort: 8080

@@ -3,6 +3,11 @@ import { SessionTimer } from "./SessionTimer";
 import { StartClock } from "./StartClock";
 import { StartSearch } from "./StartSearch";
 import { getSpaceData } from "./spaceData";
+import {
+  getSertomaStatus,
+  shortReason,
+  type NamespaceHealth,
+} from "./sertomaData";
 import { StartIntro } from "./StartIntro";
 import { DecodeText } from "./DecodeText";
 import { CountUp } from "./CountUp";
@@ -47,23 +52,32 @@ const GROUPS: LinkGroup[] = [
   },
 ];
 
+/** Status targets. Plain domains get `https://` + root; full URLs pass
+ * through as-is (sertoma's sentinel only answers specific routes, and
+ * its 404 on / would read as "down" — so we ping /healthz directly). */
 const STATUS_TARGETS = [
   "enkiflow.com",
   "getdecant.com",
   "voltaflow.com",
   "connver.com",
   "cobos.io",
+  "https://sertoma.cobos.io/healthz",
 ] as const;
+
+const targetUrl = (t: string) => (t.startsWith("http") ? t : `https://${t}`);
+const targetLabel = (t: string) =>
+  t.replace(/^https?:\/\//, "").split("/")[0] ?? t;
 
 type Status = { domain: string; ok: boolean; code: number; ms: number };
 
 /** HEAD-ping each domain server-side. A domain that rejects HEAD gets one
  * GET retry before being marked down. Never throws — a failing target must
  * render as a red dot, not take the page down with it. */
-async function checkStatus(domain: string): Promise<Status> {
+async function checkStatus(target: string): Promise<Status> {
+  const url = targetUrl(target);
   const started = performance.now();
   const attempt = (method: "HEAD" | "GET") =>
-    fetch(`https://${domain}`, {
+    fetch(url, {
       method,
       redirect: "follow",
       signal: AbortSignal.timeout(5000),
@@ -73,20 +87,31 @@ async function checkStatus(domain: string): Promise<Status> {
     let res = await attempt("HEAD");
     if (res.status === 405 || res.status === 501) res = await attempt("GET");
     return {
-      domain,
+      domain: targetLabel(target),
       ok: res.ok,
       code: res.status,
       ms: Math.round(performance.now() - started),
     };
   } catch {
     return {
-      domain,
+      domain: targetLabel(target),
       ok: false,
       code: 0,
       ms: Math.round(performance.now() - started),
     };
   }
 }
+
+/** namespace → project mapping for the sertoma workloads panel. Lives in
+ * the frontend on purpose: rename/relabel projects without touching the
+ * cluster. Namespaces without an entry (kube-system, arc-*, …) collapse
+ * into the aggregate "sistema" line. */
+const NS_PROJECTS: Record<string, { label: string }> = {
+  enkiflow: { label: "enkiflow.com" },
+  getdecant: { label: "getdecant.com" },
+  voltaflow: { label: "voltaflow.com" },
+  connver: { label: "connver.com" },
+};
 
 type PanelStyle = React.CSSProperties & { "--sweep-delay"?: string };
 
@@ -174,11 +199,23 @@ const DILATION = (() => {
 const DILATION_STR = `×${DILATION.toFixed(4)}`;
 
 export default async function StartPage() {
-  const [statuses, space] = await Promise.all([
+  const [statuses, space, sertoma] = await Promise.all([
     Promise.all(STATUS_TARGETS.map(checkStatus)),
     getSpaceData(),
+    getSertomaStatus(),
   ]);
   const allUp = statuses.every((s) => s.ok);
+
+  // Workloads del cluster: proyectos mapeados primero; todo lo demás
+  // (kube-system, arc-*, gpu-*, …) se colapsa en una línea agregada.
+  const projectRows = Object.entries(NS_PROJECTS)
+    .map(([ns, p]) => ({ ns, label: p.label, health: sertoma?.namespaces[ns] }))
+    .filter((r): r is typeof r & { health: NamespaceHealth } => !!r.health);
+  const otherNs = sertoma
+    ? Object.entries(sertoma.namespaces).filter(([ns]) => !(ns in NS_PROJECTS))
+    : [];
+  const otherPods = otherNs.reduce((acc, [, h]) => acc + h.pods, 0);
+  const otherFailing = otherNs.flatMap(([, h]) => h.failing);
 
   return (
     <main
@@ -426,6 +463,137 @@ export default async function StartPage() {
               </li>
             ))}
           </ul>
+          {/* SERTOMA — workloads del cluster casero (vía sentinel/túnel) */}
+          <div style={{ marginTop: 14 }}>
+            <div
+              className="mono"
+              style={{
+                color: "var(--violet)",
+                fontSize: 11,
+                letterSpacing: "0.1em",
+                marginBottom: 6,
+              }}
+            >
+              sertoma.k8s
+            </div>
+            {!sertoma ? (
+              <div className="mono" style={{ fontSize: 12, color: "#f5c26b" }}>
+                ▲ sin señal del cluster
+              </div>
+            ) : (
+              <ul
+                style={{
+                  listStyle: "none",
+                  margin: 0,
+                  padding: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 7,
+                }}
+              >
+                {projectRows.length === 0 && (
+                  <li className="mono" style={{ fontSize: 12, color: "var(--muted)" }}>
+                    sin workloads de proyectos desplegados
+                  </li>
+                )}
+                {projectRows.map(({ ns, label, health }) => {
+                  const bad = health.failing.length > 0;
+                  const first = health.failing[0];
+                  return (
+                    <li
+                      key={ns}
+                      className="mono"
+                      title={
+                        health.failing.map((f) => `${f.pod}: ${f.reason}`).join("\n") ||
+                        undefined
+                      }
+                      style={{
+                        display: "flex",
+                        alignItems: "baseline",
+                        gap: 10,
+                        fontSize: 12,
+                      }}
+                    >
+                      <span
+                        aria-hidden
+                        style={{
+                          color: bad ? "#ff5f57" : "#5BE3D8",
+                          textShadow: bad ? "none" : "0 0 8px rgba(91,227,216,.8)",
+                        }}
+                      >
+                        ●
+                      </span>
+                      <span style={{ color: "var(--fg)" }}>{label}</span>
+                      <span
+                        aria-hidden
+                        style={{
+                          flex: 1,
+                          borderBottom: "1px dotted rgba(91,227,216,.18)",
+                          transform: "translateY(-3px)",
+                        }}
+                      />
+                      {bad ? (
+                        <span
+                          style={{
+                            color: "#ff5f57",
+                            fontSize: 11,
+                            textAlign: "right",
+                          }}
+                        >
+                          {first.pod} · {shortReason(first.reason)}
+                          {health.failing.length > 1 &&
+                            ` +${health.failing.length - 1}`}
+                        </span>
+                      ) : (
+                        <span style={{ color: "var(--muted)", fontSize: 11 }}>
+                          {health.ready}/{health.pods} pods
+                        </span>
+                      )}
+                    </li>
+                  );
+                })}
+                {otherNs.length > 0 && (
+                  <li
+                    className="mono"
+                    title={otherFailing
+                      .map((f) => `${f.ns}/${f.pod}: ${f.reason}`)
+                      .join("\n")}
+                    style={{
+                      display: "flex",
+                      alignItems: "baseline",
+                      gap: 10,
+                      fontSize: 11,
+                      marginTop: 2,
+                    }}
+                  >
+                    <span
+                      aria-hidden
+                      style={{
+                        color: otherFailing.length > 0 ? "#f5c26b" : "var(--meta)",
+                      }}
+                    >
+                      ●
+                    </span>
+                    <span>sistema</span>
+                    <span
+                      aria-hidden
+                      style={{
+                        flex: 1,
+                        borderBottom: "1px dotted rgba(91,227,216,.12)",
+                        transform: "translateY(-3px)",
+                      }}
+                    />
+                    <span style={{ color: "var(--meta)" }}>
+                      {otherPods} pods
+                      {otherFailing.length > 0 &&
+                        ` · ${otherFailing.length} con fallo`}
+                    </span>
+                  </li>
+                )}
+              </ul>
+            )}
+          </div>
+
           <div
             className="mono"
             aria-hidden

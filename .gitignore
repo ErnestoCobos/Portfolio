@@ -70,3 +70,7 @@ content/blog/.modified-dates.json
 .codex/
 .copilot/
 .claude/local/
+
+# playwright transient output
+/test-results/
+playwright-report/
