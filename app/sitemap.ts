@@ -91,6 +91,23 @@ export default function sitemap(): MetadataRoute.Sitemap {
     });
   }
 
+  // /customer/tarzzo/mesa — anteproyecto que solo existe en español, como un
+  // post monolingüe: declara su propio x-default y NO anuncia un
+  // alterno /en que devolvería 404.
+  const MESA_ES = `${SITE}/customer/tarzzo/mesa`;
+  out.push({
+    url: MESA_ES,
+    lastModified: now,
+    changeFrequency: "yearly",
+    priority: 0.7,
+    alternates: {
+      languages: {
+        "es-MX": MESA_ES,
+        "x-default": MESA_ES,
+      },
+    },
+  });
+
   // Per-post entries. We build a slug→locales map first so each entry
   // can announce its alternates without re-scanning posts.
   const slugLocales = new Map<string, Locale[]>();

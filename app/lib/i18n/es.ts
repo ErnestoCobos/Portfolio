@@ -170,9 +170,11 @@ export const es = {
     action: (n: number) => `./projects.list (${n})`,
     headline: ["Lo que estoy ", "construyendo", " ahora."],
     blurb:
-      "Tres SaaS en producción, un servidor MCP open-source y dos repos que sostienen la operación. Seis frentes activos.",
+      "Tres SaaS en producción, un servidor MCP open-source, dos repos que sostienen la operación y un anteproyecto de hardware. Siete frentes activos.",
     visit: "Visitar sitio",
     repo: "Ver repositorio",
+    /** CTA de las tarjetas que apuntan a una ruta de este mismo sitio. */
+    open: "Leer el anteproyecto",
   },
 
   experience: {

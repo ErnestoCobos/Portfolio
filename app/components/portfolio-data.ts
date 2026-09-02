@@ -101,6 +101,10 @@ export type Project = {
   blurb: Bilingual;
   accent: "cyan" | "violet";
   repo?: string;
+  /** Ruta dentro de este mismo sitio (empieza con "/"). La tarjeta
+   *  navega con next/link y sin `target="_blank"`: abrir una pestaña
+   *  nueva hacia tu propio sitio es ruido, no cortesía. */
+  internal?: boolean;
 };
 
 export const PROJECTS: Project[] = [
@@ -164,6 +168,19 @@ export const PROJECTS: Project[] = [
       en: "Local-first IaC repo with official Terraform, Cloudflare DNS, HCP Terraform, Vercel, Supabase, and secrets via 1Password — powering cobos.io, enkiflow, and getdecant.",
     },
     accent: "cyan",
+  },
+  {
+    slug: "mesa-terrazo",
+    name: "Mesa de terrazo",
+    url: "cobos.io/customer/tarzzo/mesa",
+    href: "/customer/tarzzo/mesa",
+    internal: true,
+    tag: { es: "Anteproyecto · hardware + diseño", en: "Design study · hardware" },
+    blurb: {
+      es: "Una mesa de terrazo atravesada por 874 fibras ópticas que ilumina y detecta por el mismo hilo: el infrarrojo sale por la punta, rebota en lo que pongas encima y regresa. Anteproyecto completo — óptica, electrónica, firmware, presupuesto y la prueba que decide si se construye.",
+      en: "A terrazzo table threaded with 874 optical fibers that both lights and senses through the same strand: infrared exits the tip, bounces off whatever you set down, and comes back. Full design study — optics, electronics, firmware, budget, and the bench test that decides whether it gets built. Written in Spanish.",
+    },
+    accent: "violet",
   },
   {
     slug: "portfolio",

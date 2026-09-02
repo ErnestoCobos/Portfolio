@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { pick, PROJECTS } from "../portfolio-data";
 import { useLocale, useT } from "../../lib/i18n/locale-context";
 import { trackEvent } from "../../lib/analytics";
@@ -55,6 +56,32 @@ export function Work({ mobile }: { mobile: boolean }) {
   );
 }
 
+/** The three link surfaces of a card (title, URL, CTA) share one
+ * destination and must agree on how they open it. Internal projects
+ * route inside this site — next/link, no `target="_blank"`, because a
+ * new tab onto your own site is noise; everything else is outbound and
+ * keeps the blank-target + noreferrer pair. Hoisted to module scope so
+ * the component identity is stable across card re-renders. */
+function CardLink({
+  internal,
+  href,
+  children,
+  ...rest
+}: { internal?: boolean; href: string } & React.ComponentProps<"a">) {
+  if (internal) {
+    return (
+      <Link href={href} {...rest}>
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <a href={href} target="_blank" rel="noreferrer" {...rest}>
+      {children}
+    </a>
+  );
+}
+
 /** One Work card. Owns its reveal timing so hooks stay at component top
  * level (no hooks inside .map callbacks). */
 function WorkCard({
@@ -76,6 +103,7 @@ function WorkCard({
   // CTA) — `saas` is the project slug, so enkiflow/getdecant/connver stay
   // separable in the dashboard. Fires alongside the real navigation.
   const onOutbound = () => trackEvent("outbound_saas", { saas: p.slug });
+  const cta = p.internal ? t.work.open : p.repo ? t.work.repo : t.work.visit;
   return (
     <Reveal fill delayMs={pi * 80}>
       <div
@@ -119,15 +147,14 @@ function WorkCard({
                   marginBottom: 10,
                 }}
               >
-                <a
+                <CardLink
+                  internal={p.internal}
                   href={href}
-                  target="_blank"
-                  rel="noreferrer"
                   onClick={onOutbound}
                   style={{ color: "inherit", textDecoration: "none" }}
                 >
                   {p.name}
-                </a>
+                </CardLink>
               </h3>
               <div
                 className="mono"
@@ -140,11 +167,10 @@ function WorkCard({
                   gap: 10,
                 }}
               >
-                <span style={{ color: c }}>↗</span>
-                <a
+                <span style={{ color: c }}>{p.internal ? "→" : "↗"}</span>
+                <CardLink
+                  internal={p.internal}
                   href={href}
-                  target="_blank"
-                  rel="noreferrer"
                   onClick={onOutbound}
                   style={{
                     color: "inherit",
@@ -154,7 +180,7 @@ function WorkCard({
                   }}
                 >
                   {p.url}
-                </a>
+                </CardLink>
               </div>
               <p
                 style={{
@@ -167,10 +193,9 @@ function WorkCard({
               >
                 {pick(p.blurb, locale)}
               </p>
-              <a
+              <CardLink
+                internal={p.internal}
                 href={href}
-                target="_blank"
-                rel="noreferrer"
                 className="tap mono"
                 onClick={onOutbound}
                 style={{
@@ -190,9 +215,9 @@ function WorkCard({
                   letterSpacing: ".02em",
                 }}
               >
-                <span>{p.repo ? t.work.repo : t.work.visit}</span>
+                <span>{cta}</span>
                 <span aria-hidden style={{ fontSize: 14 }}>→</span>
-              </a>
+              </CardLink>
       </div>
     </Reveal>
   );

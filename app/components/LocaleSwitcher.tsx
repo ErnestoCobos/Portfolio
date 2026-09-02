@@ -4,6 +4,10 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { getDictionary, type Locale } from "../lib/i18n";
 
+/** Spanish-only surfaces: written in Spanish, with no English twin.
+ *  `/customer/tarzzo/mesa` is the terrazzo-table design study. */
+const ES_ONLY_ROUTES = new Set(["/customer/tarzzo/mesa"]);
+
 /**
  * Floating language toggle. Sits bottom-right, terminal-styled to match
  * the rest of the operator-console shell: hairline border, mono font,
@@ -58,6 +62,11 @@ export function LocaleSwitcher() {
       window.clearTimeout(stopT);
     };
   }, []);
+
+  // Routes that exist in exactly one language. Offering a toggle there
+  // would link to a URL that doesn't exist, so the chip stands down.
+  // Sits below every hook so the early return can't reorder them.
+  if (ES_ONLY_ROUTES.has(pathname)) return null;
 
   // Derive the active locale from the URL — the prop-from-layout path
   // is stale across client navigation. Pathname IS reactive.

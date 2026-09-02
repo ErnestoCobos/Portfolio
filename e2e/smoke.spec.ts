@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { PROJECTS } from "../app/components/portfolio-data";
 
 test("home loads with title and h1", async ({ page }) => {
   const consoleErrors: { url: string; text: string }[] = [];
@@ -39,9 +40,13 @@ test("no horizontal overflow", async ({ page }) => {
   expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.innerWidth);
 });
 
-test("work section has exactly 6 project cards", async ({ page }) => {
+test("work section renders one card per project", async ({ page }) => {
   await page.goto("/");
-  await expect(page.locator('[data-fs-path^="/work/"]')).toHaveCount(6);
+  // Counted from the data, not a literal: adding a project to PROJECTS
+  // used to fail this test for the wrong reason.
+  await expect(page.locator('[data-fs-path^="/work/"]')).toHaveCount(
+    PROJECTS.length
+  );
 });
 
 test("/en home renders english h1 and /blog lists posts", async ({ page }) => {

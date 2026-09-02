@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 export function useIsMobile(breakpoint = 768) {
   const [mobile, setMobile] = useState(false);
@@ -32,4 +32,27 @@ export function useViewportWidth(fallback = 1440) {
     };
   }, []);
   return w;
+}
+
+/* ─── prefers-reduced-motion ──────────────────────────────────
+ * A media query is an external store, so `useSyncExternalStore` is the
+ * right primitive: no setState-in-effect, no cascading render, and a
+ * mid-session preference flip propagates to every subscriber. The SSR
+ * snapshot is `false` — the motionless build is always the safe one to
+ * render before we know what the visitor asked for. */
+const MOTION_OK = "(prefers-reduced-motion: no-preference)";
+
+function subscribeMotion(onChange: () => void) {
+  const mq = window.matchMedia(MOTION_OK);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+}
+
+/** `true` when the visitor has NOT asked for reduced motion. */
+export function useMotionOk(): boolean {
+  return useSyncExternalStore(
+    subscribeMotion,
+    () => window.matchMedia(MOTION_OK).matches,
+    () => false
+  );
 }

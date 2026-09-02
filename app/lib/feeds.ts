@@ -130,7 +130,10 @@ export function buildLlmsTxt(locale: Locale): string {
   for (const proj of PROJECTS) {
     const tag = pick(proj.tag, locale);
     const blurb = pick(proj.blurb, locale).replace(/\s+/g, " ").trim();
-    lines.push(`- [${proj.name}](${proj.href}): ${tag}. ${blurb}`);
+    // Internal projects carry a site-relative href; llms.txt is consumed
+    // detached from the site, so every URL in it must be absolute.
+    const href = proj.href.startsWith("/") ? `${SITE}${proj.href}` : proj.href;
+    lines.push(`- [${proj.name}](${href}): ${tag}. ${blurb}`);
   }
   lines.push("");
 
